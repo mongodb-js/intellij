@@ -116,5 +116,4 @@ changelog {
     groups.set(listOf("Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"))
     lineSeparator.set("\n")
     combinePreReleases.set(true)
-    sectionUrlBuilder.set(ChangelogSectionUrlBuilder { repositoryUrl, currentVersion, previousVersion, isUnreleased -> "foo" })
 }
