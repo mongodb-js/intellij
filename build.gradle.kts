@@ -2,7 +2,9 @@ import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.cyclonedx.gradle.CycloneDxTask
 
 group = "com.mongodb"
-version = libs.versions.our.plugin
+// This should be bumped when releasing a new version using the versionBump task:
+// ./gradlew versionBump -Pmode={major,minor,patch}
+version="0.0.1"
 
 plugins {
     alias(libs.plugins.versions)
@@ -104,10 +106,40 @@ tasks {
         )
     }
 
+    register("versionBump") {
+        group = "my tasks"
+        description = "Increments the version of the plugin in the catalogue."
+
+        fun generateVersion(): String {
+            val updateMode = rootProject.findProperty("mode") ?: "patch"
+            val (oldMajor, oldMinor, oldPatch) = rootProject.version.toString().split(".").map(String::toInt)
+            var (newMajor, newMinor, newPatch) = arrayOf(oldMajor, oldMinor, 0)
+
+            when (updateMode) {
+                "major" -> newMajor = (oldMajor + 1).also { newMinor = 0 }
+                "minor" -> newMinor = (oldMinor + 1)
+                else -> newPatch = oldPatch + 1
+            }
+            return "$newMajor.$newMinor.$newPatch"
+        }
+        doLast {
+            val newVersion = rootProject.findProperty("exactVersion") ?: generateVersion()
+            val oldContent = buildFile.readText()
+            val newContent = oldContent.replace("""="$version"""", """="$newVersion"""")
+            buildFile.writeText(newContent)
+        }
+    }
+
     register("gitHooks") {
         exec {
             rootProject.file(".git/hooks").mkdirs()
             commandLine("cp", "./gradle/pre-commit", "./.git/hooks")
+        }
+    }
+
+    register("getVersion") {
+        doLast {
+            println(rootProject.version)
         }
     }
 }

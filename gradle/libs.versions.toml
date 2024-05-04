@@ -1,6 +1,4 @@
 [versions]
-# This should be bumped when releasing a new version
-our-plugin="0.0.1"
 # IntelliJ platform dependencies
 intellij-min="2023.1.5"
 intellij-type="IU"

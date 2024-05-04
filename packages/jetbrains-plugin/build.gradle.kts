@@ -1,5 +1,4 @@
 import org.jetbrains.changelog.Changelog
-import org.jetbrains.changelog.ChangelogSectionUrlBuilder
 import org.jetbrains.changelog.date
 
 repositories {
@@ -70,7 +69,7 @@ tasks {
     patchPluginXml {
         sinceBuild.set("231")
         untilBuild.set("241.*")
-        version.set(rootProject.libs.versions.our.plugin)
+        version.set(rootProject.version.toString())
 
         changeNotes.set(provider {
             changelog.renderItem(
@@ -92,16 +91,16 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
-}
 
-tasks.test {
-    jvmArgs = listOf(
-        "--add-opens=java.base/java.lang=ALL-UNNAMED"
-    )
+    test {
+        jvmArgs = listOf(
+            "--add-opens=java.base/java.lang=ALL-UNNAMED"
+        )
+    }
 }
 
 changelog {
-    version.set(rootProject.libs.versions.our.plugin)
+    version.set(rootProject.version.toString())
     path.set(rootProject.file("CHANGELOG.md").canonicalPath)
     header.set(provider { "[${version.get()}] - ${date()}" })
     headerParserRegex.set("""(\d+\.\d+.\d+)""".toRegex())
