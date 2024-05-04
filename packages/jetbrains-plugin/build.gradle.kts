@@ -40,15 +40,25 @@ dependencies {
 }
 
 jmh {
+    benchmarkMode.set(listOf("sample"))
+    iterations.set(10)
+    timeOnIteration.set("6s")
     timeUnit.set("ms")
-    benchmarkMode.set(listOf("ss"))
-    batchSize.set(100)
+
+    warmup.set("10s")
+    warmupIterations.set(3)
+    warmupMode.set("INDI")
+    fork.set(1)
+    threads.set(1)
     failOnError.set(false)
     forceGC.set(true)
+
     humanOutputFile.set(rootProject.layout.buildDirectory.file("reports/jmh/human.txt"))
     resultsFile.set(rootProject.layout.buildDirectory.file("reports/jmh/results.json"))
     resultFormat.set("json")
     profilers.set(listOf("gc"))
+
+    zip64.set(true)
 }
 
 tasks {
