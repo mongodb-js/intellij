@@ -1,0 +1,129 @@
+name: Quality Check
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  catalog-check:
+    name: 'Catalog Updates Check'
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Setup JDK
+          uses: actions/setup-java@v4
+          with:
+            distribution: 'adopt'
+            java-version: '17'
+            cache: 'gradle'
+        - name: Run Dependency Updates
+          run: |
+            ./gradlew dependencyUpdates
+
+  style-check:
+    name: 'Style Check'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+          cache: 'gradle'
+      - name: Run Linter
+        run: |
+          ./gradlew spotlessApply
+
+  unit-tests:
+    name: 'Unit Tests'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+      - name: SBOM Generation
+        run: |
+          ./gradlew test
+
+  cyclonedx-sbom-generation:
+    name: 'SBOM Generation'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+      - name: SBOM Generation
+        run: |
+          ./gradlew cyclonedxBom
+    
+    functional-tests:
+      name: 'Functional & UI Tests'
+      needs:
+        - catalog-check
+        - style-check
+        - unit-tests
+        - cyclonedx-sbom-generation
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Setup JDK
+          uses: actions/setup-java@v4
+        - name: Functional Tests
+          run: |
+            ./gradlew functionalTests
+
+    test-coverage:
+      name: 'Test Coverage'
+      needs:
+        - unit-tests
+        - functional-tests
+      steps:
+        uses: madrapps/jacoco-report@v1.6.1
+        with:
+          paths: |
+            ${{ github.workspace }}/**/build/reports/jacoco/prodNormalDebugCoverage/prodNormalDebugCoverage.xml,
+            ${{ github.workspace }}/**/build/reports/jacoco/**/debugCoverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 70
+          min-coverage-changed-files: 85
+          title: "Coverage Report"
+          update-comment: true
+          continue-on-error: true
+          pass-emoji: "✅"
+          fail-emoji: "🚫"
+
+    fitness-check:
+      name: "Fitness Check"
+      needs:
+        - test-coverage
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Setup JDK
+          uses: actions/setup-java@v4
+        - name: Performance Tests
+          run: |
+            ./gradlew performanceTest
+
+    verify-plugin:
+      name: "Verify Plugin"
+      needs:
+        - fitness-check
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Setup JDK
+          uses: actions/setup-java@v4
+        - name: Verify Plugin
+          run: |
+            ./gradlew ":packages:jetbrains-plugin:runPluginVerifier"

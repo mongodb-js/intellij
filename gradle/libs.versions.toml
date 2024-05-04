@@ -7,11 +7,13 @@ intellij-type="IU"
 intellij-remoteRobot="0.11.22"
 intellij-plugin="1.17.3"
 intellij-testBuild="241.14494.241"
+intellij-changelog-plugin="2.2.0"
 # Other plugin dependencies
 versions-plugin="0.51.0"
 spotless-plugin="6.25.0"
 jmh-plugin="0.7.2"
 diktat-plugin="1.0.1"
+cyclonedx-plugin="1.8.2"
 # Library dependencies
 bson="5.0.0"
 mongodb-driver="4.11.0"
@@ -30,6 +32,8 @@ intellij={ id="org.jetbrains.intellij", version.ref="intellij-plugin" }
 jmh={ id="me.champeau.jmh", version.ref="jmh-plugin" }
 versions={ id="com.github.ben-manes.versions", version.ref="versions-plugin" }
 spotless={ id="com.diffplug.spotless", version.ref="spotless-plugin" }
+cyclonedx={ id="org.cyclonedx.bom", version.ref="cyclonedx-plugin" }
+changelog={ id="org.jetbrains.changelog", version.ref="intellij-changelog-plugin" }
 
 [libraries]
 mongodb-bson={ group="org.mongodb", name="bson", version.ref="bson" }
@@ -59,3 +63,4 @@ buildScript-plugin-kotlin={ group="org.jetbrains.kotlin", name="kotlin-gradle-pl
 buildScript-plugin-ktlint={ group="org.jlleitschuh.gradle", name="ktlint-gradle", version="12.1.0" }
 buildScript-plugin-versions={ group="com.github.ben-manes", name="gradle-versions-plugin", version.ref="versions-plugin" }
 buildScript-plugin-spotless={ group="com.diffplug.spotless", name="spotless-plugin-gradle", version="6.25.0" }
+buildScript-plugin-cyclonedx={ group="org.cyclonedx", name="cyclonedx-gradle-plugin", version.ref="cyclonedx-plugin" }
