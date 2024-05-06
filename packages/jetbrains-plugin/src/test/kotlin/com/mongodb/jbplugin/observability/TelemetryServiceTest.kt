@@ -9,12 +9,13 @@ import org.mockito.kotlin.verify
 internal class TelemetryServiceTest {
     @Test
     fun `sends an identify event when a PluginActivated event is sent`() {
-        val analytics = mock<Analytics>()
-        val service = TelemetryService(analytics)
+        val service = TelemetryService().apply {
+            analytics = mock<Analytics>()
+        }
 
         service.sendEvent(TelemetryEvent.PluginActivated("myUserId"))
 
-        verify(analytics).enqueue(
+        verify(service.analytics).enqueue(
             argThat {
                 build().let {
                     it.userId() == "myUserId" &&

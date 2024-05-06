@@ -6,12 +6,12 @@ import com.segment.analytics.messages.IdentifyMessage
 import com.segment.analytics.messages.TrackMessage
 
 /**
- * @param analytics
+ * This telemetry service is used to send events to Segment. Should be used within
+ * probes, no directly. That is why it's marked as internal.
  */
 @Service
-internal class TelemetryService(private val analytics: Analytics) {
-    @Suppress("unused")
-    constructor() : this(Analytics.builder("").build())
+internal class TelemetryService {
+    internal var analytics: Analytics = Analytics.builder("KEY").build()
 
     fun sendEvent(event: TelemetryEvent) {
         val message = when (event) {

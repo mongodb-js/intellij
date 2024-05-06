@@ -1,7 +1,7 @@
 package com.mongodb.jbplugin.observability.probe
 
 import com.intellij.openapi.application.PermanentInstallationID
-import com.mongodb.jbplugin.observability.LogMessage
+import com.mongodb.jbplugin.mockProject
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import org.junit.jupiter.api.Test
@@ -16,7 +16,7 @@ internal class PluginActivatedProbeTest {
         permanentInstallationId.`when`<String> { PermanentInstallationID.get() }.thenReturn("123456")
 
         val telemetryService = mock<TelemetryService>()
-        val probe = PluginActivatedProbe(telemetryService, LogMessage())
+        val probe = PluginActivatedProbe(mockProject(telemetryService = telemetryService))
 
         probe.pluginActivated()
         verify(telemetryService).sendEvent(TelemetryEvent.PluginActivated("123456"))
