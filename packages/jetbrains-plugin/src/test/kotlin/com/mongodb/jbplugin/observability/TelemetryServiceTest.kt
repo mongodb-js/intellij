@@ -8,7 +8,7 @@ import org.mockito.kotlin.verify
 
 internal class TelemetryServiceTest {
     @Test
-    fun `sends an identify plugin when a plugin activated event is sent`() {
+    fun `sends an identify event when a plugin activated event is sent`() {
         val analytics = mock<Analytics>()
         val service = TelemetryService(analytics)
 
