@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.observability.probe
 
 import com.intellij.openapi.application.PermanentInstallationID
+import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import org.junit.jupiter.api.Test
@@ -12,7 +13,7 @@ internal class PluginActivatedProbeTest {
     @Test
     fun `should send a PluginActivated event`() {
         val telemetryService = mock<TelemetryService>()
-        val probe = PluginActivatedProbe(telemetryService)
+        val probe = PluginActivatedProbe(telemetryService, LogMessage())
 
         val userId = "1234567"
         Mockito.mockStatic(PermanentInstallationID::class.java).use { scope ->
