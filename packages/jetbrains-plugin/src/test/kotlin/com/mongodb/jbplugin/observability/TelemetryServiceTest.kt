@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.observability
 
-import com.intellij.database.util.common.meets
 import com.segment.analytics.Analytics
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.argThat
@@ -17,7 +16,7 @@ internal class TelemetryServiceTest {
 
         verify(analytics).enqueue(
             argThat {
-                build().meets {
+                build().let {
                     it.userId() == "myUserId" &&
                             it.type().name == "identify"
                 }
