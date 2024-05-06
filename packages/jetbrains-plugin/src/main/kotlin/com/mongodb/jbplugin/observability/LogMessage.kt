@@ -12,7 +12,10 @@ package com.mongodb.jbplugin.observability
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.util.SystemInfo
 
 /**
  * @param gson
@@ -44,5 +47,32 @@ internal class LogMessageBuilder(private val gson: Gson, message: String) {
 internal class LogMessage {
     private val gson = GsonBuilder().generateNonExecutableJson().disableJdkUnsafe().create()
 
-    fun message(key: String): LogMessageBuilder = LogMessageBuilder(gson, key)
+    fun message(key: String): LogMessageBuilder {
+        val userId = getOrDefault("<userId>") { PermanentInstallationID.get() }
+        val osName = getOrDefault("<osName>") { SystemInfo.getOsNameAndVersion() }
+        val arch = getOrDefault("<arch>") { SystemInfo.OS_ARCH }
+        val jvmVendor = getOrDefault("<jvmVendor>") { SystemInfo.JAVA_VENDOR }
+        val jvmVersion = getOrDefault("<jvmVersion>") { SystemInfo.JAVA_VERSION }
+        val buildVersion = getOrDefault("<fullVersion>") { ApplicationInfo.getInstance().fullVersion }
+        val applicationName = getOrDefault("<fullApplicationName>") {
+            ApplicationInfo.getInstance().fullApplicationName
+        }
+
+        return LogMessageBuilder(gson, key)
+            .put("userId", userId)
+            .put("os", osName)
+            .put("arch", arch)
+            .put("jvmVendor", jvmVendor)
+            .put("jvmVersion", jvmVersion)
+            .put("buildVersion", buildVersion)
+            .put("ide", applicationName)
+    }
+
+    private fun <T> getOrDefault(default: T, supplier: () -> T): T {
+        return try {
+            supplier()
+        } catch (ex: Throwable) {
+            return default
+        }
+    }
 }

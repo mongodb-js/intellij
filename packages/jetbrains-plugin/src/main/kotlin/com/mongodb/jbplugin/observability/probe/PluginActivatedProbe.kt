@@ -30,7 +30,6 @@ class PluginActivatedProbe internal constructor(
 
         logger.info(
             logMessage?.message("Plugin activated.")
-                ?.put("userId", userId)
                 ?.build()
         )
     }
