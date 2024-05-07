@@ -70,8 +70,6 @@ subprojects {
                 isScanForTestClasses = true
             }
 
-            forkEvery = 0
-
             jvmArgs(listOf(
                 "--add-opens=java.base/java.lang=ALL-UNNAMED"
             ))
@@ -88,7 +86,8 @@ subprojects {
 
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
-            diktat().configFile(rootProject.layout.projectDirectory.file("gradle/diktat.yml").asFile.absolutePath)
+            diktat()
+                .configFile(rootProject.layout.projectDirectory.file("gradle/diktat.yml").asFile.absolutePath)
         }
     }
 }

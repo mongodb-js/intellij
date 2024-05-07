@@ -69,11 +69,6 @@ class RuntimeInformationServiceTest {
             PermanentInstallationID.get()
         }.thenThrow(RuntimeException("Oops, I did it again."))
 
-        val appInfoInstance = mock<ApplicationInfo>().apply {
-            `when`(this.fullApplicationName).thenReturn("Test Application")
-            `when`(this.fullVersion).thenReturn("1984.1.1")
-        }
-
         val service = RuntimeInformationService()
 
         val runtimeInfo = service.get()

@@ -172,6 +172,11 @@ jobs:
       - name: Performance Tests
         run: |
           ./gradlew --quiet --console=plain ":packages:jetbrains-plugin:jmh"
+      - name: JMH Benchmark Action
+        uses: kitlangton/jmh-benchmark-action@main
+        with:
+          jmh-output-path: build/reports/jmh/results.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   verify-plugin:
     name: "Verify Plugin"
