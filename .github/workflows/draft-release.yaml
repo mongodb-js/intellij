@@ -76,7 +76,7 @@ jobs:
           cache: 'gradle'
       - name: Run All Tests
         run: |
-          ./gradlew --quiet --console=plain "test" ":packages:jetbrains-plugin:test"
+          ./gradlew --quiet --console=plain "unit-test" ":packages:jetbrains-plugin:test"
 
       - name: "Maximize build space"
         uses: easimon/maximize-build-space@master
