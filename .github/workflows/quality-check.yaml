@@ -65,6 +65,9 @@ jobs:
         if: success() || failure() # always run even if the previous step fails
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+      - name: Generate Coverage Report
+        run: |
+          ./gradlew --quiet --console=plain "jacocoTestReport"
       - uses: actions/upload-artifact@v4
         name: Upload Unit Test Coverage
         with:
@@ -112,6 +115,9 @@ jobs:
         if: success() || failure() # always run even if the previous step fails
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+      - name: Generate Coverage Report
+        run: |
+          ./gradlew --quiet --console=plain "jacocoTestReport"
       - uses: actions/upload-artifact@v4
         name: Upload Functional Test Coverage
         with:
@@ -136,9 +142,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
-      - name: Generate Coverage Report
-        run: |
-          ./gradlew --quiet --console=plain "jacocoTestReport"
       - uses: madrapps/jacoco-report@v1.6.1
         with:
           paths: "**/build/reports/jacoco/test/jacocoTestReport.xml"
