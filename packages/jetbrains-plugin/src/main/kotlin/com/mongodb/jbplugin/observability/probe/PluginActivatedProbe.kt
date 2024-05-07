@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.observability.probe
 
-import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
@@ -12,7 +11,9 @@ import com.mongodb.jbplugin.observability.TelemetryService
 private val logger: Logger = logger<PluginActivatedProbe>()
 
 /**
- * @param project
+ * This probe is emitted when the plugin is activated (started).
+ *
+ * @param project Project where the plugin is set up
  */
 @Service
 class PluginActivatedProbe(private val project: Project) {
@@ -20,10 +21,7 @@ class PluginActivatedProbe(private val project: Project) {
         val telemetry = project.getService(TelemetryService::class.java)
         val logMessage = project.getService(LogMessage::class.java)
 
-        val userId = PermanentInstallationID.get()
-        telemetry.sendEvent(
-            TelemetryEvent.PluginActivated(userId)
-        )
+        telemetry.sendEvent(TelemetryEvent.PluginActivated)
 
         logger.info(
             logMessage.message("Plugin activated.")

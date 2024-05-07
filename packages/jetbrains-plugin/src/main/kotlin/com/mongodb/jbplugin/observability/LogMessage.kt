@@ -12,10 +12,8 @@ package com.mongodb.jbplugin.observability
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.intellij.openapi.application.ApplicationInfo
-import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.project.Project
 
 /**
  * @param gson
@@ -42,30 +40,25 @@ internal class LogMessageBuilder(private val gson: Gson, message: String) {
  *     log.info(logMessage?.message("My message").put("someOtherProp", 25).build())
  * }
  * ```
+ *
+ * @param project
  */
 @Service
-internal class LogMessage {
+internal class LogMessage(private val project: Project) {
     private val gson = GsonBuilder().generateNonExecutableJson().disableJdkUnsafe().create()
 
     fun message(key: String): LogMessageBuilder {
-        val userId = getOrDefault("<userId>") { PermanentInstallationID.get() }
-        val osName = getOrDefault("<osName>") { SystemInfo.getOsNameAndVersion() }
-        val arch = getOrDefault("<arch>") { SystemInfo.OS_ARCH }
-        val jvmVendor = getOrDefault("<jvmVendor>") { SystemInfo.JAVA_VENDOR }
-        val jvmVersion = getOrDefault("<jvmVersion>") { SystemInfo.JAVA_VERSION }
-        val buildVersion = getOrDefault("<fullVersion>") { ApplicationInfo.getInstance().fullVersion }
-        val applicationName = getOrDefault("<fullApplicationName>") {
-            ApplicationInfo.getInstance().fullApplicationName
-        }
+        val runtimeInformationService = project.getService(RuntimeInformationService::class.java)
+        val runtimeInformation = runtimeInformationService.get()
 
         return LogMessageBuilder(gson, key)
-            .put("userId", userId)
-            .put("os", osName)
-            .put("arch", arch)
-            .put("jvmVendor", jvmVendor)
-            .put("jvmVersion", jvmVersion)
-            .put("buildVersion", buildVersion)
-            .put("ide", applicationName)
+            .put("userId", runtimeInformation.userId)
+            .put("os", runtimeInformation.osName)
+            .put("arch", runtimeInformation.arch)
+            .put("jvmVendor", runtimeInformation.jvmVendor)
+            .put("jvmVersion", runtimeInformation.jvmVersion)
+            .put("buildVersion", runtimeInformation.buildVersion)
+            .put("ide", runtimeInformation.applicationName)
     }
 
     private fun <T> getOrDefault(default: T, supplier: () -> T): T {

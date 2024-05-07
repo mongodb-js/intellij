@@ -21,21 +21,15 @@ internal enum class TelemetryProperty(val publicName: String)
  * TelemetryService.
  *
  * @property name Name of the event
- * @property userId Identifier of the user emitting an event
  * @property properties Map of fields sent to Segment.
  * @see TelemetryService
  */
 internal sealed class TelemetryEvent(
     internal val name: String,
-    internal val userId: String,
     internal val properties: Map<TelemetryProperty, Any>
 ) {
-    /**
-     * @property jbId
-     */
-    internal data class PluginActivated(val jbId: String) : TelemetryEvent(
+    internal data object PluginActivated : TelemetryEvent(
         name = "plugin-activated",
-        userId = jbId,
         properties = emptyMap()
     )
 }

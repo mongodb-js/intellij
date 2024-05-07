@@ -4,3 +4,7 @@
   enabled: false
 - name: GENERIC_VARIABLE_WRONG_DECLARATION
   enabled: false
+- name: TOO_MANY_PARAMETERS
+  enabled: true
+  configuration:
+    maxParameterListSize: '10'
