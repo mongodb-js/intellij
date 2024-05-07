@@ -109,7 +109,7 @@ tasks {
     }
 
     register("versionBump") {
-        group = "my tasks"
+        group = "versioning"
         description = "Increments the version of the plugin."
 
         fun generateVersion(): String {

@@ -10,6 +10,7 @@ repositories {
 plugins {
     alias(libs.plugins.intellij)
     alias(libs.plugins.jmh)
+    alias(libs.plugins.jmhreport)
     alias(libs.plugins.changelog)
     alias(libs.plugins.cyclonedx)
 }
@@ -56,12 +57,12 @@ dependencies {
 }
 
 jmh {
-    benchmarkMode.set(listOf("sample"))
+    benchmarkMode.set(listOf("thrpt"))
     iterations.set(10)
     timeOnIteration.set("6s")
-    timeUnit.set("ms")
+    timeUnit.set("s")
 
-    warmup.set("10s")
+    warmup.set("1s")
     warmupIterations.set(3)
     warmupMode.set("INDI")
     fork.set(1)
@@ -75,6 +76,11 @@ jmh {
     profilers.set(listOf("gc"))
 
     zip64.set(true)
+}
+
+jmhReport {
+    jmhResultPath = rootProject.layout.buildDirectory.file("reports/jmh/results.json").get().asFile.absolutePath
+    jmhReportOutput = rootProject.layout.buildDirectory.dir("reports/jmh/").get().asFile.absolutePath
 }
 
 tasks {
