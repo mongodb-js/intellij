@@ -28,6 +28,7 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "com.github.ben-manes.versions")
     apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "jacoco")
 
     repositories {
         mavenCentral()
@@ -56,6 +57,14 @@ subprojects {
 
         withType<Test> {
             useJUnitPlatform()
+        }
+
+        withType<JacocoReport> {
+            reports {
+                xml.required = true
+                csv.required = false
+                html.outputLocation = layout.buildDirectory.dir("reports/jacocoHtml")
+            }
         }
     }
 
