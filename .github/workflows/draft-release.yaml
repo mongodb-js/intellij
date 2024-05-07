@@ -20,17 +20,19 @@ on:
 
 jobs:
   prepare-release:
+    name: "Prepare Release"
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup JDK
-          uses: actions/setup-java@v4
-          with:
-            distribution: 'adopt'
-            java-version: '17'
-            cache: 'gradle'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+          cache: 'gradle'
       - name: Determine Next Version
         shell: bash
         env:
@@ -80,7 +82,7 @@ jobs:
           ./gradlew ":packages:jetbrains-plugin:runPluginVerifier"
       - name: Generate SBOM
         run: |
-          ./gradlew cyclonedxBom
+          ./gradlew ":packages:jetbrains-plugin:cyclonedxBom"
 
       - name: Create Draft Release
         shell: bash

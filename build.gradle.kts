@@ -1,5 +1,4 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
-import org.cyclonedx.gradle.CycloneDxTask
 
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
@@ -8,7 +7,6 @@ version="0.0.1"
 
 plugins {
     alias(libs.plugins.versions)
-    alias(libs.plugins.cyclonedx)
 }
 
 buildscript {
@@ -20,7 +18,6 @@ buildscript {
         classpath(libs.buildScript.plugin.ktlint)
         classpath(libs.buildScript.plugin.versions)
         classpath(libs.buildScript.plugin.spotless)
-        classpath(libs.buildScript.plugin.cyclonedx)
     }
 }
 
@@ -30,7 +27,6 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "com.github.ben-manes.versions")
     apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "org.cyclonedx.bom")
 
     repositories {
         mavenCentral()
@@ -73,16 +69,6 @@ tasks.named<DependencyUpdatesTask>("dependencyUpdates").configure {
     outputFormatter = "json"
     outputDir = "build/reports"
     reportfileName = "dependencyUpdates"
-}
-
-tasks.named<CycloneDxTask>("cyclonedxBom").configure {
-    setIncludeConfigs(listOf("runtimeClasspath"))
-    setProjectType("application")
-    setSchemaVersion("1.5")
-    setDestination(project.file("build/reports"))
-    setOutputName("cyclonedx-sbom")
-    setOutputFormat("json")
-    setIncludeLicenseText(true)
 }
 
 tasks {

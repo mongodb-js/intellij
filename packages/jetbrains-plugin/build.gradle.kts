@@ -1,3 +1,4 @@
+import org.cyclonedx.gradle.CycloneDxTask
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
 
@@ -10,6 +11,7 @@ plugins {
     alias(libs.plugins.intellij)
     alias(libs.plugins.jmh)
     alias(libs.plugins.changelog)
+    alias(libs.plugins.cyclonedx)
 }
 
 intellij {
@@ -17,6 +19,16 @@ intellij {
     type.set(libs.versions.intellij.type) // Target IDE Platform
 
     plugins.set(listOf("com.intellij.java", "com.intellij.database"))
+}
+
+tasks.named<CycloneDxTask>("cyclonedxBom").configure {
+    setIncludeConfigs(listOf("runtimeClasspath", "compileClasspath"))
+    setProjectType("application")
+    setSchemaVersion("1.5")
+    setDestination(project.file("build/reports"))
+    setOutputName("cyclonedx-sbom")
+    setOutputFormat("json")
+    setIncludeLicenseText(true)
 }
 
 dependencies {
