@@ -192,6 +192,8 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
           cache: 'gradle'
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
       - name: Verify Plugin
         run: |
           ./gradlew ":packages:jetbrains-plugin:runPluginVerifier"
