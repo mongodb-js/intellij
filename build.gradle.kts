@@ -1,4 +1,5 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
@@ -37,7 +38,8 @@ subprojects {
         val compileOnly by configurations
 
         compileOnly(rootProject.libs.kotlin.stdlib)
-        testImplementation(rootProject.libs.testing.jupiter)
+        testImplementation(rootProject.libs.testing.jupiter.engine)
+        testImplementation(rootProject.libs.testing.jupiter.vintage.engine)
         testImplementation(rootProject.libs.testing.mockito.core)
         testImplementation(rootProject.libs.testing.mockito.kotlin)
     }
@@ -80,21 +82,9 @@ tasks {
         )
     }
 
-    register("functionalTests") {
-        dependsOn(
-            project(":packages:jetbrains-plugin").tasks["test"]
-        )
-    }
-
-    register("performanceTest") {
-        dependsOn(
-            project(":packages:jetbrains-plugin").tasks["jmh"]
-        )
-    }
-
     register("versionBump") {
         group = "my tasks"
-        description = "Increments the version of the plugin in the catalogue."
+        description = "Increments the version of the plugin."
 
         fun generateVersion(): String {
             val updateMode = rootProject.findProperty("mode") ?: "patch"

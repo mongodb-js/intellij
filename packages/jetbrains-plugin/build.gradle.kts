@@ -22,7 +22,7 @@ intellij {
 }
 
 tasks.named<CycloneDxTask>("cyclonedxBom").configure {
-    setIncludeConfigs(listOf("runtimeClasspath", "compileClasspath"))
+    setIncludeConfigs(listOf("compileClasspath"))
     setProjectType("application")
     setSchemaVersion("1.5")
     setDestination(project.file("build/reports"))

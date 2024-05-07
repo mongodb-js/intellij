@@ -43,7 +43,9 @@ kotlin-coroutines-swing={ group="org.jetbrains.kotlinx", name="kotlinx-coroutine
 
 segment={ group="com.segment.analytics.java", name="analytics", version.ref="segment" }
 
-testing-jupiter={ group="org.junit.jupiter", name="junit-jupiter", version.ref="jupiter" }
+testing-jupiter-engine={ group="org.junit.jupiter", name="junit-jupiter-engine", version.ref="jupiter" }
+testing-jupiter-vintage-engine={ group="org.junit.vintage", name="junit-vintage-engine", version.ref="jupiter" }
+
 testing-mockito-core={ group="org.mockito", name="mockito-core", version.ref="mockito" }
 testing-mockito-kotlin={ group="org.mockito.kotlin", name="mockito-kotlin", version.ref="mockito-kotlin" }
 testing-remoteRobot={ group="com.intellij.remoterobot", name="remote-robot", version.ref="intellij-remoteRobot"}
