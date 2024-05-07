@@ -43,12 +43,12 @@ jobs:
           VERSION_BUMP=${{ github.event.inputs.versionBump }}
 
           if [[ "$VERSION_BUMP" == "major" || "$VERSION_BUMP" == "minor" || "$VERSION_BUMP" == "patch" ]]; then
-            ./gradlew versionBump -Pmode="$VERSION_BUMP"
+            ./gradlew --quiet --console=plain versionBump -Pmode="$VERSION_BUMP"
           else
-            ./gradlew versionBump -PexactVersion="${{ github.event.inputs.exactVersion }}"
+            ./gradlew --quiet --console=plain versionBump -PexactVersion="${{ github.event.inputs.exactVersion }}"
           fi
 
-          NEXT_VERSION=$(./gradlew --console=plain --quiet getVersion)
+          NEXT_VERSION=$(./gradlew --quiet --console=plain getVersion)
           echo "RELEASE_TAG=v${NEXT_VERSION}" >> "$GITHUB_ENV"
 
       - name: Validate release tag
@@ -76,10 +76,11 @@ jobs:
           cache: 'gradle'
       - name: Run All Tests
         run: |
-          ./gradlew test functionalTests
+          ./gradlew --quiet --console=plain "test" ":packages:jetbrains-plugin:test"
       - name: Verify Plugin
         run: |
           ./gradlew ":packages:jetbrains-plugin:runPluginVerifier"
+
       - name: Generate SBOM
         run: |
           ./gradlew ":packages:jetbrains-plugin:cyclonedxBom"

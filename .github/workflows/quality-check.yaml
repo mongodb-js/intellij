@@ -65,6 +65,7 @@ jobs:
         if: success() || failure() # always run even if the previous step fails
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+          update_check: true
 
   cyclonedx-sbom-generation:
     name: 'SBOM Generation'
@@ -107,6 +108,7 @@ jobs:
         if: success() || failure() # always run even if the previous step fails
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+          update_check: true
 
   test-coverage:
     name: 'Test Coverage'
@@ -128,8 +130,7 @@ jobs:
           ./gradlew --quiet --console=plain "jacocoTestReport"
       - uses: madrapps/jacoco-report@v1.6.1
         with:
-          paths: |
-            ${{ github.workspace }}/**/build/reports/jacoco/**/jacocoTestReport.xml
+          paths: "**/build/reports/jacoco/test/jacocoTestReport.xml"
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 70
           min-coverage-changed-files: 85
