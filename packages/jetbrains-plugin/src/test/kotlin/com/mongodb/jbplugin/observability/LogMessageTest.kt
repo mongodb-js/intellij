@@ -5,7 +5,7 @@ import com.mongodb.jbplugin.mockProject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class LogMessageTest {
+open class LogMessageTest {
     private val gson: Gson = Gson()
 
     @Test

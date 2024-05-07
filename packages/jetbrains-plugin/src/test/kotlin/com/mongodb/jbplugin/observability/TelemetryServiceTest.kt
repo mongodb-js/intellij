@@ -29,4 +29,33 @@ internal class TelemetryServiceTest {
             }
         )
     }
+
+    @Test
+    fun `sends a new connection event as a tracking event`() {
+        val mockRuntimeInfo = mockRuntimeInformationService(userId = "654321")
+        val service = TelemetryService(mockProject(
+            runtimeInformationService = mockRuntimeInfo
+        )).apply {
+            analytics = mock<Analytics>()
+        }
+
+        service.sendEvent(TelemetryEvent.NewConnection(
+            isAtlas = true,
+            isLocalhost = false,
+            isEnterprise = true,
+            isGenuine = true,
+            nonGenuineServerName = null,
+            serverOsFamily = null,
+            version = "8.0"
+        ))
+
+        verify(service.analytics).enqueue(
+            argThat {
+                build().let {
+                    it.userId() == "654321" &&
+                            it.type().name == "track"
+                }
+            }
+        )
+    }
 }

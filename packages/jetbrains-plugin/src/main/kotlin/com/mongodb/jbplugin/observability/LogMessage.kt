@@ -43,7 +43,7 @@ internal class LogMessageBuilder(private val gson: Gson, message: String) {
  *
  * @param project
  */
-@Service
+@Service(Service.Level.PROJECT)
 internal class LogMessage(private val project: Project) {
     private val gson = GsonBuilder().generateNonExecutableJson().disableJdkUnsafe().create()
 
@@ -59,13 +59,5 @@ internal class LogMessage(private val project: Project) {
             .put("jvmVersion", runtimeInformation.jvmVersion)
             .put("buildVersion", runtimeInformation.buildVersion)
             .put("ide", runtimeInformation.applicationName)
-    }
-
-    private fun <T> getOrDefault(default: T, supplier: () -> T): T {
-        return try {
-            supplier()
-        } catch (ex: Throwable) {
-            return default
-        }
     }
 }

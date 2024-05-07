@@ -12,7 +12,7 @@ import com.segment.analytics.messages.TrackMessage
  *
  * @param project
  */
-@Service
+@Service(Service.Level.PROJECT)
 internal class TelemetryService(private val project: Project) {
     internal var analytics: Analytics = Analytics.builder("KEY").build()
 

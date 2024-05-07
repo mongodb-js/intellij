@@ -45,8 +45,8 @@ dependencies {
     jmh(libs.testing.jmh.annotationProcessor)
     jmh(libs.testing.jmh.generatorByteCode)
 
-    testImplementation(libs.testing.intellij.ideImpl)
-    testImplementation(libs.testing.intellij.coreUi)
+    testCompileOnly(libs.testing.intellij.ideImpl)
+    testCompileOnly(libs.testing.intellij.coreUi)
 
     testImplementation(libs.testing.remoteRobot)
     testImplementation(libs.testing.remoteRobotDeps.remoteFixtures)
@@ -102,12 +102,6 @@ tasks {
 
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
-    }
-
-    test {
-        jvmArgs = listOf(
-            "--add-opens=java.base/java.lang=ALL-UNNAMED"
-        )
     }
 }
 

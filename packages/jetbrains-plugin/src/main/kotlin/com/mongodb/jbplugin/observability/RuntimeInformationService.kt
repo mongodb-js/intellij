@@ -60,9 +60,9 @@ class RuntimeInformationService {
         applicationName
     )
 
-    private fun <T> getOrDefault(default: T, supplier: () -> T): T {
+    private fun <T> getOrDefault(default: T, supplier: () -> T?): T {
         return try {
-            supplier()
+            supplier() ?: default
         } catch (ex: Throwable) {
             return default
         }

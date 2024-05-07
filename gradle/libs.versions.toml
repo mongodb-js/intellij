@@ -60,7 +60,6 @@ testing-jmh-annotationProcessor={ group="org.openjdk.jmh", name="jmh-generator-a
 testing-jmh-generatorByteCode={ group="org.openjdk.jmh", name="jmh-generator-bytecode", version.ref="jmh" }
 
 buildScript-plugin-kotlin={ group="org.jetbrains.kotlin", name="kotlin-gradle-plugin", version="1.9.23" }
-buildScript-plugin-ktlint={ group="org.jlleitschuh.gradle", name="ktlint-gradle", version="12.1.0" }
 buildScript-plugin-versions={ group="com.github.ben-manes", name="gradle-versions-plugin", version.ref="versions-plugin" }
 buildScript-plugin-spotless={ group="com.diffplug.spotless", name="spotless-plugin-gradle", version="6.25.0" }
 buildScript-plugin-cyclonedx={ group="org.cyclonedx", name="cyclonedx-gradle-plugin", version.ref="cyclonedx-plugin" }

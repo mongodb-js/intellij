@@ -1,5 +1,6 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
@@ -8,15 +9,16 @@ version="0.0.1"
 
 plugins {
     alias(libs.plugins.versions)
+    id("jacoco")
 }
 
 buildscript {
     repositories {
         maven("https://plugins.gradle.org/m2/")
     }
+
     dependencies {
         classpath(libs.buildScript.plugin.kotlin)
-        classpath(libs.buildScript.plugin.ktlint)
         classpath(libs.buildScript.plugin.versions)
         classpath(libs.buildScript.plugin.spotless)
     }
@@ -25,7 +27,6 @@ buildscript {
 subprojects {
     apply(plugin = "java")
     apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "com.github.ben-manes.versions")
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "jacoco")
@@ -57,6 +58,23 @@ subprojects {
 
         withType<Test> {
             useJUnitPlatform()
+
+            extensions.configure(JacocoTaskExtension::class) {
+                isJmx = true
+                includes = listOf("com.mongodb.*")
+                isIncludeNoLocationClasses = true
+            }
+
+            jacoco {
+                toolVersion = "0.8.12"
+                isScanForTestClasses = true
+            }
+
+            forkEvery = 0
+
+            jvmArgs(listOf(
+                "--add-opens=java.base/java.lang=ALL-UNNAMED"
+            ))
         }
 
         withType<JacocoReport> {

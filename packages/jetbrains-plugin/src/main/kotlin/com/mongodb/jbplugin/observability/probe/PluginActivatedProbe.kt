@@ -15,7 +15,7 @@ private val logger: Logger = logger<PluginActivatedProbe>()
  *
  * @param project Project where the plugin is set up
  */
-@Service
+@Service(Service.Level.PROJECT)
 class PluginActivatedProbe(private val project: Project) {
     fun pluginActivated() {
         val telemetry = project.getService(TelemetryService::class.java)
