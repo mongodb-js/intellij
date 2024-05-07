@@ -76,7 +76,7 @@ tasks.named<DependencyUpdatesTask>("dependencyUpdates").configure {
 tasks {
     register("test") {
         dependsOn(
-            subprojects.filter { it.project.name != ":packages:jetbrains-plugin"}.map {
+            subprojects.filter { it.project.name != "jetbrains-plugin"}.map {
                 it.tasks["test"]
             }
         )
