@@ -1,0 +1,2 @@
+# intellij
+MongoDB for IntelliJ
