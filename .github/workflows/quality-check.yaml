@@ -140,6 +140,7 @@ jobs:
           continue-on-error: true
           pass-emoji: "✅"
           fail-emoji: "🚫"
+          debug-mode: true
 
   fitness-check:
     name: "Fitness Check"
