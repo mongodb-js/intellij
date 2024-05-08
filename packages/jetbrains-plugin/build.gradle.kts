@@ -106,7 +106,7 @@ changelog {
     headerParserRegex.set("""(\d+\.\d+.\d+)""".toRegex())
     introduction.set(
         """
-        MongoDB Plugin that does a lot of features. This is markdown.
+        MongoDB plugin for IntelliJ IDEA.
         """.trimIndent()
     )
     itemPrefix.set("-")

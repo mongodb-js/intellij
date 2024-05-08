@@ -1,13 +1,10 @@
 # Changelog
 
-MongoDB Plugin that does a lot of features. This is markdown.
+MongoDB plugin for IntelliJ IDEA.
 
 ## [Unreleased]
 
 ### Added
-
-- Something Added
-- New Feature :happy:
 
 ### Changed
 

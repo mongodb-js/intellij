@@ -33,11 +33,14 @@ internal class LogMessageBuilder(private val gson: Gson, message: String) {
 /**
  * This class will be injected in probes to build log messages. Usually like:
  * ```kt
- * @Service
- * class MyProbe(private val logMessage: LogMessage?) {
+ * @Service(Service.Level.PROJECT)
+ * class MyProbe(private val project: Project) {
  *  ...
- *  fun somethingProbed() {
- *     log.info(logMessage?.message("My message").put("someOtherProp", 25).build())
+ *     fun somethingProbed() {
+ *        val logMessage = project.getService(LogMessage::class.java)
+ *        log.info(logMessage.message("My message").put("someOtherProp", 25).build())
+ *     }
+ *  ...
  * }
  * ```
  *
