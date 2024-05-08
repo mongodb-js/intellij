@@ -23,6 +23,10 @@ jobs:
     name: "Prepare Release"
     runs-on: ubuntu-latest
     steps:
+      - name: "Maximize build space"
+        uses: easimon/maximize-build-space@master
+        with:
+          build-mount-path: "/home"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -78,9 +82,6 @@ jobs:
         run: |
           ./gradlew --quiet --console=plain "unit-test" ":packages:jetbrains-plugin:test"
 
-      - name: "Maximize build space"
-        uses: easimon/maximize-build-space@master
-
       - name: Verify Plugin
         run: |
           ./gradlew ":packages:jetbrains-plugin:runPluginVerifier"
@@ -88,6 +89,12 @@ jobs:
       - name: Generate SBOM
         run: |
           ./gradlew ":packages:jetbrains-plugin:cyclonedxBom"
+
+      - uses: actions/upload-artifact@v4
+        name: Upload SBOM
+        with:
+          name: sbom
+          path: "build/reports/cyclonedx-sbom.json"
 
       - name: Create Draft Release
         shell: bash

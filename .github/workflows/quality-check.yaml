@@ -89,6 +89,11 @@ jobs:
       - name: SBOM Generation
         run: |
           ./gradlew --quiet --console=plain ":packages:jetbrains-plugin:cyclonedxBom"
+      - uses: actions/upload-artifact@v4
+        name: Upload SBOM
+        with:
+          name: sbom
+          path: "build/reports/cyclonedx-sbom.json"
     
   functional-tests:
     name: 'Functional & UI Tests'
