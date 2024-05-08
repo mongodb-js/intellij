@@ -6,6 +6,9 @@ MongoDB Plugin that does a lot of features. This is markdown.
 
 ### Added
 
+- Something Added
+- New Feature :happy:
+
 ### Changed
 
 ### Deprecated
@@ -15,9 +18,3 @@ MongoDB Plugin that does a lot of features. This is markdown.
 ### Fixed
 
 ### Security
-
-## [0.0.1] - 2024-05-08
-
-### Added
-
-- Something Added
