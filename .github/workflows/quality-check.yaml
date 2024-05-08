@@ -167,10 +167,6 @@ jobs:
     needs:
       - fitness-check
     steps:
-      - name: "Maximize build space"
-        uses: easimon/maximize-build-space@master
-        with:
-          build-mount-path: "/home"
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup JDK
@@ -181,4 +177,4 @@ jobs:
           cache: 'gradle'
       - name: Verify Plugin
         run: |
-          ./gradlew ":packages:jetbrains-plugin:runPluginVerifier"
+          ./gradlew ":packages:jetbrains-plugin:verifyPlugin"

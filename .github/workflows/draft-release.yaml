@@ -23,10 +23,6 @@ jobs:
     name: "Prepare Release"
     runs-on: ubuntu-latest
     steps:
-      - name: "Maximize build space"
-        uses: easimon/maximize-build-space@master
-        with:
-          build-mount-path: "/home"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -88,7 +84,7 @@ jobs:
 
       - name: Verify Plugin
         run: |
-          ./gradlew ":packages:jetbrains-plugin:runPluginVerifier"
+          ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
 
       - name: Patch Changelog
         run: |
