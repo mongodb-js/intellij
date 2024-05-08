@@ -1,5 +1,6 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
 
 repositories {
     maven("https://www.jetbrains.com/intellij-repository/releases/")
@@ -89,6 +90,7 @@ tasks {
     }
 
     signPlugin {
+        outputArchiveFile=project.layout.buildDirectory.file("distributions/jetbrains-plugin.zip").get()
         certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
         privateKey.set(System.getenv("PRIVATE_KEY"))
         password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
