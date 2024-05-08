@@ -16,7 +16,7 @@ object BuildInformation {
     private val properties: Properties = Properties().also {
         it.load(BuildInformation::class.java.getResourceAsStream("/build.properties"))
     }
-    val pluginVersion = properties["pluginVersion"]?.toString()
-    val driverVersion = properties["driverVersion"]?.toString()
-    val segmentApiKey = properties["segmentApiKey"]?.toString()
+    val pluginVersion = properties["pluginVersion"]!!.toString()
+    val driverVersion = properties["driverVersion"]!!.toString()
+    val segmentApiKey = properties["segmentApiKey"]!!.toString()
 }
