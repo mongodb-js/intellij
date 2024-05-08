@@ -1,6 +1,6 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 repositories {
     maven("https://www.jetbrains.com/intellij-repository/releases/")
@@ -73,6 +73,17 @@ jmhReport {
 }
 
 tasks {
+    register("buildProperties", WriteProperties::class) {
+        destinationFile.set(project.layout.buildDirectory.file("classes/kotlin/main/build.properties"))
+        property("pluginVersion", rootProject.version)
+        property("driverVersion", rootProject.libs.versions.mongodb.driver.get())
+        property("segmentApiKey", System.getenv("SEGMENT_API_KEY") ?: "<none>")
+    }
+
+    withType<KotlinCompile>() {
+        dependsOn("buildProperties")
+    }
+
     patchPluginXml {
         sinceBuild.set("231")
         untilBuild.set("241.*")
