@@ -92,7 +92,7 @@ jobs:
       - name: Create Draft Release
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.SVC_DEVTOOLSBOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
           echo Creating draft release for: "${RELEASE_TAG}"
