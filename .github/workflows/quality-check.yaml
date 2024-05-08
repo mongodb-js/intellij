@@ -13,6 +13,22 @@ permissions:
   checks: write
 
 jobs:
+  changelog-check:
+    name: 'Changelog Check'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Changed files
+        uses: tj-actions/verify-changed-files@v20
+        id: verify-changelog-files
+        with:
+          files: |
+           CHANGELOG.md
+      - uses: mheap/github-action-required-labels@v1
+        if: steps.verify-changed-files.outputs.files_changed == 'false'
+        with:
+          mode: minimum
+          count: 1
+          labels: "no release notes"
   catalog-check:
     name: 'Catalog Updates Check'
     runs-on: ubuntu-latest
