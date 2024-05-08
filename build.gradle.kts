@@ -100,7 +100,7 @@ tasks.named<DependencyUpdatesTask>("dependencyUpdates").configure {
 }
 
 tasks {
-    register("unit-test") {
+    register("unitTest") {
         dependsOn(
             subprojects.filter {
                 it.project.name != "jetbrains-plugin" &&

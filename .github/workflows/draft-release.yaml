@@ -71,7 +71,7 @@ jobs:
 
       - name: Run All Tests
         run: |
-          ./gradlew "unit-test" ":packages:jetbrains-plugin:test"
+          ./gradlew "unitTest" ":packages:jetbrains-plugin:test"
 
       - name: Patch Plugin XML
         run: |
