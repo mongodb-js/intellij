@@ -37,12 +37,18 @@ internal sealed class TelemetryEvent(
     internal val name: String,
     internal val properties: Map<TelemetryProperty, Any>
 ) {
+    /**
+     * Represents the event that is emitted when the plugin is started.
+     */
     internal data object PluginActivated : TelemetryEvent(
         name = "plugin-activated",
         properties = emptyMap()
     )
 
     /**
+     * Represents the event that is emitted when the plugin connects
+     * to a cluster.
+     *
      * @param isAtlas
      * @param isLocalhost
      * @param isEnterprise

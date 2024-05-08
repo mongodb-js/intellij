@@ -21,7 +21,6 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-
       - name: Publish into JetBrains Marketplace
         shell: bash
         env:
