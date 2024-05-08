@@ -35,9 +35,8 @@ jobs:
           
           git checkout main
           git merge ${{ github.ref_name }}
-          # git push origin main
-          
-          
+          git push origin main
+
           ./gradlew ":packages:jetbrains-plugin:signPlugin" $(./gradlew ":packages:jetbrains-plugin:signPlugin" --dry-run | awk '/^:/ { print "-x" $1 }' | sed '$ d')
           ./gradlew ":packages:jetbrains-plugin:publishPlugin" $(./gradlew ":packages:jetbrains-plugin:publishPlugin" --dry-run | awk '/^:/ { print "-x" $1 }' | sed '$ d')
           
