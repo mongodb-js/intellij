@@ -79,7 +79,7 @@ jobs:
           cache: 'gradle'
       - name: Run All Tests
         run: |
-          ./gradlew --quiet --console=plain "unit-test" ":packages:jetbrains-plugin:test"
+          ./gradlew "unit-test" ":packages:jetbrains-plugin:test"
 
       - name: Patch Plugin XML
         run: |
@@ -92,6 +92,10 @@ jobs:
       - name: Patch Changelog
         run: |
           ./gradlew ":packages:jetbrains-plugin:patchChangelog"
+
+      - name: Build Plugin
+        run: |
+          ./gradlew ":packages:jetbrains-plugin:buildPlugin"
 
       - name: Create Draft Release
         shell: bash
