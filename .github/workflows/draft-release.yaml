@@ -92,7 +92,7 @@ jobs:
       - name: Create Draft Release
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.SVC_DEVTOOLSBOT_TOKEN }}
         run: |
           set -e
           echo Creating draft release for: "${RELEASE_TAG}"
@@ -101,7 +101,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           git add .
-          git commit --no-verify -m "Commit to hold release ${RELEASE_TAG}"
+          git commit --no-verify -m "Release ${RELEASE_TAG}"
           git tag ${RELEASE_TAG}
           git push origin ${RELEASE_TAG}
           
