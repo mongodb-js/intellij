@@ -69,14 +69,6 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'adopt'
-          java-version: '17'
-          cache: 'gradle'
       - name: Run All Tests
         run: |
           ./gradlew "unit-test" ":packages:jetbrains-plugin:test"
