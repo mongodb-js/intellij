@@ -1,0 +1,37 @@
+name: Publish Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  prepare-release:
+    name: "Prepare Release"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+          cache: 'gradle'
+
+
+      - name: Publish into JetBrains Marketplace
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          
+          git checkout main
+          git merge ${{ github.ref_name }}
+          git push origin main
+          
+          # Do Release
+          

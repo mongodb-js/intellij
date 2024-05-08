@@ -73,27 +73,6 @@ jobs:
         with:
           name: unit-test-coverage
           path: "**/build/reports/jacoco/test/jacocoTestReport.xml"
-
-  cyclonedx-sbom-generation:
-    name: 'SBOM Generation'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'adopt'
-          java-version: '17'
-          cache: 'gradle'
-      - name: SBOM Generation
-        run: |
-          ./gradlew --quiet --console=plain ":packages:jetbrains-plugin:cyclonedxBom"
-      - uses: actions/upload-artifact@v4
-        name: Upload SBOM
-        with:
-          name: sbom
-          path: "build/reports/cyclonedx-sbom.json"
     
   functional-tests:
     name: 'Functional & UI Tests'
@@ -102,7 +81,6 @@ jobs:
       - catalog-check
       - style-check
       - unit-tests
-      - cyclonedx-sbom-generation
     steps:
       - name: Checkout
         uses: actions/checkout@v4
