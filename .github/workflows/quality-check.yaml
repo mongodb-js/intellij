@@ -217,6 +217,8 @@ jobs:
         with:
           jmh-output-path: build/reports/jmh/results.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail-on-regression: true
+          failure-threshold: -5
 
   verify-plugin:
     name: "Verify Plugin"
