@@ -103,6 +103,7 @@ jobs:
           
           git add .
           git commit --no-verify -m "Commit to hold release ${RELEASE_TAG}"
+          git tag ${RELEASE_TAG}
           git push origin ${RELEASE_TAG}
           
           GIT_HASH=$(git rev-parse HEAD)
@@ -113,7 +114,7 @@ jobs:
           gh release create "${RELEASE_TAG}" \
             --title "${RELEASE_TAG}" \
             --notes "${CHANGELOG}" \
-            --target ${GIT_HASH} \
+            --target ${RELEASE_TAG} \
             --draft \
             packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
          
