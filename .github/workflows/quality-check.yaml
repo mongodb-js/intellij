@@ -17,6 +17,8 @@ jobs:
     name: 'Changelog Check'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Verify Changed files
         uses: tj-actions/verify-changed-files@v20
         id: verify-changelog-files
