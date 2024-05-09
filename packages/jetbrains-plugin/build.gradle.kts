@@ -112,7 +112,7 @@ tasks {
             "beta" -> listOf("beta")
             else -> listOf("eap")
         }
-        token.set(System.getenv("PUBLISH_TOKEN"))
+        token.set(System.getenv("JB_PUBLISH_TOKEN"))
     }
 }
 
