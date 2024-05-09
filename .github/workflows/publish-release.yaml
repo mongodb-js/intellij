@@ -31,6 +31,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.SVC_DEVTOOLSBOT_TOKEN }}
           JB_PUBLISH_CHANNEL: "ga"
+          JB_PUBLISH_TOKEN: ${{ secrets.JB_PUBLISH_TOKEN }}
+          JB_CERTIFICATE_CHAIN: ${{ secrets.JB_CERTIFICATE_CHAIN }}
+          JB_PRIVATE_KEY: ${{ secrets.JB_PRIVATE_KEY }}
+          JB_PRIVATE_KEY_PASSWORD: ${{ secrets.JB_PRIVATE_KEY_PASSWORD }}
         run: |
           set -e
           
