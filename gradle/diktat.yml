@@ -1,0 +1,10 @@
+- name: MISSING_KDOC_CLASS_ELEMENTS
+  enabled: false
+- name: MISSING_KDOC_ON_FUNCTION
+  enabled: false
+- name: GENERIC_VARIABLE_WRONG_DECLARATION
+  enabled: false
+- name: TOO_MANY_PARAMETERS
+  enabled: true
+  configuration:
+    maxParameterListSize: '10'

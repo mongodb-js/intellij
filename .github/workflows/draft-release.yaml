@@ -1,0 +1,121 @@
+name: Draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionBump:
+        description: 'Version bump'
+        type: choice
+        required: true
+        default: 'patch'
+        options:
+          - patch
+          - minor
+          - major
+          - exact-version
+
+      exactVersion:
+        description: 'Exact version: (Only effective selecting "exact-version" as version bump)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    name: "Prepare Release"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+          cache: 'gradle'
+      - name: Determine Next Version
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+
+          VERSION_BUMP=${{ github.event.inputs.versionBump }}
+
+          if [[ "$VERSION_BUMP" == "major" || "$VERSION_BUMP" == "minor" || "$VERSION_BUMP" == "patch" ]]; then
+            ./gradlew --quiet --console=plain versionBump -Pmode="$VERSION_BUMP"
+          else
+            ./gradlew --quiet --console=plain versionBump -PexactVersion="${{ github.event.inputs.exactVersion }}"
+          fi
+
+          NEXT_VERSION=$(./gradlew --quiet --console=plain getVersion)
+          echo "RELEASE_TAG=v${NEXT_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          if [ -z "${RELEASE_TAG}" ]; then
+            echo "RELEASE_TAG is not set or is empty"
+            exit 1
+          fi
+
+          if git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Error: Tag $RELEASE_TAG already existing"
+            echo "If you are trying to re-create a draft release with this version, please delete the release and the tag first."
+            echo "If this version has already been release consider using a different one."
+            exit 1
+          fi
+
+      - name: Run All Tests
+        run: |
+          ./gradlew "unitTest" ":packages:jetbrains-plugin:test"
+
+      - name: Patch Plugin XML
+        run: |
+          ./gradlew ":packages:jetbrains-plugin:patchPluginXml"
+
+      - name: Verify Plugin
+        run: |
+          ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
+
+      - name: Patch Changelog
+        run: |
+          ./gradlew ":packages:jetbrains-plugin:patchChangelog"
+
+      - name: Sign and Publish Plugin in Beta
+        env:
+          JB_PUBLISH_CHANNEL: "beta"
+        run: |
+          ./gradlew ":packages:jetbrains-plugin:publishPlugin"
+
+      - name: Create Draft Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.SVC_DEVTOOLSBOT_TOKEN }}
+        run: |
+          set -e
+          echo Creating draft release for: "${RELEASE_TAG}"
+
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add .
+          git commit --no-verify -m "Release ${RELEASE_TAG}"
+          git tag ${RELEASE_TAG}
+          git push origin ${RELEASE_TAG}
+          
+          GIT_REF=$(git rev-parse ${RELEASE_TAG})
+          ls packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
+          
+          CHANGELOG=$(./gradlew --quiet --console=plain :packages:jetbrains-plugin:getChangelog)
+    
+          gh release create "${RELEASE_TAG}" \
+            --title "${RELEASE_TAG}" \
+            --notes "${CHANGELOG}" \
+            --target "${GIT_REF}" \
+            --draft \
+            packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
+         

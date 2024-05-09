@@ -1,0 +1,65 @@
+[versions]
+# IntelliJ platform dependencies
+intellij-min="2023.1.5"
+intellij-type="IU"
+intellij-remoteRobot="0.11.22"
+intellij-plugin="1.17.3"
+intellij-testBuild="241.14494.241"
+intellij-changelog-plugin="2.2.0"
+# Other plugin dependencies
+versions-plugin="0.51.0"
+spotless-plugin="6.25.0"
+jmh-plugin="0.7.2"
+diktat-plugin="1.0.1"
+jmhreport-plugin="0.9.0"
+
+# Library dependencies
+bson="5.0.0"
+mongodb-driver="4.11.0"
+kotlin-stdlib="1.9.22"
+kotlinx-coroutines="1.8.0-RC2"
+jupiter="5.10.2"
+mockito="5.11.0"
+mockito-kotlin="5.3.1"
+okHttp="4.12.0"
+retrofit="2.11.0"
+jmh="1.37"
+segment="3.5.1"
+
+[plugins]
+intellij={ id="org.jetbrains.intellij", version.ref="intellij-plugin" }
+jmh={ id="me.champeau.jmh", version.ref="jmh-plugin" }
+versions={ id="com.github.ben-manes.versions", version.ref="versions-plugin" }
+spotless={ id="com.diffplug.spotless", version.ref="spotless-plugin" }
+changelog={ id="org.jetbrains.changelog", version.ref="intellij-changelog-plugin" }
+jmhreport={ id="io.morethan.jmhreport", version.ref="jmhreport-plugin" }
+
+[libraries]
+mongodb-bson={ group="org.mongodb", name="bson", version.ref="bson" }
+mongodb-driver={ group="org.mongodb", name="mongodb-driver-kotlin-coroutine", version.ref="mongodb-driver" }
+
+kotlin-stdlib={ group="org.jetbrains.kotlin", name="kotlin-stdlib", version.ref="kotlin-stdlib" }
+kotlin-coroutines-core={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-core", version.ref="kotlinx-coroutines" }
+kotlin-coroutines-swing={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-swing", version.ref="kotlinx-coroutines" }
+
+segment={ group="com.segment.analytics.java", name="analytics", version.ref="segment" }
+
+testing-jupiter-engine={ group="org.junit.jupiter", name="junit-jupiter-engine", version.ref="jupiter" }
+testing-jupiter-vintage-engine={ group="org.junit.vintage", name="junit-vintage-engine", version.ref="jupiter" }
+
+testing-mockito-core={ group="org.mockito", name="mockito-core", version.ref="mockito" }
+testing-mockito-kotlin={ group="org.mockito.kotlin", name="mockito-kotlin", version.ref="mockito-kotlin" }
+testing-remoteRobot={ group="com.intellij.remoterobot", name="remote-robot", version.ref="intellij-remoteRobot"}
+testing-remoteRobotDeps-remoteFixtures={ group="com.intellij.remoterobot", name="remote-fixtures", version.ref="intellij-remoteRobot"}
+testing-remoteRobotDeps-okHttp={ group="com.squareup.okhttp3", name="okhttp", version.ref="okHttp" }
+testing-intellij-ideImpl={ group="com.jetbrains.intellij.platform", name="ide-impl", version.ref="intellij-testBuild" }
+testing-intellij-coreUi={ group="com.jetbrains.intellij.platform", name="core-ui", version.ref="intellij-testBuild" }
+testing-remoteRobotDeps-retrofit={ group="com.squareup.retrofit2", name="retrofit", version.ref="retrofit" }
+testing-remoteRobotDeps-retrofitGson={ group="com.squareup.retrofit2", name="converter-gson", version.ref="retrofit" }
+testing-jmh-core={ group="org.openjdk.jmh", name="jmh-core", version.ref="jmh" }
+testing-jmh-annotationProcessor={ group="org.openjdk.jmh", name="jmh-generator-annprocess", version.ref="jmh" }
+testing-jmh-generatorByteCode={ group="org.openjdk.jmh", name="jmh-generator-bytecode", version.ref="jmh" }
+
+buildScript-plugin-kotlin={ group="org.jetbrains.kotlin", name="kotlin-gradle-plugin", version="1.9.23" }
+buildScript-plugin-versions={ group="com.github.ben-manes", name="gradle-versions-plugin", version.ref="versions-plugin" }
+buildScript-plugin-spotless={ group="com.diffplug.spotless", name="spotless-plugin-gradle", version="6.25.0" }
