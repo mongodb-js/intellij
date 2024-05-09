@@ -110,11 +110,7 @@ tasks {
         channels = when (System.getenv("JB_PUBLISH_CHANNEL")) {
             "ga" -> listOf()
             "beta" -> listOf("beta")
-            else -> if (gradle.startParameter.taskNames.contains("publishPlugin")) {
-                throw RuntimeException("Invalid channel. Only `ga` and `beta` accepted.")
-            } else {
-                listOf("<unused>")
-            }
+            else -> listOf("eap")
         }
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
