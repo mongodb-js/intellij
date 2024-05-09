@@ -77,10 +77,10 @@ tasks {
         destinationFile.set(project.layout.buildDirectory.file("classes/kotlin/main/build.properties"))
         property("pluginVersion", rootProject.version)
         property("driverVersion", rootProject.libs.versions.mongodb.driver.get())
-        property("segmentApiKey", System.getenv("SEGMENT_API_KEY") ?: "<none>")
+        property("segmentApiKey", System.getenv("BUILD_SEGMENT_API_KEY") ?: "<none>")
     }
 
-    withType<KotlinCompile>() {
+    withType<KotlinCompile> {
         dependsOn("buildProperties")
     }
 
@@ -101,13 +101,21 @@ tasks {
     }
 
     signPlugin {
-        outputArchiveFile=project.layout.buildDirectory.file("distributions/jetbrains-plugin.zip").get()
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+        certificateChain.set(System.getenv("JB_CERTIFICATE_CHAIN"))
+        privateKey.set(System.getenv("JB_PRIVATE_KEY"))
+        password.set(System.getenv("JB_PRIVATE_KEY_PASSWORD"))
     }
 
     publishPlugin {
+        channels = when (System.getenv("JB_PUBLISH_CHANNEL")) {
+            "ga" -> listOf()
+            "beta" -> listOf("beta")
+            else -> if (gradle.startParameter.taskNames.contains("publishPlugin")) {
+                throw RuntimeException("Invalid channel. Only `ga` and `beta` accepted.")
+            } else {
+                listOf("<unused>")
+            }
+        }
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
 }

@@ -85,9 +85,11 @@ jobs:
         run: |
           ./gradlew ":packages:jetbrains-plugin:patchChangelog"
 
-      - name: Build Plugin
+      - name: Sign and Publish Plugin in Beta
+        env:
+          JB_PUBLISH_CHANNEL: "beta"
         run: |
-          ./gradlew ":packages:jetbrains-plugin:buildPlugin"
+          ./gradlew ":packages:jetbrains-plugin:publishPlugin"
 
       - name: Create Draft Release
         shell: bash
