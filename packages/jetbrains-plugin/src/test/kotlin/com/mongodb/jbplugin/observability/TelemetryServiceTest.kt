@@ -1,7 +1,7 @@
 package com.mongodb.jbplugin.observability
 
-import com.mongodb.jbplugin.mockProject
-import com.mongodb.jbplugin.mockRuntimeInformationService
+import com.mongodb.jbplugin.fixtures.mockProject
+import com.mongodb.jbplugin.fixtures.mockRuntimeInformationService
 import com.segment.analytics.Analytics
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.argThat
@@ -12,9 +12,11 @@ internal class TelemetryServiceTest {
     @Test
     fun `sends an identify event when a PluginActivated event is sent`() {
         val mockRuntimeInfo = mockRuntimeInformationService(userId = "654321")
-        val service = TelemetryService(mockProject(
+        val service = TelemetryService(
+            mockProject(
             runtimeInformationService = mockRuntimeInfo
-        )).apply {
+        )
+        ).apply {
             analytics = mock<Analytics>()
         }
 
@@ -33,9 +35,11 @@ internal class TelemetryServiceTest {
     @Test
     fun `sends a new connection event as a tracking event`() {
         val mockRuntimeInfo = mockRuntimeInformationService(userId = "654321")
-        val service = TelemetryService(mockProject(
+        val service = TelemetryService(
+            mockProject(
             runtimeInformationService = mockRuntimeInfo
-        )).apply {
+        )
+        ).apply {
             analytics = mock<Analytics>()
         }
 

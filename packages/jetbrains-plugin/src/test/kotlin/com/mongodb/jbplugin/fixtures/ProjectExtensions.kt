@@ -2,14 +2,12 @@
  * Functions to simplify testing that depends on a project.
  */
 
-package com.mongodb.jbplugin
+package com.mongodb.jbplugin.fixtures
 
 import com.google.gson.Gson
 import com.intellij.openapi.project.Project
+import com.mongodb.jbplugin.observability.*
 import com.mongodb.jbplugin.observability.LogMessage
-import com.mongodb.jbplugin.observability.LogMessageBuilder
-import com.mongodb.jbplugin.observability.RuntimeInformation
-import com.mongodb.jbplugin.observability.RuntimeInformationService
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.probe.PluginActivatedProbe
 import org.mockito.Mockito.`when`
@@ -39,7 +37,6 @@ internal fun mockProject(
     `when`(project.getService(RuntimeInformationService::class.java)).thenReturn(runtimeInformationService)
     `when`(project.getService(PluginActivatedProbe::class.java)).thenReturn(pluginActivatedProbe)
     `when`(project.getService(LogMessage::class.java)).thenReturn(logMessage)
-
     return project
 }
 
@@ -80,7 +77,8 @@ internal fun mockRuntimeInformationService(
             jvmVersion = jvmVersion,
             buildVersion = buildVersion,
             applicationName = applicationName
-        ))
+        )
+    )
 }
 
 /**

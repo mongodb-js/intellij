@@ -1,6 +1,7 @@
+
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.intellij.tasks.RunIdeForUiTestTask
 
 repositories {
     maven("https://www.jetbrains.com/intellij-repository/releases/")
@@ -38,12 +39,16 @@ dependencies {
     testCompileOnly(libs.testing.intellij.ideImpl)
     testCompileOnly(libs.testing.intellij.coreUi)
 
+    testImplementation(libs.testing.jsoup)
+    testImplementation(libs.testing.video.recorder)
     testImplementation(libs.testing.remoteRobot)
     testImplementation(libs.testing.remoteRobotDeps.remoteFixtures)
+    testImplementation(libs.testing.remoteRobotDeps.ideLauncher)
     testImplementation(libs.testing.remoteRobotDeps.okHttp)
     testImplementation(libs.testing.remoteRobotDeps.retrofit)
     testImplementation(libs.testing.remoteRobotDeps.retrofitGson)
 }
+
 
 jmh {
     benchmarkMode.set(listOf("thrpt"))
@@ -74,19 +79,57 @@ jmhReport {
 
 tasks {
     register("buildProperties", WriteProperties::class) {
-        destinationFile.set(project.layout.buildDirectory.file("classes/kotlin/main/build.properties"))
+        group = "build"
+
+        destinationFile.set(project.layout.projectDirectory.file("src/main/resources/build.properties"))
         property("pluginVersion", rootProject.version)
         property("driverVersion", rootProject.libs.versions.mongodb.driver.get())
         property("segmentApiKey", System.getenv("BUILD_SEGMENT_API_KEY") ?: "<none>")
     }
 
-    withType<KotlinCompile> {
+    named("test", Test::class) {
+        useJUnitPlatform {
+            excludeTags("UI")
+        }
+    }
+
+    register("uiTest", Test::class) {
+        group = "verification"
+        useJUnitPlatform {
+            includeTags("UI")
+        }
+
+        dependsOn("instrumentTestCode")
+    }
+
+    named("runIdeForUiTests", RunIdeForUiTestTask::class) {
+        systemProperties(mapOf(
+            "jb.consents.confirmation.enabled" to false,
+            "jb.privacy.policy.text" to "<!--999.999-->",
+            "eap.require.license" to true,
+            "ide.mac.message.dialogs.as.sheets" to false,
+            "ide.mac.file.chooser.native" to false,
+            "jbScreenMenuBar.enabled" to false,
+            "apple.laf.useScreenMenuBar" to false,
+            "idea.trust.all.projects" to true,
+            "ide.show.tips.on.startup.default.value" to false,
+            "idea.is.internal" to true,
+            "robot-server.port" to "8082",
+        ))
+    }
+
+    downloadRobotServerPlugin {
+        version.set(libs.versions.intellij.remoteRobot)
+    }
+
+
+    withType<ProcessResources> {
         dependsOn("buildProperties")
     }
 
     patchPluginXml {
-        sinceBuild.set("231")
-        untilBuild.set("241.*")
+        sinceBuild.set("241")
+        untilBuild.set("242.*")
         version.set(rootProject.version.toString())
 
         changeNotes.set(provider {
@@ -108,7 +151,7 @@ tasks {
 
     publishPlugin {
         channels = when (System.getenv("JB_PUBLISH_CHANNEL")) {
-            "ga" -> listOf()
+            "ga" -> listOf("Stable")
             "beta" -> listOf("beta")
             else -> listOf("eap")
         }

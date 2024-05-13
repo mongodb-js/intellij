@@ -1,6 +1,6 @@
 [versions]
 # IntelliJ platform dependencies
-intellij-min="2023.1.5"
+intellij-min="2024.1.1"
 intellij-type="IU"
 intellij-remoteRobot="0.11.22"
 intellij-plugin="1.17.3"
@@ -25,6 +25,8 @@ okHttp="4.12.0"
 retrofit="2.11.0"
 jmh="1.37"
 segment="3.5.1"
+jsoup="1.17.2"
+video-recorder="2.0"
 
 [plugins]
 intellij={ id="org.jetbrains.intellij", version.ref="intellij-plugin" }
@@ -41,16 +43,20 @@ mongodb-driver={ group="org.mongodb", name="mongodb-driver-kotlin-coroutine", ve
 kotlin-stdlib={ group="org.jetbrains.kotlin", name="kotlin-stdlib", version.ref="kotlin-stdlib" }
 kotlin-coroutines-core={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-core", version.ref="kotlinx-coroutines" }
 kotlin-coroutines-swing={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-swing", version.ref="kotlinx-coroutines" }
+kotlin-coroutines-test={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-test", version.ref="kotlinx-coroutines" }
 
 segment={ group="com.segment.analytics.java", name="analytics", version.ref="segment" }
 
 testing-jupiter-engine={ group="org.junit.jupiter", name="junit-jupiter-engine", version.ref="jupiter" }
 testing-jupiter-vintage-engine={ group="org.junit.vintage", name="junit-vintage-engine", version.ref="jupiter" }
 
+testing-jsoup= { group="org.jsoup", name="jsoup", version.ref="jsoup" }
 testing-mockito-core={ group="org.mockito", name="mockito-core", version.ref="mockito" }
 testing-mockito-kotlin={ group="org.mockito.kotlin", name="mockito-kotlin", version.ref="mockito-kotlin" }
+testing-video-recorder={ group="com.automation-remarks", name="video-recorder-junit5", version.ref="video-recorder" }
 testing-remoteRobot={ group="com.intellij.remoterobot", name="remote-robot", version.ref="intellij-remoteRobot"}
 testing-remoteRobotDeps-remoteFixtures={ group="com.intellij.remoterobot", name="remote-fixtures", version.ref="intellij-remoteRobot"}
+testing-remoteRobotDeps-ideLauncher={ group="com.intellij.remoterobot", name="ide-launcher", version.ref="intellij-remoteRobot"}
 testing-remoteRobotDeps-okHttp={ group="com.squareup.okhttp3", name="okhttp", version.ref="okHttp" }
 testing-intellij-ideImpl={ group="com.jetbrains.intellij.platform", name="ide-impl", version.ref="intellij-testBuild" }
 testing-intellij-coreUi={ group="com.jetbrains.intellij.platform", name="core-ui", version.ref="intellij-testBuild" }

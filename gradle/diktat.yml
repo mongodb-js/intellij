@@ -4,6 +4,16 @@
   enabled: false
 - name: GENERIC_VARIABLE_WRONG_DECLARATION
   enabled: false
+- name: FILE_WILDCARD_IMPORTS
+  enabled: false
+- name: TOO_LONG_FUNCTION
+  enabled: false
+- name: KDOC_NO_EMPTY_TAGS
+  enabled: false
+- name: WRONG_INDENTATION
+  enabled: false
+- name: MAGIC_NUMBER
+  enabled: false
 - name: TOO_MANY_PARAMETERS
   enabled: true
   configuration:
