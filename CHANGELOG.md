@@ -6,8 +6,6 @@ MongoDB plugin for IntelliJ IDEA.
 
 ### Added
 
-- We are testing the release flow.
-
 ### Changed
 
 ### Deprecated

@@ -1,6 +1,5 @@
+
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
-import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
@@ -44,6 +43,7 @@ subprojects {
         testImplementation(rootProject.libs.testing.jupiter.vintage.engine)
         testImplementation(rootProject.libs.testing.mockito.core)
         testImplementation(rootProject.libs.testing.mockito.kotlin)
+        testImplementation(rootProject.libs.kotlin.coroutines.test)
     }
 
     tasks {
@@ -81,6 +81,10 @@ subprojects {
                 csv.required = false
                 html.outputLocation = layout.buildDirectory.dir("reports/jacocoHtml")
             }
+
+            executionData(
+                files(withType(Test::class.java)).filter { it.name.endsWith(".exec") && it.exists() }
+            )
         }
     }
 
@@ -101,6 +105,7 @@ tasks.named<DependencyUpdatesTask>("dependencyUpdates").configure {
 
 tasks {
     register("unitTest") {
+        group = "verification"
         dependsOn(
             subprojects.filter {
                 it.project.name != "jetbrains-plugin" &&
@@ -136,6 +141,7 @@ tasks {
     }
 
     register("gitHooks") {
+        group = "environment"
         exec {
             rootProject.file(".git/hooks").mkdirs()
             commandLine("cp", "./gradle/pre-commit", "./.git/hooks")
@@ -143,6 +149,7 @@ tasks {
     }
 
     register("getVersion") {
+        group = "environment"
         doLast {
             println(rootProject.version)
         }

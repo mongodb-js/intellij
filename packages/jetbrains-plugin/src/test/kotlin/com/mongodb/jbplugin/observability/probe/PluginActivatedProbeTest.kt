@@ -1,6 +1,6 @@
 package com.mongodb.jbplugin.observability.probe
 
-import com.mongodb.jbplugin.mockProject
+import com.mongodb.jbplugin.fixtures.mockProject
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import org.junit.jupiter.api.Test

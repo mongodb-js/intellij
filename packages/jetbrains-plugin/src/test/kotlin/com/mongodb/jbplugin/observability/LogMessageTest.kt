@@ -1,7 +1,7 @@
 package com.mongodb.jbplugin.observability
 
 import com.google.gson.Gson
-import com.mongodb.jbplugin.mockProject
+import com.mongodb.jbplugin.fixtures.mockProject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

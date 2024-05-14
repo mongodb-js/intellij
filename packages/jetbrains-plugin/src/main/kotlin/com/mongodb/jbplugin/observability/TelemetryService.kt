@@ -2,6 +2,7 @@ package com.mongodb.jbplugin.observability
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.mongodb.jbplugin.meta.BuildInformation
 import com.segment.analytics.Analytics
 import com.segment.analytics.messages.IdentifyMessage
 import com.segment.analytics.messages.TrackMessage
@@ -14,7 +15,9 @@ import com.segment.analytics.messages.TrackMessage
  */
 @Service(Service.Level.PROJECT)
 internal class TelemetryService(private val project: Project) {
-    internal var analytics: Analytics = Analytics.builder("KEY").build()
+    internal var analytics: Analytics = Analytics
+        .builder(BuildInformation.segmentApiKey)
+        .build()
 
     fun sendEvent(event: TelemetryEvent) {
         val runtimeInformationService = project.getService(RuntimeInformationService::class.java)

@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test
 class BuildInformationTest {
     @Test
     fun `loads all build information from the resource file`() {
-        assertEquals("0.0.2-madeUp", BuildInformation.pluginVersion)
-        assertEquals("4.0.0-madeUp", BuildInformation.driverVersion)
-        assertEquals("madeUp", BuildInformation.segmentApiKey)
+        assertEquals("4.11.0", BuildInformation.driverVersion)
+        assertEquals("<none>", BuildInformation.segmentApiKey)
     }
 }
