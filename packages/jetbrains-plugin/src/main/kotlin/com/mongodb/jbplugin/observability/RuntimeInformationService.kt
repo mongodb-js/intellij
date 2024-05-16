@@ -38,7 +38,7 @@ data class RuntimeInformation(
  *
  * @see RuntimeInformation
  */
-@Service
+@Service(Service.Level.PROJECT)
 class RuntimeInformationService {
     private val userId = getOrDefault("<userId>") { PermanentInstallationID.get() }
     private val osName = getOrDefault("<osName>") { SystemInfo.getOsNameAndVersion() }

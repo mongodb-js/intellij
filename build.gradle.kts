@@ -38,7 +38,15 @@ subprojects {
         val testImplementation by configurations
         val compileOnly by configurations
 
+        configurations.named("runtimeClasspath").configure {
+            exclude("org.jetbrains.kotlin")
+            exclude("org.jetbrains.kotlinx")
+        }
+
         compileOnly(rootProject.libs.kotlin.stdlib)
+        compileOnly(rootProject.libs.kotlin.coroutines.core)
+        compileOnly(rootProject.libs.kotlin.coroutines.swing)
+
         testImplementation(rootProject.libs.testing.jupiter.engine)
         testImplementation(rootProject.libs.testing.jupiter.vintage.engine)
         testImplementation(rootProject.libs.testing.mockito.core)

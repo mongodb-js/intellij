@@ -10,8 +10,38 @@
     <depends>com.intellij.database</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.mongodb.jbplugin.settings.MongoDbPluginSettings"/>
+        <applicationConfigurable parentId="database.main" instance="com.mongodb.jbplugin.settings.MongoDbSettingsConfigurable" id="com.mongodb.jbplugin.settings.MongoDbSettingsConfigurable" displayName="MongoDB Plugin Settings"/>
         <postStartupActivity implementation="com.mongodb.jbplugin.SayHiListener"/>
+        <notificationGroup id="com.mongodb.plugin.vs" displayType="BALLOON" key="com.mongodb.plugin.vs"/>
     </extensions>
     <applicationListeners>
     </applicationListeners>
+    <actions>
+        <action id="com.mongodb.jbplugin.actions.LoadAtlasClustersAction"
+                class="com.mongodb.jbplugin.actions.LoadAtlasClustersAction" text="Load Atlas Clusters"
+                description="Loads all Atlas Clusters given that an Atlas API Key is provided in the settings.">
+            <add-to-group group-id="DatabaseView.AddDataSourceGroup" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl R"/>
+        </action>
+        <action id="com.mongodb.jbplugin.actions.CreateAtlasFreeClusterAction"
+                class="com.mongodb.jbplugin.actions.CreateAtlasFreeClusterAction" text="Create Atlas Free Cluster">
+            <add-to-group group-id="DatabaseView.AddDataSourceGroup" anchor="after"
+                          relative-to-action="DatabaseView.AddDataSourceFromUrl"/>
+        </action>
+        <action id="com.mongodb.jbplugin.actions.GenerateVectorEmbeddingAction"
+                class="com.mongodb.jbplugin.actions.GenerateVectorEmbeddingAction" text="Generate Embedding"
+                description="Generates vector embeddings based on a HuggingFace model.">
+            <add-to-group group-id="Console.Jdbc.Left" anchor="after" relative-to-action="Console.Jdbc.Execute"/>
+        </action>
+        <action id="com.mongodb.jbplugin.actions.AddModelForVectorEmbeddingAction"
+                class="com.mongodb.jbplugin.actions.AddModelForVectorEmbeddingAction" text="Load Model"
+                description="Loads a vector embedding HuggingFace model.">
+            <add-to-group group-id="Console.Jdbc.Left" anchor="after" relative-to-action="Console.Jdbc.Execute"/>
+        </action>
+        <action id="com.mongodb.jbplugin.actions.CreateVectorSearchIndexAction"
+                class="com.mongodb.jbplugin.actions.CreateVectorSearchIndexAction" text="Create Vector Search Index">
+            <add-to-group group-id="DatabaseViewPopupMenu" anchor="after" relative-to-action="Jdbc.OpenEditor.Data"/>
+        </action>
+    </actions>
 </idea-plugin>

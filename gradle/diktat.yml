@@ -18,3 +18,7 @@
   enabled: true
   configuration:
     maxParameterListSize: '10'
+- name: NO_CORRESPONDING_PROPERTY
+  enabled: false
+- name: CUSTOM_GETTERS_SETTERS
+  enabled: false

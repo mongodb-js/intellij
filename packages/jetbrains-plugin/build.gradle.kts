@@ -29,6 +29,12 @@ dependencies {
     implementation(project(":packages:mongodb-linting-engine"))
     implementation(project(":packages:mongodb-mql-model"))
 
+    implementation(libs.djl.core)
+    implementation(libs.djl.huggingface.tokenizers)
+    implementation(libs.djl.pytorch.engine)
+    runtimeOnly(libs.djl.pytorch.model.zoo)
+    runtimeOnly("ai.djl.pytorch:pytorch-native-auto:1.9.1")
+
     implementation(libs.segment)
 
     jmh(libs.kotlin.stdlib)
@@ -121,7 +127,6 @@ tasks {
     downloadRobotServerPlugin {
         version.set(libs.versions.intellij.remoteRobot)
     }
-
 
     withType<ProcessResources> {
         dependsOn("buildProperties")
