@@ -83,7 +83,6 @@ tasks {
 
         destinationFile.set(project.layout.projectDirectory.file("src/main/resources/build.properties"))
         property("pluginVersion", rootProject.version)
-        property("driverVersion", rootProject.libs.versions.mongodb.driver.get())
         property("segmentApiKey", System.getenv("BUILD_SEGMENT_API_KEY") ?: "<none>")
     }
 
