@@ -8,7 +8,8 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.rd.util.launchChildOnUi
 import com.intellij.openapi.ui.Messages
-import com.mongodb.jbplugin.dataaccess.ServerInfoRepository
+import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
+import com.mongodb.jbplugin.accessadapter.slice.BuildInfoSlice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -18,10 +19,9 @@ class GetMongoDBVersionActionService(
 ) {
     fun actionPerformed(event: AnActionEvent) {
         coroutineScope.launch {
-            val repository = event.project!!.getService(ServerInfoRepository::class.java)
+            val readModelProvider = event.project!!.getService(DataGripBasedReadModelProvider::class.java)
             val dataSource = event.dataContext.getData(PlatformDataKeys.PSI_ELEMENT) as DbDataSource
-
-            val buildInfo = repository.getServerInfo(dataSource.localDataSource!!)
+            val buildInfo = readModelProvider.slice(dataSource.localDataSource!!, BuildInfoSlice)
 
             coroutineScope.launchChildOnUi {
                 Messages.showMessageDialog(buildInfo.version, "Show DB Version", null)

@@ -44,6 +44,8 @@ subprojects {
         }
 
         compileOnly(rootProject.libs.kotlin.stdlib)
+        compileOnly(rootProject.libs.kotlin.coroutines.core)
+        compileOnly(rootProject.libs.kotlin.reflect)
         testImplementation(rootProject.libs.testing.jupiter.engine)
         testImplementation(rootProject.libs.testing.jupiter.vintage.engine)
         testImplementation(rootProject.libs.testing.mockito.core)

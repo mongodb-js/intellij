@@ -1,10 +1,10 @@
-package com.mongodb.jbplugin.dataaccess
+package com.mongodb.jbplugin.accessadapter.datagrip.adapter
 
 import com.google.gson.Gson
 import com.intellij.database.dataSource.DatabaseConnectionCore
 import com.intellij.database.datagrid.DataRequest
 
-internal class DataGripQueryAdapter<out T: Any>(
+class DataGripQueryAdapter<out T: Any>(
     private val queryScript: String,
     private val resultClass: Class<T>,
     private val gson: Gson,
@@ -32,5 +32,4 @@ internal class DataGripQueryAdapter<out T: Any>(
 
         continuation(listOfResults)
     }
-
 }

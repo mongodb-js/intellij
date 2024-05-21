@@ -24,11 +24,13 @@ intellij {
 
 dependencies {
     implementation(project(":packages:mongodb-access-adapter"))
+    implementation(project(":packages:mongodb-access-adapter:datagrip-access-adapter"))
     implementation(project(":packages:mongodb-autocomplete-engine"))
     implementation(project(":packages:mongodb-dialects"))
     implementation(project(":packages:mongodb-linting-engine"))
     implementation(project(":packages:mongodb-mql-model"))
 
+    implementation(libs.mongodb.driver)
     implementation(libs.segment)
 
     jmh(libs.kotlin.stdlib)

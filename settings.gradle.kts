@@ -14,5 +14,6 @@ include(
     "packages:mongodb-autocomplete-engine",
     "packages:mongodb-linting-engine",
     "packages:mongodb-access-adapter",
+    "packages:mongodb-access-adapter:datagrip-access-adapter",
     "packages:jetbrains-plugin",
 )

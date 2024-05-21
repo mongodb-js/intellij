@@ -25,6 +25,8 @@ segment="3.5.1"
 jsoup="1.17.2"
 video-recorder="2.0"
 gson="2.10.1"
+mongodb-driver="5.1.0"
+owasp-encoder="1.2.3"
 
 [plugins]
 intellij={ id="org.jetbrains.intellij", version.ref="intellij-plugin" }
@@ -38,6 +40,7 @@ jmhreport={ id="io.morethan.jmhreport", version.ref="jmhreport-plugin" }
 ## Kotlin compileOnly libraries. They must not be bundled because they are already part of the
 ## JetBrains ecosystem.
 kotlin-stdlib={ group="org.jetbrains.kotlin", name="kotlin-stdlib", version.ref="kotlin-stdlib" }
+kotlin-reflect={ group="org.jetbrains.kotlin", name="kotlin-reflect", version.ref="kotlin-stdlib" }
 kotlin-coroutines-core={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-core", version.ref="kotlinx-coroutines" }
 kotlin-coroutines-swing={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-swing", version.ref="kotlinx-coroutines" }
 kotlin-coroutines-test={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-test", version.ref="kotlinx-coroutines" }
@@ -45,6 +48,8 @@ kotlin-coroutines-test={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines
 ## Production Libraries.
 segment={ group="com.segment.analytics.java", name="analytics", version.ref="segment" }
 gson={ group="com.google.code.gson", name="gson", version.ref="gson" }
+mongodb-driver={ group="org.mongodb", name="mongodb-driver-kotlin-sync", version.ref="mongodb-driver" }
+owasp-encoder={ group="org.owasp.encoder", name="encoder", version.ref="owasp-encoder" }
 ######################################################
 ## Testing Libraries.
 testing-jupiter-engine={ group="org.junit.jupiter", name="junit-jupiter-engine", version.ref="jupiter" }
