@@ -18,3 +18,7 @@
   enabled: true
   configuration:
     maxParameterListSize: '10'
+- name: FILE_NAME_INCORRECT
+  enabled: false
+- name: LOCAL_VARIABLE_EARLY_DECLARATION
+  enabled: false

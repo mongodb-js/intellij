@@ -3,7 +3,7 @@ package com.mongodb.jbplugin.accessadapter
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class MongoDBDriverTest {
+class MongoDbDriverTest {
     @Test
     fun `parses a namespace`() {
         val namespace = "mydb.mycoll".toNS()
