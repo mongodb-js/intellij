@@ -1,10 +1,9 @@
-
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
 // ./gradlew versionBump -Pmode={major,minor,patch}
-version="0.0.1"
+version = "0.0.1"
 
 plugins {
     alias(libs.plugins.versions)
@@ -77,9 +76,11 @@ subprojects {
                 isScanForTestClasses = true
             }
 
-            jvmArgs(listOf(
-                "--add-opens=java.base/java.lang=ALL-UNNAMED"
-            ))
+            jvmArgs(
+                listOf(
+                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
+                )
+            )
         }
 
         withType<JacocoReport> {

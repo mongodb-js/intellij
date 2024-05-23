@@ -1,90 +1,90 @@
 [versions]
 # IntelliJ platform dependencies
-intellij-min="2024.1.1"
-intellij-type="IU"
-intellij-remoteRobot="0.11.22"
-intellij-plugin="1.17.3"
-intellij-testBuild="241.14494.241"
-intellij-changelog-plugin="2.2.0"
+intellij-min = "2024.1.1"
+intellij-type = "IU"
+intellij-remoteRobot = "0.11.22"
+intellij-plugin = "1.17.3"
+intellij-testBuild = "241.14494.241"
+intellij-changelog-plugin = "2.2.0"
 # Other plugin dependencies
-versions-plugin="0.51.0"
-spotless-plugin="6.25.0"
-jmh-plugin="0.7.2"
-diktat-plugin="1.0.1"
-jmhreport-plugin="0.9.0"
+versions-plugin = "0.51.0"
+spotless-plugin = "6.25.0"
+jmh-plugin = "0.7.2"
+diktat-plugin = "1.0.1"
+jmhreport-plugin = "0.9.0"
 # Library dependencies
-kotlin-stdlib="1.9.24"
-kotlinx-coroutines="1.8.0"
-jupiter="5.10.2"
-mockito="5.11.0"
-mockito-kotlin="5.3.1"
-okHttp="4.12.0"
-retrofit="2.11.0"
-jmh="1.37"
-segment="3.5.1"
-jsoup="1.17.2"
-video-recorder="2.0"
-gson="2.10.1"
-mongodb-driver="5.1.0"
-owasp-encoder="1.2.3"
-testContainers="1.19.8"
-intellij-database="241.15989.150"
+kotlin-stdlib = "1.9.24"
+kotlinx-coroutines = "1.8.0"
+jupiter = "5.10.2"
+mockito = "5.11.0"
+mockito-kotlin = "5.3.1"
+okHttp = "4.12.0"
+retrofit = "2.11.0"
+jmh = "1.37"
+segment = "3.5.1"
+jsoup = "1.17.2"
+video-recorder = "2.0"
+gson = "2.10.1"
+mongodb-driver = "5.1.0"
+owasp-encoder = "1.2.3"
+testContainers = "1.19.8"
+intellij-database = "241.15989.150"
 
 [plugins]
-intellij={ id="org.jetbrains.intellij", version.ref="intellij-plugin" }
-jmh={ id="me.champeau.jmh", version.ref="jmh-plugin" }
-versions={ id="com.github.ben-manes.versions", version.ref="versions-plugin" }
-spotless={ id="com.diffplug.spotless", version.ref="spotless-plugin" }
-changelog={ id="org.jetbrains.changelog", version.ref="intellij-changelog-plugin" }
-jmhreport={ id="io.morethan.jmhreport", version.ref="jmhreport-plugin" }
+intellij = { id = "org.jetbrains.intellij", version.ref = "intellij-plugin" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }
+versions = { id = "com.github.ben-manes.versions", version.ref = "versions-plugin" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless-plugin" }
+changelog = { id = "org.jetbrains.changelog", version.ref = "intellij-changelog-plugin" }
+jmhreport = { id = "io.morethan.jmhreport", version.ref = "jmhreport-plugin" }
 
 [libraries]
 ## Kotlin compileOnly libraries. They must not be bundled because they are already part of the
 ## JetBrains ecosystem.
-kotlin-stdlib={ group="org.jetbrains.kotlin", name="kotlin-stdlib", version.ref="kotlin-stdlib" }
-kotlin-reflect={ group="org.jetbrains.kotlin", name="kotlin-reflect", version.ref="kotlin-stdlib" }
-kotlin-coroutines-core={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-core", version.ref="kotlinx-coroutines" }
-kotlin-coroutines-swing={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-swing", version.ref="kotlinx-coroutines" }
-kotlin-coroutines-test={ group="org.jetbrains.kotlinx", name="kotlinx-coroutines-test", version.ref="kotlinx-coroutines" }
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin-stdlib" }
+kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin-stdlib" }
+kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlin-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+kotlin-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 ######################################################
 ## IntelliJ compileOnly libraries. They must not be bundled because they are already part of the
 ## JetBrains ecosystem.
-intellij-database-sql={ group="com.jetbrains.intellij.database", name="database-sql", version.ref="intellij-database" }
-intellij-database-connectivity={ group="com.jetbrains.intellij.database", name="database-connectivity", version.ref="intellij-database" }
-intellij-database-jdbc-console={ group="com.jetbrains.intellij.database", name="database-jdbc-console", version.ref="intellij-database" }
-intellij-database-core-base={ group="com.jetbrains.intellij.database", name="database", version.ref="intellij-database" }
-intellij-database-core-impl={ group="com.jetbrains.intellij.database", name="database-core-impl", version.ref="intellij-database" }
+intellij-database-sql = { group = "com.jetbrains.intellij.database", name = "database-sql", version.ref = "intellij-database" }
+intellij-database-connectivity = { group = "com.jetbrains.intellij.database", name = "database-connectivity", version.ref = "intellij-database" }
+intellij-database-jdbc-console = { group = "com.jetbrains.intellij.database", name = "database-jdbc-console", version.ref = "intellij-database" }
+intellij-database-core-base = { group = "com.jetbrains.intellij.database", name = "database", version.ref = "intellij-database" }
+intellij-database-core-impl = { group = "com.jetbrains.intellij.database", name = "database-core-impl", version.ref = "intellij-database" }
 ######################################################
 ## Production Libraries.
-segment={ group="com.segment.analytics.java", name="analytics", version.ref="segment" }
-gson={ group="com.google.code.gson", name="gson", version.ref="gson" }
-mongodb-driver={ group="org.mongodb", name="mongodb-driver-kotlin-sync", version.ref="mongodb-driver" }
-owasp-encoder={ group="org.owasp.encoder", name="encoder", version.ref="owasp-encoder" }
+segment = { group = "com.segment.analytics.java", name = "analytics", version.ref = "segment" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+mongodb-driver = { group = "org.mongodb", name = "mongodb-driver-kotlin-sync", version.ref = "mongodb-driver" }
+owasp-encoder = { group = "org.owasp.encoder", name = "encoder", version.ref = "owasp-encoder" }
 ######################################################
 ## Testing Libraries.
-testing-jupiter-engine={ group="org.junit.jupiter", name="junit-jupiter-engine", version.ref="jupiter" }
-testing-jupiter-vintage-engine={ group="org.junit.vintage", name="junit-vintage-engine", version.ref="jupiter" }
-testing-jsoup= { group="org.jsoup", name="jsoup", version.ref="jsoup" }
-testing-mockito-core={ group="org.mockito", name="mockito-core", version.ref="mockito" }
-testing-mockito-kotlin={ group="org.mockito.kotlin", name="mockito-kotlin", version.ref="mockito-kotlin" }
-testing-video-recorder={ group="com.automation-remarks", name="video-recorder-junit5", version.ref="video-recorder" }
-testing-remoteRobot={ group="com.intellij.remoterobot", name="remote-robot", version.ref="intellij-remoteRobot"}
-testing-remoteRobotDeps-remoteFixtures={ group="com.intellij.remoterobot", name="remote-fixtures", version.ref="intellij-remoteRobot"}
-testing-remoteRobotDeps-ideLauncher={ group="com.intellij.remoterobot", name="ide-launcher", version.ref="intellij-remoteRobot"}
-testing-remoteRobotDeps-okHttp={ group="com.squareup.okhttp3", name="okhttp", version.ref="okHttp" }
-testing-intellij-ideImpl={ group="com.jetbrains.intellij.platform", name="ide", version.ref="intellij-testBuild" }
-testing-intellij-coreUi={ group="com.jetbrains.intellij.platform", name="core-ui", version.ref="intellij-testBuild" }
-testing-remoteRobotDeps-retrofit={ group="com.squareup.retrofit2", name="retrofit", version.ref="retrofit" }
-testing-remoteRobotDeps-retrofitGson={ group="com.squareup.retrofit2", name="converter-gson", version.ref="retrofit" }
-testing-jmh-core={ group="org.openjdk.jmh", name="jmh-core", version.ref="jmh" }
-testing-jmh-annotationProcessor={ group="org.openjdk.jmh", name="jmh-generator-annprocess", version.ref="jmh" }
-testing-jmh-generatorByteCode={ group="org.openjdk.jmh", name="jmh-generator-bytecode", version.ref="jmh" }
-testing-testContainers-core= { group="org.testcontainers", name="testcontainers", version.ref="testContainers" }
-testing-testContainers-mongodb= { group="org.testcontainers", name="mongodb", version.ref="testContainers" }
-testing-testContainers-jupiter= { group="org.testcontainers", name="junit-jupiter", version.ref="testContainers"}
+testing-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "jupiter" }
+testing-jupiter-vintage-engine = { group = "org.junit.vintage", name = "junit-vintage-engine", version.ref = "jupiter" }
+testing-jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+testing-mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
+testing-mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockito-kotlin" }
+testing-video-recorder = { group = "com.automation-remarks", name = "video-recorder-junit5", version.ref = "video-recorder" }
+testing-remoteRobot = { group = "com.intellij.remoterobot", name = "remote-robot", version.ref = "intellij-remoteRobot" }
+testing-remoteRobotDeps-remoteFixtures = { group = "com.intellij.remoterobot", name = "remote-fixtures", version.ref = "intellij-remoteRobot" }
+testing-remoteRobotDeps-ideLauncher = { group = "com.intellij.remoterobot", name = "ide-launcher", version.ref = "intellij-remoteRobot" }
+testing-remoteRobotDeps-okHttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okHttp" }
+testing-intellij-ideImpl = { group = "com.jetbrains.intellij.platform", name = "ide", version.ref = "intellij-testBuild" }
+testing-intellij-coreUi = { group = "com.jetbrains.intellij.platform", name = "core-ui", version.ref = "intellij-testBuild" }
+testing-remoteRobotDeps-retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+testing-remoteRobotDeps-retrofitGson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+testing-jmh-core = { group = "org.openjdk.jmh", name = "jmh-core", version.ref = "jmh" }
+testing-jmh-annotationProcessor = { group = "org.openjdk.jmh", name = "jmh-generator-annprocess", version.ref = "jmh" }
+testing-jmh-generatorByteCode = { group = "org.openjdk.jmh", name = "jmh-generator-bytecode", version.ref = "jmh" }
+testing-testContainers-core = { group = "org.testcontainers", name = "testcontainers", version.ref = "testContainers" }
+testing-testContainers-mongodb = { group = "org.testcontainers", name = "mongodb", version.ref = "testContainers" }
+testing-testContainers-jupiter = { group = "org.testcontainers", name = "junit-jupiter", version.ref = "testContainers" }
 ######################################################
 ## Libraries and plugins only used for the buildScript.
-buildScript-plugin-kotlin={ group="org.jetbrains.kotlin", name="kotlin-gradle-plugin", version="1.9.23" }
-buildScript-plugin-versions={ group="com.github.ben-manes", name="gradle-versions-plugin", version.ref="versions-plugin" }
-buildScript-plugin-spotless={ group="com.diffplug.spotless", name="spotless-plugin-gradle", version="6.25.0" }
+buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = "1.9.23" }
+buildScript-plugin-versions = { group = "com.github.ben-manes", name = "gradle-versions-plugin", version.ref = "versions-plugin" }
+buildScript-plugin-spotless = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version = "6.25.0" }
 ######################################################

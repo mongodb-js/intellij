@@ -21,10 +21,12 @@ data class BuildInfo(
 ) {
     object Slice : com.mongodb.jbplugin.accessadapter.Slice<BuildInfo> {
         override suspend fun queryUsingDriver(from: MongoDbDriver): BuildInfo = from.runCommand(
-                Document(mapOf(
+            Document(
+                mapOf(
                     "buildInfo" to 1,
-                )),
-                BuildInfo::class
-            )
+                )
+            ),
+            BuildInfo::class
+        )
     }
 }

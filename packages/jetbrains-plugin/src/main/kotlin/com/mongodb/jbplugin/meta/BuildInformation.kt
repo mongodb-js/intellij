@@ -1,6 +1,6 @@
 package com.mongodb.jbplugin.meta
 
-import java.util.Properties
+import java.util.*
 
 /**
  * This provides access to the build information generated at build time in Gradle.

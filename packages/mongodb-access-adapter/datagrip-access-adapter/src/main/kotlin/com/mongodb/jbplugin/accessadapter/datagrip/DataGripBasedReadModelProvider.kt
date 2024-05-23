@@ -40,8 +40,8 @@ class DataGripBasedReadModelProvider(
     private val cachedValues: MapOfCachedValues = mutableMapOf()
 
     override fun <T : Any> slice(dataSource: LocalDataSource, slice: Slice<T>): T = cachedValues
-            .computeIfAbsent(slice.javaClass.canonicalName, fromSlice(dataSource, slice))
-            .value as T
+        .computeIfAbsent(slice.javaClass.canonicalName, fromSlice(dataSource, slice))
+        .value as T
 
     private fun <T : Any> fromSlice(
         dataSource: LocalDataSource,

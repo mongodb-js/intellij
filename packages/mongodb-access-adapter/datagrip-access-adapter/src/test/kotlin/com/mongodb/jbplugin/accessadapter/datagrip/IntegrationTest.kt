@@ -38,7 +38,7 @@ import kotlinx.coroutines.runBlocking
  */
 enum class MongoDbVersion(val versionString: String) {
     LATEST("7.0.9"),
-;
+    ;
 }
 
 /**
@@ -56,8 +56,8 @@ annotation class IntegrationTest(val mongodb: MongoDbVersion = MongoDbVersion.LA
  * Extension implementation. Must not be used directly.
  */
 internal class IntegrationTestExtension : BeforeAllCallback,
- AfterAllCallback,
- ParameterResolver {
+    AfterAllCallback,
+    ParameterResolver {
     private val namespace = ExtensionContext.Namespace.create(IntegrationTestExtension::class.java)
     private val containerKey = "CONTAINER"
     private val projectKey = "PROJECT"
@@ -68,12 +68,12 @@ internal class IntegrationTestExtension : BeforeAllCallback,
         val annotation = context!!.requiredTestClass.getAnnotation(IntegrationTest::class.java)
         val container = MongoDBContainer("mongo:${annotation.mongodb.versionString}-jammy")
             .let {
-            if (annotation.sharded) {
-                it.withSharding()
-            } else {
-                it
+                if (annotation.sharded) {
+                    it.withSharding()
+                } else {
+                    it
+                }
             }
-        }
 
         Startables.deepStart(container).join()
         context.getStore(namespace).put(containerKey, container)
@@ -130,15 +130,15 @@ internal class IntegrationTestExtension : BeforeAllCallback,
     }
 
     override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
- parameterContext?.parameter?.type == Project::class.java ||
- parameterContext?.parameter?.type == MongoDbDriver::class.java ||
- parameterContext?.parameter?.type == MongoDBVersion::class.java
+        parameterContext?.parameter?.type == Project::class.java ||
+                parameterContext?.parameter?.type == MongoDbDriver::class.java ||
+                parameterContext?.parameter?.type == MongoDbVersion::class.java
 
     override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
- when (parameterContext?.parameter?.type) {
+        when (parameterContext?.parameter?.type) {
             Project::class.java -> extensionContext!!.getStore(namespace).get(projectKey)
             MongoDbDriver::class.java -> extensionContext!!.getStore(namespace).get(driverKey)
-            MongoDBVersion::class.java -> extensionContext!!.getStore(namespace).get(versionKey)
+            MongoDbVersion::class.java -> extensionContext!!.getStore(namespace).get(versionKey)
             else -> TODO("Parameter of type ${parameterContext?.parameter?.type?.canonicalName} is not supported.")
         }
 }

@@ -63,7 +63,7 @@ jobs:
         id: verify-changelog-files
         with:
           files: |
-           CHANGELOG.md
+            CHANGELOG.md
       - uses: mheap/github-action-required-labels@v1
         if: steps.verify-changed-files.outputs.files_changed == 'false'
         with:
@@ -130,7 +130,7 @@ jobs:
         with:
           name: unit-test-coverage
           path: "**/jacocoTestReport.xml"
-    
+
   functional-tests:
     name: 'Functional & UI Tests'
     runs-on: ubuntu-latest

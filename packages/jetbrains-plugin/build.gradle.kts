@@ -1,4 +1,3 @@
-
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
 import org.jetbrains.intellij.tasks.RunIdeForUiTestTask
@@ -104,19 +103,21 @@ tasks {
     }
 
     named("runIdeForUiTests", RunIdeForUiTestTask::class) {
-        systemProperties(mapOf(
-            "jb.consents.confirmation.enabled" to false,
-            "jb.privacy.policy.text" to "<!--999.999-->",
-            "eap.require.license" to true,
-            "ide.mac.message.dialogs.as.sheets" to false,
-            "ide.mac.file.chooser.native" to false,
-            "jbScreenMenuBar.enabled" to false,
-            "apple.laf.useScreenMenuBar" to false,
-            "idea.trust.all.projects" to true,
-            "ide.show.tips.on.startup.default.value" to false,
-            "idea.is.internal" to true,
-            "robot-server.port" to "8082",
-        ))
+        systemProperties(
+            mapOf(
+                "jb.consents.confirmation.enabled" to false,
+                "jb.privacy.policy.text" to "<!--999.999-->",
+                "eap.require.license" to true,
+                "ide.mac.message.dialogs.as.sheets" to false,
+                "ide.mac.file.chooser.native" to false,
+                "jbScreenMenuBar.enabled" to false,
+                "apple.laf.useScreenMenuBar" to false,
+                "idea.trust.all.projects" to true,
+                "ide.show.tips.on.startup.default.value" to false,
+                "idea.is.internal" to true,
+                "robot-server.port" to "8082",
+            )
+        )
     }
 
     downloadRobotServerPlugin {

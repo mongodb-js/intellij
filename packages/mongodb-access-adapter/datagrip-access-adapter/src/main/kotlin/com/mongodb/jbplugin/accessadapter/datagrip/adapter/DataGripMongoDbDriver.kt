@@ -38,12 +38,12 @@ internal class DataGripMongoDbDriver(
     private val gson = Gson()
 
     override suspend fun <T : Any> runCommand(
-command: Document,
- result: KClass<T>,
- timeout: Duration
-): T = withContext(
-Dispatchers.IO
-) {
+        command: Document,
+        result: KClass<T>,
+        timeout: Duration
+    ): T = withContext(
+        Dispatchers.IO
+    ) {
         runQuery(
             """db.runCommand(${command.toJson()})""",
             result,
@@ -84,34 +84,34 @@ Dispatchers.IO
     }
 
     suspend fun <T : Any> runQuery(
-queryString: String,
- resultClass: KClass<T>,
- timeout: Duration
-): List<T> =
- withContext(Dispatchers.IO) {
-        val connection = getConnection()
-        val remoteConnection = connection.remoteConnection
-        val statement = remoteConnection.prepareStatement(queryString.trimIndent())
+        queryString: String,
+        resultClass: KClass<T>,
+        timeout: Duration
+    ): List<T> =
+        withContext(Dispatchers.IO) {
+            val connection = getConnection()
+            val remoteConnection = connection.remoteConnection
+            val statement = remoteConnection.prepareStatement(queryString.trimIndent())
 
-        withTimeout(timeout) {
-            val listOfResults = mutableListOf<T>()
-            val resultSet = statement.executeQuery()
+            withTimeout(timeout) {
+                val listOfResults = mutableListOf<T>()
+                val resultSet = statement.executeQuery()
 
-            if (resultClass.java.isPrimitive || resultClass == String::class.java) {
-                while (resultSet.next()) {
-                    listOfResults.add(resultSet.getObject(1) as T)
+                if (resultClass.java.isPrimitive || resultClass == String::class.java) {
+                    while (resultSet.next()) {
+                        listOfResults.add(resultSet.getObject(1) as T)
+                    }
+                } else {
+                    while (resultSet.next()) {
+                        val hashMap = resultSet.getObject(1) as Map<String, Any>
+                        val result = gson.fromJson(gson.toJson(hashMap), resultClass.java)
+                        listOfResults.add(result)
+                    }
                 }
-            } else {
-                while (resultSet.next()) {
-                    val hashMap = resultSet.getObject(1) as Map<String, Any>
-                    val result = gson.fromJson(gson.toJson(hashMap), resultClass.java)
-                    listOfResults.add(result)
-                }
+
+                listOfResults
             }
-
-            listOfResults
         }
-    }
 
     private suspend fun getConnection(): DatabaseConnection {
         val connections = DatabaseConnectionManager.getInstance().activeConnections

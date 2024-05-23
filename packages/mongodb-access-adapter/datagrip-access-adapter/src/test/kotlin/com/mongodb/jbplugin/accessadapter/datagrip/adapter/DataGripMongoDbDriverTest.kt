@@ -13,9 +13,13 @@ import kotlinx.coroutines.runBlocking
 class DataGripMongoDbDriverTest {
     @Test
     fun `can connect and run a command`(version: MongoDbVersion, driver: MongoDbDriver) = runBlocking {
-        val result = driver.runCommand(Document(mapOf(
-            "buildInfo" to 1,
-        )), Map::class)
+        val result = driver.runCommand(
+            Document(
+                mapOf(
+                    "buildInfo" to 1,
+                )
+            ), Map::class
+        )
 
         assertEquals(result["version"], version.versionString)
     }
@@ -24,9 +28,13 @@ class DataGripMongoDbDriverTest {
     fun `is able to map the result to a class`(version: MongoDbVersion, driver: MongoDbDriver) = runBlocking {
         data class MyBuildInfo(val version: String)
 
-        val result = driver.runCommand(Document(mapOf(
-            "buildInfo" to 1,
-        )), MyBuildInfo::class)
+        val result = driver.runCommand(
+            Document(
+                mapOf(
+                    "buildInfo" to 1,
+                )
+            ), MyBuildInfo::class
+        )
 
         assertEquals(result.version, version.versionString)
     }

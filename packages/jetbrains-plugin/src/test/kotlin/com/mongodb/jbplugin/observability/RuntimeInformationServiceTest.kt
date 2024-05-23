@@ -9,9 +9,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.MockedStatic
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.mockStatic
+import org.mockito.Mockito.*
 
 class RuntimeInformationServiceTest {
     private lateinit var permanentInstallationId: MockedStatic<PermanentInstallationID>

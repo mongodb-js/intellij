@@ -139,7 +139,7 @@ jobs:
           ls packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
           
           CHANGELOG=$(./gradlew --quiet --console=plain :packages:jetbrains-plugin:getChangelog)
-    
+          
           gh release create "${RELEASE_TAG}" \
             --title "${RELEASE_TAG}" \
             --notes "${CHANGELOG}" \

@@ -35,24 +35,26 @@ data class Namespace(val database: String, val collection: String) {
  */
 interface MongoDbDriver {
     suspend fun <T : Any> runCommand(
-command: Document,
- result: KClass<T>,
- timeout: Duration = 1.seconds
-): T
+        command: Document,
+        result: KClass<T>,
+        timeout: Duration = 1.seconds
+    ): T
+
     suspend fun <T : Any> findOne(
-namespace: Namespace,
- query: Document,
- options: Document,
- result: KClass<T>,
- timeout: Duration = 1.seconds
-): T?
+        namespace: Namespace,
+        query: Document,
+        options: Document,
+        result: KClass<T>,
+        timeout: Duration = 1.seconds
+    ): T?
+
     suspend fun <T : Any> findAll(
-namespace: Namespace,
- query: Document,
- result: KClass<T>,
- limit: Int = 10,
- timeout: Duration = 1.seconds
-): List<T>
+        namespace: Namespace,
+        query: Document,
+        result: KClass<T>,
+        limit: Int = 10,
+        timeout: Duration = 1.seconds
+    ): List<T>
 }
 
 /**
