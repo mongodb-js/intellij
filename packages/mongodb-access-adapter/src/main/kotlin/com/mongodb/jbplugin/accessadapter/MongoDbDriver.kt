@@ -21,8 +21,14 @@ import kotlin.time.Duration.Companion.seconds
  * @property database
  * @property collection
  */
-data class Namespace(val database: String, val collection: String) {
+class Namespace private constructor(val database: String, val collection: String) {
     override fun toString(): String = "$database.$collection"
+    companion object {
+        operator fun invoke(database: String, collection: String): Namespace = Namespace(
+                Encode.forJavaScript(database),
+                Encode.forJavaScript(collection)
+            )
+    }
 }
 
 /**
@@ -64,8 +70,5 @@ interface MongoDbDriver {
  */
 fun String.toNs(): Namespace {
     val (db, coll) = trim().split(".", limit = 2)
-    return Namespace(
-        Encode.forJavaScript(db),
-        Encode.forJavaScript(coll)
-    )
+    return Namespace(db, coll)
 }
