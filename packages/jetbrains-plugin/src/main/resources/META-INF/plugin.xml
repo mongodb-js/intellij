@@ -14,10 +14,4 @@
     </extensions>
     <applicationListeners>
     </applicationListeners>
-    <actions>
-        <action id="com.mongodb.jbplugin.observability.actions.GetMongoDBVersionAction"
-                class="com.mongodb.jbplugin.actions.GetMongoDbVersionAction" text="Show MongoDB Version">
-            <add-to-group group-id="DatabaseViewPopupMenu" anchor="after" relative-to-action="DatabaseView.Refresh"/>
-        </action>
-    </actions>
 </idea-plugin>

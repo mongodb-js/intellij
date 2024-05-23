@@ -62,6 +62,7 @@ internal class IntegrationTestExtension : BeforeAllCallback,
     private val namespace = ExtensionContext.Namespace.create(IntegrationTestExtension::class.java)
     private val containerKey = "CONTAINER"
     private val projectKey = "PROJECT"
+    private val dataSourceKey = "DATASOURCE"
     private val driverKey = "DRIVER"
     private val versionKey = "VERSION"
 
@@ -102,6 +103,7 @@ internal class IntegrationTestExtension : BeforeAllCallback,
                 databaseDriver = jdbcDriver
             }
 
+            context.getStore(namespace).put(dataSourceKey, dataSource)
             dataSourceManager.addDataSource(dataSource)
             dataSource
         }
@@ -134,12 +136,14 @@ internal class IntegrationTestExtension : BeforeAllCallback,
     override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
         parameterContext?.parameter?.type == Project::class.java ||
                 parameterContext?.parameter?.type == MongoDbDriver::class.java ||
+                parameterContext?.parameter?.type == LocalDataSource::class.java ||
                 parameterContext?.parameter?.type == MongoDbVersion::class.java
 
     override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
         when (parameterContext?.parameter?.type) {
             Project::class.java -> extensionContext!!.getStore(namespace).get(projectKey)
             MongoDbDriver::class.java -> extensionContext!!.getStore(namespace).get(driverKey)
+            LocalDataSource::class.java -> extensionContext!!.getStore(namespace).get(dataSourceKey)
             MongoDbVersion::class.java -> extensionContext!!.getStore(namespace).get(versionKey)
             else -> TODO("Parameter of type ${parameterContext?.parameter?.type?.canonicalName} is not supported.")
         }
