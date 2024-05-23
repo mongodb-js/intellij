@@ -114,6 +114,10 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
           cache: 'gradle'
+      - name: Setup Docker (for Test Containers)
+        run: |
+          sudo apt update -y
+          sudo apt install -y docker docker-compose
       - name: Run Test Suite
         run: |
           ./gradlew --console=plain "clean" "cleanTest" "unitTest"
