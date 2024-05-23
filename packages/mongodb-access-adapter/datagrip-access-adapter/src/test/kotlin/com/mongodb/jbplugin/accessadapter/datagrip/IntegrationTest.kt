@@ -17,6 +17,7 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.junit5.RunInEdt
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.ui.EDT
@@ -84,6 +85,7 @@ internal class IntegrationTestExtension : BeforeAllCallback,
             ProjectUtil.openOrCreateProject(testClassName, Files.createTempDirectory(testClassName))!!
         }
 
+        Disposer.register(ApplicationManager.getApplication(), project)
         context.getStore(namespace).put(projectKey, project)
 
         val dataSource = runBlocking {

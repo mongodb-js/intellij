@@ -1,24 +1,26 @@
-- name: MISSING_KDOC_CLASS_ELEMENTS
+- name: MISSING_KDOC_CLASS_ELEMENTS # Allow having class where fields don't have kdoc
   enabled: false
-- name: MISSING_KDOC_ON_FUNCTION
+- name: MISSING_KDOC_ON_FUNCTION # Allow functions to not have kdoc (too noisy comments)
   enabled: false
-- name: GENERIC_VARIABLE_WRONG_DECLARATION
+- name: GENERIC_VARIABLE_WRONG_DECLARATION # Allow generics without boundaries
   enabled: false
-- name: FILE_WILDCARD_IMPORTS
+- name: FILE_WILDCARD_IMPORTS # Allow wildcard imports (like java.util.*)
   enabled: false
-- name: TOO_LONG_FUNCTION
+- name: TOO_LONG_FUNCTION # Allow long-ish functions, sometimes they are convenient
+  enabled: true
+  configuration:
+    maxFunctionLength: 50
+- name: KDOC_NO_EMPTY_TAGS # Allow kdocs without specifying obvious parameters.
   enabled: false
-- name: KDOC_NO_EMPTY_TAGS
+- name: WRONG_INDENTATION # Indentation is managed by intellij
   enabled: false
-- name: WRONG_INDENTATION
+- name: MAGIC_NUMBER # Allow magic numbers on array access and ports
   enabled: false
-- name: MAGIC_NUMBER
-  enabled: false
-- name: TOO_MANY_PARAMETERS
+- name: TOO_MANY_PARAMETERS # Allow at least 10 parameters (some signatures can be complex when working with intellij)
   enabled: true
   configuration:
     maxParameterListSize: '10'
-- name: FILE_NAME_INCORRECT
+- name: FILE_NAME_INCORRECT # File name does not need to match class name inside
   enabled: false
-- name: LOCAL_VARIABLE_EARLY_DECLARATION
+- name: LOCAL_VARIABLE_EARLY_DECLARATION # Allow declaring variables at the beginning of a function if they are mutable
   enabled: false
