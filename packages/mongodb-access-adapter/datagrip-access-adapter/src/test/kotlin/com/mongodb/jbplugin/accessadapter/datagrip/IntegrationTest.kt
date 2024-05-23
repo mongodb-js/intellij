@@ -36,7 +36,7 @@ import kotlinx.coroutines.runBlocking
 /**
  * Represents what version of MongoDB we support in the plugin.
  */
-enum class MongoDbversion(val versionString: String) {
+enum class MongoDbVersion(val versionString: String) {
     LATEST("7.0.9"),
 ;
 }
@@ -50,7 +50,7 @@ enum class MongoDbversion(val versionString: String) {
 @RunInEdt(allMethods = true, writeIntent = true)
 @ExtendWith(IntegrationTestExtension::class)
 @Testcontainers(parallel = false)
-annotation class IntegrationTest(val mongodb: MongoDBVersion = MongoDBVersion.LATEST, val sharded: Boolean = false)
+annotation class IntegrationTest(val mongodb: MongoDbVersion = MongoDbVersion.LATEST, val sharded: Boolean = false)
 
 /**
  * Extension implementation. Must not be used directly.
