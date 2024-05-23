@@ -11,6 +11,7 @@ package com.mongodb.jbplugin.accessadapter
 
 import org.bson.Document
 import org.owasp.encoder.Encode
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -23,6 +24,9 @@ import kotlin.time.Duration.Companion.seconds
  */
 class Namespace private constructor(val database: String, val collection: String) {
     override fun toString(): String = "$database.$collection"
+    override fun equals(other: Any?): Boolean = other is Namespace && hashCode() == other.hashCode()
+    override fun hashCode(): Int = Objects.hash(database, collection)
+
     companion object {
         operator fun invoke(database: String, collection: String): Namespace = Namespace(
                 Encode.forJavaScript(database),
