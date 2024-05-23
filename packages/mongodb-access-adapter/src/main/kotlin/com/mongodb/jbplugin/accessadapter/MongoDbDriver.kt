@@ -29,9 +29,9 @@ class Namespace private constructor(val database: String, val collection: String
 
     companion object {
         operator fun invoke(database: String, collection: String): Namespace = Namespace(
-                Encode.forJavaScript(database),
-                Encode.forJavaScript(collection)
-            )
+            Encode.forJavaScript(database),
+            Encode.forJavaScript(collection)
+        )
     }
 }
 

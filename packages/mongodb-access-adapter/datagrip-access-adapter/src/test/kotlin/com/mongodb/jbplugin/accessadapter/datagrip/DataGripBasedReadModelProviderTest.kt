@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test
 class DataGripBasedReadModelProviderTest {
     @Test
     fun `can query a slice and returns the result`(
-project: Project,
- dataSource: LocalDataSource,
- version: MongoDbVersion
-) {
+        project: Project,
+        dataSource: LocalDataSource,
+        version: MongoDbVersion
+    ) {
         val service = project.getService(DataGripBasedReadModelProvider::class.java)
         val info = service.slice(dataSource, BuildInfo.Slice)
 
