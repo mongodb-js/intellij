@@ -7,8 +7,6 @@ package com.mongodb.jbplugin.fixtures
 import com.google.gson.Gson
 import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.observability.*
-import com.mongodb.jbplugin.observability.LogMessage
-import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.probe.PluginActivatedProbe
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any

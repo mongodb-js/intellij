@@ -11,12 +11,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
-class SayHiListenerTest {
+class ActivatePluginPostStartupActivityTest {
     @Test
     fun `emits a plugin activated probe`() = runBlocking {
         val pluginActivatedProbe = mock<PluginActivatedProbe>()
         val project = mockProject(pluginActivatedProbe = pluginActivatedProbe)
-        val listener = SayHiListener(CoroutineScope(Dispatchers.Default))
+        val listener = ActivatePluginPostStartupActivity(CoroutineScope(Dispatchers.Default))
 
         listener.runActivity(project)
 

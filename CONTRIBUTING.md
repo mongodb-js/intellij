@@ -1,4 +1,5 @@
 # Contributing
+
 ## Getting Started
 
 You'll need at least the JDK 17 to work locally on the plugin. While the plugin should
@@ -22,7 +23,8 @@ It will take a few moments, and you are ready to go.
 
 ## Submitting Changes
 
-MongoDB welcomes community contributions! If you’re interested in making a contribution to MongoDB's plugin for IntelliJ, 
+MongoDB welcomes community contributions! If you’re interested in making a contribution to MongoDB's plugin for
+IntelliJ,
 please follow the steps below before you start writing any code:
 
 - Sign the contributor's agreement. This will allow us to review and accept contributions.
@@ -36,8 +38,9 @@ please follow the steps below before you start writing any code:
 
 ## Submitting Bugs
 
-You can report new bugs by creating a new issue either in [JIRA](https://jira.mongodb.org/projects/INTELLIJ/issues/) or 
-[GitHub](https://github.com/mongodb-js/intellij/issues). Please include as much information as possible about your environment
+You can report new bugs by creating a new issue either in [JIRA](https://jira.mongodb.org/projects/INTELLIJ/issues/) or
+[GitHub](https://github.com/mongodb-js/intellij/issues). Please include as much information as possible about your
+environment
 and include any relevant logs.
 
 ## Starting the plugin locally
@@ -71,18 +74,19 @@ Will apply the latest changes to the running IDE.
 UI tests require a working local environment, so before running them, please revisit the
 `Getting Started` section.
 
-Once the environment is set up, run the follow commandline script to run all the UI tests of 
+Once the environment is set up, run the follow commandline script to run all the UI tests of
 the project:
 
 ```sh
 ./gradle/run-ui-test.sh
 ```
 
-It will take a while, and Remote Robot will take ownership of your mouse once it starts 
+It will take a while, and Remote Robot will take ownership of your mouse once it starts
 a running IntelliJ environment, so please take a seat and watch it run.
 
 If a test fails, there will be a video recording in `packages/jetbrains-plugin/video` in AVI format
-(you might need VLC Player to view it if you use a Mac) and also a screenshot in `packages/jetbrains-plugin/build/reports`
+(you might need VLC Player to view it if you use a Mac) and also a screenshot
+in `packages/jetbrains-plugin/build/reports`
 alongside the hierarchy of the view (the "DOM").
 
 ## Running a single UI Test
@@ -115,15 +119,15 @@ add a new dependency:
 
 ## Releasing
 
-We don't have an automatic cadence of releases. We plan new releases, implement the 
+We don't have an automatic cadence of releases. We plan new releases, implement the
 features and then release when we are done. To release a new plugin version, is as follows:
 
 * Go to [GitHub Actions](https://github.com/mongodb-js/intellij/actions) and run the `Release Draft` workflow.
-  * Choose the type of release that you want to publish, it can be either patch, minor and major. Following semver.
+    * Choose the type of release that you want to publish, it can be either patch, minor and major. Following semver.
 * Wait until the workflow is done.
-  * It will validate that all the tests work and will publish a nightly version in the Marketplace.
+    * It will validate that all the tests work and will publish a nightly version in the Marketplace.
 * Go to the [GitHub Releases](https://github.com/mongodb-js/intellij/releases) page and you'll find a new draft release.
 * Publish the release as a normal GitHub Release, by editing it and publishing.
 * This will run a workflow _[you can check in GHA](https://github.com/mongodb-js/intellij/actions)_.
-  * When done it will update the main branch with the updated changelog and plugin version.
-  * And also will publish the package to the JetBrains Marketplace.
+    * When done it will update the main branch with the updated changelog and plugin version.
+    * And also will publish the package to the JetBrains Marketplace.

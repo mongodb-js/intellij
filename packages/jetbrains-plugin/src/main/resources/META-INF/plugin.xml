@@ -10,7 +10,7 @@
     <depends>com.intellij.database</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="com.mongodb.jbplugin.SayHiListener"/>
+        <postStartupActivity implementation="com.mongodb.jbplugin.ActivatePluginPostStartupActivity"/>
     </extensions>
     <applicationListeners>
     </applicationListeners>

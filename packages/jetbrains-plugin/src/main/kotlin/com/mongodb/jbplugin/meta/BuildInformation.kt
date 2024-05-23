@@ -1,6 +1,6 @@
 package com.mongodb.jbplugin.meta
 
-import java.util.Properties
+import java.util.*
 
 /**
  * This provides access to the build information generated at build time in Gradle.
@@ -17,6 +17,5 @@ object BuildInformation {
         it.load(BuildInformation::class.java.getResourceAsStream("/build.properties"))
     }
     val pluginVersion = properties["pluginVersion"]!!.toString()
-    val driverVersion = properties["driverVersion"]!!.toString()
     val segmentApiKey = properties["segmentApiKey"]!!.toString()
 }

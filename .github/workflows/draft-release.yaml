@@ -68,7 +68,10 @@ jobs:
             echo "If this version has already been release consider using a different one."
             exit 1
           fi
-
+      - name: Setup Docker (for Test Containers)
+        run: |
+          sudo apt update -y
+          sudo apt install -y docker docker-compose
       - name: Run Unit and Integration Tests
         run: |
           ./gradlew "unitTest" ":packages:jetbrains-plugin:test"
@@ -139,7 +142,7 @@ jobs:
           ls packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
           
           CHANGELOG=$(./gradlew --quiet --console=plain :packages:jetbrains-plugin:getChangelog)
-    
+          
           gh release create "${RELEASE_TAG}" \
             --title "${RELEASE_TAG}" \
             --notes "${CHANGELOG}" \

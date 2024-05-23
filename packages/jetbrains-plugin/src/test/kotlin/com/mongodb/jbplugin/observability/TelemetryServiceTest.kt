@@ -14,8 +14,8 @@ internal class TelemetryServiceTest {
         val mockRuntimeInfo = mockRuntimeInformationService(userId = "654321")
         val service = TelemetryService(
             mockProject(
-            runtimeInformationService = mockRuntimeInfo
-        )
+                runtimeInformationService = mockRuntimeInfo
+            )
         ).apply {
             analytics = mock<Analytics>()
         }
@@ -37,21 +37,23 @@ internal class TelemetryServiceTest {
         val mockRuntimeInfo = mockRuntimeInformationService(userId = "654321")
         val service = TelemetryService(
             mockProject(
-            runtimeInformationService = mockRuntimeInfo
-        )
+                runtimeInformationService = mockRuntimeInfo
+            )
         ).apply {
             analytics = mock<Analytics>()
         }
 
-        service.sendEvent(TelemetryEvent.NewConnection(
-            isAtlas = true,
-            isLocalhost = false,
-            isEnterprise = true,
-            isGenuine = true,
-            nonGenuineServerName = null,
-            serverOsFamily = null,
-            version = "8.0"
-        ))
+        service.sendEvent(
+            TelemetryEvent.NewConnection(
+                isAtlas = true,
+                isLocalhost = false,
+                isEnterprise = true,
+                isGenuine = true,
+                nonGenuineServerName = null,
+                serverOsFamily = null,
+                version = "8.0"
+            )
+        )
 
         verify(service.analytics).enqueue(
             argThat {
