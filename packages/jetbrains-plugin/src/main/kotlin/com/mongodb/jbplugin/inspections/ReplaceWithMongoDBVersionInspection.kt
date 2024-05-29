@@ -16,17 +16,7 @@ class ReplaceWithMongoDBVersionInspection: AbstractBaseJavaLocalInspectionTool()
         }
 
         override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-            val mongodbReadModel = project.getService(DataGripBasedReadModelProvider::class.java)
-            val buildInfo = mongodbReadModel.slice(dataSource, BuildInfo.Slice)
-
-            val stringConstant = descriptor.psiElement
-            val factory = JavaPsiFacade.getInstance(project).elementFactory
-
-            val versionString = factory.createExpressionFromText("""
-                "${buildInfo.version}"
-            """.trimIndent(), null)
-
-            stringConstant.replace(versionString)
+            // here we need to query MongoDB and modify the AST of the code
         }
 
     }
@@ -41,17 +31,6 @@ class ReplaceWithMongoDBVersionInspection: AbstractBaseJavaLocalInspectionTool()
         isOnTheFly: Boolean,
         session: LocalInspectionToolSession
     ): PsiElementVisitor {
-        val dataSource = getActiveConnection() ?: return PsiElementVisitor.EMPTY_VISITOR
-
-        return object : JavaElementVisitor() {
-            override fun visitExpression(expression: PsiExpression) {
-                if (expression is PsiLiteralExpression) {
-                    val typeOfExpression = PsiTypesUtil.getPsiClass(expression.type)
-                    if (typeOfExpression?.qualifiedName == "java.lang.String" && expression.value == "MongoDBVersion") {
-                        holder.registerProblem(expression, "MongoDBVersion can be replaced with current cluster version.", Quickfix(dataSource))
-                    }
-                }
-            }
-        }
+        // here we need to detect our string!
     }
 }
