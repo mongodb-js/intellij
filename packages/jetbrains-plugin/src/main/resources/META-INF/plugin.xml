@@ -11,7 +11,17 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.mongodb.jbplugin.ActivatePluginPostStartupActivity"/>
+        <localInspection language="JAVA"
+                         bundle="messages.InspectionBundle"
+                         key="inspection.using.mongodb.version.constant"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.mongodb.jbplugin.inspections.ReplaceWithMongoDBVersionInspection"/>
     </extensions>
     <applicationListeners>
     </applicationListeners>
+
 </idea-plugin>
