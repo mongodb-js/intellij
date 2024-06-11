@@ -1,24 +1,34 @@
 package com.mongodb.jbplugin.observability
 
 import com.google.gson.Gson
-import com.mongodb.jbplugin.fixtures.mockProject
+import com.intellij.openapi.application.Application
+import com.mongodb.jbplugin.fixtures.IntegrationTest
+import com.mongodb.jbplugin.fixtures.mockRuntimeInformationService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.`when`
 
-open class LogMessageTest {
+@IntegrationTest
+class LogMessageTest {
     private val gson: Gson = Gson()
 
     @Test
-    fun `should serialize a log message to json`() {
-        val message = LogMessage(mockProject()).message("My Message").build()
+    fun `should serialize a log message to json`(application: Application) {
+        val runtimeInformationService = mockRuntimeInformationService()
+        `when`(application.getService(RuntimeInformationService::class.java)).thenReturn(runtimeInformationService)
+
+        val message = LogMessage().message("My Message").build()
         val parsedMessage = gson.fromJson<Map<String, Any>>(message, Map::class.java)
 
         assertEquals("My Message", parsedMessage["message"])
     }
 
     @Test
-    fun `should serialize a log message to json with additional fields`() {
-        val message = LogMessage(mockProject())
+    fun `should serialize a log message to json with additional fields`(application: Application) {
+        val runtimeInformationService = mockRuntimeInformationService()
+        `when`(application.getService(RuntimeInformationService::class.java)).thenReturn(runtimeInformationService)
+
+        val message = LogMessage()
             .message("My Message")
             .put("jetbrainsId", "someId")
             .build()
