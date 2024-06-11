@@ -7,6 +7,7 @@ package com.mongodb.jbplugin.fixtures
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import org.junit.jupiter.api.extension.*
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 
 /**
@@ -39,4 +40,20 @@ private class IntegrationTestExtension : BeforeTestExecutionCallback,
 
     override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
         application
+}
+
+/**
+ * Convenience function in application for tests. It mocks the implementation of a single service
+ * with whatever implementation is passed as a parameter. For example:
+ *
+ * ```kt
+ * application.withMockedService(mockRuntimeInformationService())
+ * ```
+ *
+ * @param serviceImpl
+ * @return
+ */
+inline fun <reified T> Application.withMockedService(serviceImpl: T): Application {
+    `when`(getService(T::class.java)).thenReturn(serviceImpl)
+    return this
 }
