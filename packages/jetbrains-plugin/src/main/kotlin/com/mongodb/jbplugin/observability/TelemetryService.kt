@@ -1,7 +1,7 @@
 package com.mongodb.jbplugin.observability
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.meta.BuildInformation
 import com.segment.analytics.Analytics
 import com.segment.analytics.messages.IdentifyMessage
@@ -10,17 +10,17 @@ import com.segment.analytics.messages.TrackMessage
 /**
  * This telemetry service is used to send events to Segment. Should be used within
  * probes, no directly. That is why it's marked as internal.
- *
- * @param project
  */
-@Service(Service.Level.PROJECT)
-internal class TelemetryService(private val project: Project) {
+@Service
+internal class TelemetryService {
     internal var analytics: Analytics = Analytics
         .builder(BuildInformation.segmentApiKey)
         .build()
 
     fun sendEvent(event: TelemetryEvent) {
-        val runtimeInformationService = project.getService(RuntimeInformationService::class.java)
+        val runtimeInformationService = ApplicationManager.getApplication().getService(
+RuntimeInformationService::class.java
+)
         val runtimeInfo = runtimeInformationService.get()
 
         val message = when (event) {

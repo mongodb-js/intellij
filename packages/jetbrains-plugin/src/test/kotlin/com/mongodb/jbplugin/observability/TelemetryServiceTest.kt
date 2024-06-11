@@ -1,27 +1,27 @@
 package com.mongodb.jbplugin.observability
 
-import com.mongodb.jbplugin.fixtures.mockProject
+import com.intellij.openapi.application.Application
+import com.mongodb.jbplugin.fixtures.IntegrationTest
 import com.mongodb.jbplugin.fixtures.mockRuntimeInformationService
 import com.segment.analytics.Analytics
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 
+@IntegrationTest
 internal class TelemetryServiceTest {
     @Test
-    fun `sends an identify event when a PluginActivated event is sent`() {
+    fun `sends an identify event when a PluginActivated event is sent`(application: Application) {
         val mockRuntimeInfo = mockRuntimeInformationService(userId = "654321")
-        val service = TelemetryService(
-            mockProject(
-                runtimeInformationService = mockRuntimeInfo
-            )
-        ).apply {
+        `when`(application.getService(RuntimeInformationService::class.java)).thenReturn(mockRuntimeInfo)
+
+        val service = TelemetryService().apply {
             analytics = mock<Analytics>()
         }
 
         service.sendEvent(TelemetryEvent.PluginActivated)
-
         verify(service.analytics).enqueue(
             argThat {
                 build().let {
@@ -33,13 +33,11 @@ internal class TelemetryServiceTest {
     }
 
     @Test
-    fun `sends a new connection event as a tracking event`() {
+    fun `sends a new connection event as a tracking event`(application: Application) {
         val mockRuntimeInfo = mockRuntimeInformationService(userId = "654321")
-        val service = TelemetryService(
-            mockProject(
-                runtimeInformationService = mockRuntimeInfo
-            )
-        ).apply {
+        `when`(application.getService(RuntimeInformationService::class.java)).thenReturn(mockRuntimeInfo)
+
+        val service = TelemetryService().apply {
             analytics = mock<Analytics>()
         }
 

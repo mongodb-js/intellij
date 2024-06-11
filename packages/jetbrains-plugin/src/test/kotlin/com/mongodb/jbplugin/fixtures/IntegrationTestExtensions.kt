@@ -21,8 +21,8 @@ annotation class IntegrationTest
  * Extension class, should not be used directly.
  */
 private class IntegrationTestExtension : BeforeTestExecutionCallback,
- AfterTestExecutionCallback,
- ParameterResolver {
+    AfterTestExecutionCallback,
+    ParameterResolver {
     private lateinit var application: Application
 
     override fun beforeTestExecution(context: ExtensionContext?) {
@@ -35,8 +35,8 @@ private class IntegrationTestExtension : BeforeTestExecutionCallback,
     }
 
     override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
- parameterContext?.parameter?.type?.equals(Application::class.java) ?: false
+        parameterContext?.parameter?.type?.equals(Application::class.java) ?: false
 
     override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
- application
+        application
 }
