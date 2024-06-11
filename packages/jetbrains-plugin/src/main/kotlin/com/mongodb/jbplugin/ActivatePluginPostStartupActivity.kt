@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
@@ -15,7 +16,7 @@ import kotlinx.coroutines.launch
 class ActivatePluginPostStartupActivity(private val cs: CoroutineScope) : StartupActivity, DumbAware {
     override fun runActivity(project: Project) {
         cs.launch {
-            val pluginActivated = project.getService(PluginActivatedProbe::class.java)
+            val pluginActivated = ApplicationManager.getApplication().getService(PluginActivatedProbe::class.java)
             pluginActivated.pluginActivated()
         }
     }

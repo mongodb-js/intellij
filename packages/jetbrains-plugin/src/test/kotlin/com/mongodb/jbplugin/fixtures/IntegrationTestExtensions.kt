@@ -19,7 +19,8 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 
 /**
- * Annotation to be used within the test.
+ * Annotation to be used within the test. It provides, as a parameter of a test,
+ * either a mocked setup Application or Project.
  *
  * @see com.mongodb.jbplugin.observability.LogMessageTest
  */
