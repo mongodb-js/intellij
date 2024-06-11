@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin
 
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.fixtures.IntegrationTest
 import com.mongodb.jbplugin.fixtures.eventually
@@ -16,9 +17,9 @@ import kotlinx.coroutines.runBlocking
 @IntegrationTest
 class ActivatePluginPostStartupActivityTest {
     @Test
-    fun `emits a plugin activated probe`(project: Project) = runBlocking {
+    fun `emits a plugin activated probe`(application: Application, project: Project) = runBlocking {
         val pluginActivatedProbe = mock<PluginActivatedProbe>()
-        project.withMockedService(pluginActivatedProbe)
+        application.withMockedService(pluginActivatedProbe)
 
         val listener = ActivatePluginPostStartupActivity(CoroutineScope(Dispatchers.Default))
 
