@@ -100,7 +100,7 @@ inline fun <reified S : ComponentManager, reified T> S.withMockedService(service
  *
  * ```kt
  * val myInfoService = mockRuntimeInformationService(userId = "hey")
- * val myProject = mockProject(runtimeInformationService = myInfoService)
+ * project.withMockedService(myInfoService)
  * ```
  *
  * @param userId
@@ -120,8 +120,7 @@ internal fun mockRuntimeInformationService(
     jvmVersion: String = "42",
     buildVersion: String = "2024.2",
     applicationName: String = "Cool IDE"
-): RuntimeInformationService = org.mockito.kotlin.mock<RuntimeInformationService>()
-.also { service ->
+) = mock<RuntimeInformationService>().also { service ->
     `when`(service.get()).thenReturn(
         RuntimeInformation(
             userId = userId,
@@ -142,13 +141,12 @@ internal fun mockRuntimeInformationService(
  *
  * ```kt
  * val myLogMessage = mockLogMessage()
- * val myProject = mockProject(logMessage = myLogMessage)
+ * project.withMockedService(myLogMessage)
  * ```
  *
  * @return A new mocked LogMessage
  */
-internal fun mockLogMessage(): LogMessage = org.mockito.kotlin.mock<LogMessage>()
-.also { logMessage ->
+internal fun mockLogMessage() = mock<LogMessage>().also { logMessage ->
     `when`(logMessage.message(any())).then { message ->
         LogMessageBuilder(Gson(), message.arguments[0].toString())
     }

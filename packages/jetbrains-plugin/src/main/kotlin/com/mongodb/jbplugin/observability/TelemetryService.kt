@@ -24,12 +24,12 @@ internal class TelemetryService : AppLifecycleListener {
 
     init {
         ApplicationManager.getApplication()
-.messageBus
-.connect()
-.subscribe(
-            AppLifecycleListener.TOPIC,
-            this
-        )
+            .messageBus
+            .connect()
+            .subscribe(
+                AppLifecycleListener.TOPIC,
+                this
+            )
     }
 
     fun sendEvent(event: TelemetryEvent) {
