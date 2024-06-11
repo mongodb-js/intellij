@@ -9,6 +9,10 @@ import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ComponentManager
 import com.intellij.openapi.project.Project
+import com.intellij.util.messages.ListenerDescriptor
+import com.intellij.util.messages.MessageBus
+import com.intellij.util.messages.MessageBusOwner
+import com.intellij.util.messages.impl.RootBus
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.LogMessageBuilder
 import com.mongodb.jbplugin.observability.RuntimeInformation
@@ -34,11 +38,24 @@ private class IntegrationTestExtension : BeforeTestExecutionCallback,
     AfterTestExecutionCallback,
     ParameterResolver {
     private lateinit var application: Application
+    private lateinit var messageBus: MessageBus
     private lateinit var project: Project
 
     override fun beforeTestExecution(context: ExtensionContext?) {
         application = mock()
         project = mock()
+
+        messageBus = RootBus(mock<MessageBusOwner>().apply {
+            `when`(this.isDisposed()).thenReturn(false)
+            `when`(this.isParentLazyListenersIgnored()).thenReturn(false)
+            `when`(this.createListener(any())).then {
+                val descriptor = it.arguments[0] as ListenerDescriptor
+                Class.forName(descriptor.listenerClassName).getConstructor().newInstance()
+            }
+        })
+
+        `when`(application.getMessageBus()).thenReturn(messageBus)
+        `when`(project.getMessageBus()).thenReturn(messageBus)
 
         ApplicationManager.setApplication(application) {}
     }

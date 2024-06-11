@@ -1,7 +1,9 @@
 package com.mongodb.jbplugin.observability
 
+import com.intellij.ide.AppLifecycleListener
 import com.intellij.openapi.application.Application
 import com.mongodb.jbplugin.fixtures.IntegrationTest
+import com.mongodb.jbplugin.fixtures.mockLogMessage
 import com.mongodb.jbplugin.fixtures.mockRuntimeInformationService
 import com.mongodb.jbplugin.fixtures.withMockedService
 import com.segment.analytics.Analytics
@@ -59,5 +61,21 @@ internal class TelemetryServiceTest {
                 }
             }
         )
+    }
+
+    @Test
+    fun `flushes and shutdowns the segment client when the ide is closing`(application: Application) {
+        application.withMockedService(mockRuntimeInformationService(userId = "654321"))
+        application.withMockedService(mockLogMessage())
+
+        val service = TelemetryService().apply {
+            analytics = mock<Analytics>()
+        }
+
+        val publisher = application.messageBus.syncPublisher(AppLifecycleListener.TOPIC)
+        publisher.appWillBeClosed(true)
+
+        verify(service.analytics).flush()
+        verify(service.analytics).shutdown()
     }
 }
