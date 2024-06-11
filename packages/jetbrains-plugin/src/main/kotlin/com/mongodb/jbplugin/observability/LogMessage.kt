@@ -12,8 +12,8 @@ package com.mongodb.jbplugin.observability
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.project.Project
 
 /**
  * @param gson
@@ -33,25 +33,26 @@ internal class LogMessageBuilder(private val gson: Gson, message: String) {
 /**
  * This class will be injected in probes to build log messages. Usually like:
  * ```kt
- * @Service(Service.Level.PROJECT)
- * class MyProbe(private val project: Project) {
+ * @Service
+ * class MyProbe {
  *  ...
  *     fun somethingProbed() {
- *        val logMessage = project.getService(LogMessage::class.java)
+ *        val logMessage = ApplicationManager.getApplication().getService(LogMessage::class.java)
  *        log.info(logMessage.message("My message").put("someOtherProp", 25).build())
  *     }
  *  ...
  * }
  * ```
  *
- * @param project
  */
-@Service(Service.Level.PROJECT)
-internal class LogMessage(private val project: Project) {
+@Service
+internal class LogMessage {
     private val gson = GsonBuilder().generateNonExecutableJson().disableJdkUnsafe().create()
 
     fun message(key: String): LogMessageBuilder {
-        val runtimeInformationService = project.getService(RuntimeInformationService::class.java)
+        val runtimeInformationService = ApplicationManager.getApplication().getService(
+RuntimeInformationService::class.java
+)
         val runtimeInformation = runtimeInformationService.get()
 
         return LogMessageBuilder(gson, key)
