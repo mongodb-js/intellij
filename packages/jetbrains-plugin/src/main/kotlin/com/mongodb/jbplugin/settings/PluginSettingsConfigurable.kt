@@ -4,11 +4,13 @@
 
 package com.mongodb.jbplugin.settings
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.options.Configurable
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.util.ui.FormBuilder
 import com.mongodb.jbplugin.i18n.SettingsMessages
 import com.mongodb.jbplugin.i18n.TelemetryMessages
+import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -50,12 +52,18 @@ class PluginSettingsConfigurable : Configurable {
 private class PluginSettingsComponent {
     val root: JPanel
     val isTelemetryEnabledCheckBox = JBCheckBox(TelemetryMessages.message("settings.telemetry-collection-checkbox"))
+    val privacyPolicyButton = JButton(TelemetryMessages.message("action.view-privacy-policy"))
 
     init {
+        privacyPolicyButton.addActionListener {
+            BrowserUtil.browse(TelemetryMessages.message("settings.telemetry-privacy-policy"))
+        }
+
         root =
             FormBuilder.createFormBuilder()
                 .addComponent(isTelemetryEnabledCheckBox)
                 .addTooltip(TelemetryMessages.message("settings.telemetry-collection-tooltip"))
+                .addComponent(privacyPolicyButton)
                 .addComponentFillVertically(JPanel(), 0)
                 .panel
 

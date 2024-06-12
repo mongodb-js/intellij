@@ -82,10 +82,7 @@ internal class TelemetryServiceTest {
     }
 
     @Test
-    fun `does not send telemetry events when telemetry is disabled`(
-        application: Application,
-        settings: PluginSettings,
-    ) {
+    fun `does not send telemetry events when telemetry is disabled`(settings: PluginSettings) {
         settings.isTelemetryEnabled = false
 
         val service =

@@ -4,6 +4,7 @@
 
 package com.mongodb.jbplugin
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
@@ -30,6 +31,15 @@ class OpenMongoDbPluginSettingsAction : AnAction(TelemetryMessages.message("acti
 }
 
 /**
+ * Class that represents the link that opens the privacy policy page
+ */
+class OpenPrivacyPolicyPage : AnAction(TelemetryMessages.message("action.view-privacy-policy")) {
+    override fun actionPerformed(event: AnActionEvent) {
+        BrowserUtil.browse(TelemetryMessages.message("settings.telemetry-privacy-policy"))
+    }
+}
+
+/**
  * This notifies that the plugin has been activated.
  *
  * @param cs
@@ -50,6 +60,7 @@ class ActivatePluginPostStartupActivity(private val cs: CoroutineScope) : Startu
                         NotificationType.INFORMATION,
                     )
                     .setImportant(true)
+                    .addAction(OpenPrivacyPolicyPage())
                     .addAction(OpenMongoDbPluginSettingsAction())
                     .notify(project)
 
