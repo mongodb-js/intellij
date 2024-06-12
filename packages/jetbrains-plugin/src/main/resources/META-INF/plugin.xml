@@ -11,6 +11,14 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.mongodb.jbplugin.ActivatePluginPostStartupActivity"/>
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.mongodb.jbplugin.settings.PluginSettingsConfigurable"
+                id="com.mongodb.jbplugin.settings.PluginSettingsConfigurable"
+                displayName="MongoDB"/>
+        <notificationGroup id="com.mongodb.jbplugin.notifications.Telemetry"
+                           displayType="BALLOON"
+                           />
     </extensions>
     <applicationListeners>
     </applicationListeners>
