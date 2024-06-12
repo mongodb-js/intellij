@@ -96,7 +96,7 @@ internal class TelemetryServiceTest {
     }
 
     @Test
-    fun `does not flushes events, but shutdowns, when telemetry is disabled`(
+    fun `does not flush events, but shuts down, when telemetry is disabled`(
         application: Application,
         settings: PluginSettings,
     ) {
