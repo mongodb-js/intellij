@@ -24,3 +24,5 @@
   enabled: false
 - name: LOCAL_VARIABLE_EARLY_DECLARATION # Allow declaring variables at the beginning of a function if they are mutable
   enabled: false
+- name: USE_DATA_CLASS # Do not force to use data classes, some intellij components won't work if they are data classes
+  enabled: false
