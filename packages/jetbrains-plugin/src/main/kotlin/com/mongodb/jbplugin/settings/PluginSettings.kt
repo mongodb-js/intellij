@@ -7,6 +7,7 @@ package com.mongodb.jbplugin.settings
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
+import java.io.Serializable
 
 /**
  * The state component represents the persisting state. Don't use directly, this is only necessary
@@ -27,7 +28,7 @@ class PluginSettingsStateComponent : SimplePersistentStateComponent<PluginSettin
  *
  * @see useSettings
  */
-class PluginSettings : BaseState() {
+class PluginSettings : BaseState(), Serializable {
     var isTelemetryEnabled by property(true)
     var hasTelemetryOptOutputNotificationBeenShown by property(false)
 }
@@ -39,6 +40,7 @@ class PluginSettings : BaseState() {
  *
  * @return
  */
-fun useSettings(): PluginSettings = ApplicationManager.getApplication().getService(
-PluginSettingsStateComponent::class.java
-).state
+fun useSettings(): PluginSettings =
+    ApplicationManager.getApplication().getService(
+        PluginSettingsStateComponent::class.java,
+    ).state

@@ -30,9 +30,10 @@ class PluginSettingsConfigurable : Configurable {
     }
 
     override fun apply() {
-        val savedSettings = useSettings().apply {
-        isTelemetryEnabled = settingsComponent.isTelemetryEnabledCheckBox.isSelected
-}
+        val savedSettings =
+            useSettings().apply {
+                isTelemetryEnabled = settingsComponent.isTelemetryEnabledCheckBox.isSelected
+            }
     }
 
     override fun reset() {
@@ -57,5 +58,8 @@ private class PluginSettingsComponent {
                 .addTooltip(TelemetryMessages.message("settings.telemetry-collection-tooltip"))
                 .addComponentFillVertically(JPanel(), 0)
                 .panel
+
+        root.accessibleContext.accessibleName = "MongoDB Settings"
+        isTelemetryEnabledCheckBox.accessibleContext.accessibleName = "MongoDB Enable Telemetry"
     }
 }

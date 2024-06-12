@@ -45,32 +45,61 @@ annotation class RequiresProject(val value: String)
  *
  * @see UiTest
  */
-private class UiTestExtension : BeforeAllCallback,
+private class UiTestExtension :
+    BeforeAllCallback,
     BeforeTestExecutionCallback,
     AfterTestExecutionCallback,
     ParameterResolver {
     private val remoteRobotUrl: String = "http://localhost:8082"
     private lateinit var remoteRobot: RemoteRobot
 
-    override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
-        parameterContext?.parameter?.type?.equals(RemoteRobot::class.java) ?: false
+    override fun supportsParameter(
+        parameterContext: ParameterContext?,
+        extensionContext: ExtensionContext?,
+    ): Boolean = parameterContext?.parameter?.type?.equals(RemoteRobot::class.java) ?: false
 
-    override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
-        remoteRobot
+    override fun resolveParameter(
+        parameterContext: ParameterContext?,
+        extensionContext: ExtensionContext?,
+    ): Any = remoteRobot
 
     override fun beforeAll(context: ExtensionContext?) {
         remoteRobot = RemoteRobot(remoteRobotUrl)
     }
 
     override fun beforeTestExecution(context: ExtensionContext?) {
-        val requiresProject = context?.requiredTestMethod?.annotations
-            ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
+        val requiresProject =
+            context?.requiredTestMethod?.annotations
+                ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
 
         CommonSteps(remoteRobot).closeProject()
+
+        remoteRobot.runJs(
+            """
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            importClass(com.intellij.ide.plugins.PluginManager)
+            importClass(com.intellij.openapi.extensions.PluginId)
+
+            global.put('loadPlugin', function () {
+                const pluginManager = PluginManager.getInstance();
+                const pluginID = PluginId.findId("com.mongodb.jbplugin");
+                return pluginManager.findEnabledPlugin(pluginID);
+            });
+            
+            global.put('loadPluginClass', function (className) {
+                return global.get('loadPlugin')().getPluginClassLoader().loadClass(className);
+            });
+            
+            global.put('loadPluginService', function (className) {
+                return ApplicationManager.getApplication().getService(global.get("loadPluginClass")(className));
+            });
+            """.trimIndent(),
+        )
+
         requiresProject?.let {
             // If we have the @RequireProject annotation, load that project on startup
             CommonSteps(remoteRobot).openProject(
-                Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString()
+                Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
             )
         }
     }
@@ -101,7 +130,7 @@ private class UiTestExtension : BeforeAllCallback,
 
     private fun String.saveFile(
         url: String,
-        name: String
+        name: String,
     ): File {
         val response = client.newCall(Request.Builder().url(url).build()).execute()
         return File(this).apply {
@@ -112,10 +141,11 @@ private class UiTestExtension : BeforeAllCallback,
     }
 
     private fun BufferedImage.save(name: String) {
-        val bytes = ByteArrayOutputStream().use { bos ->
-            ImageIO.write(this, "png", bos)
-            bos.toByteArray()
-        }
+        val bytes =
+            ByteArrayOutputStream().use { bos ->
+                ImageIO.write(this, "png", bos)
+                bos.toByteArray()
+            }
 
         File("build/reports").apply { mkdirs() }.resolve("$name.png").writeBytes(bytes)
     }
@@ -123,9 +153,10 @@ private class UiTestExtension : BeforeAllCallback,
     private fun saveIdeaFrames(testName: String) {
         remoteRobot.findAll<ContainerFixture>(byXpath("//div[@class='IdeFrameImpl']"))
             .forEachIndexed { index, frame ->
-                val pic = try {
-                    frame.callJs<ByteArray>(
-                        """
+                val pic =
+                    try {
+                        frame.callJs<ByteArray>(
+                            """
                         importPackage(java.io)
                         importPackage(javax.imageio)
                         importPackage(java.awt.image)
@@ -144,20 +175,22 @@ private class UiTestExtension : BeforeAllCallback,
                           baos.close();
                         }
                         pictureBytes;   
-            """, true
-                    )
-                } catch (e: Throwable) {
-                    e.printStackTrace()
-                    throw e
-                }
+            """,
+                            true,
+                        )
+                    } catch (e: Throwable) {
+                        e.printStackTrace()
+                        throw e
+                    }
                 pic.inputStream().use {
                     ImageIO.read(it)
                 }.save(testName + "_" + index)
             }
     }
 
-    private fun fetchScreenShot(): BufferedImage = remoteRobot.callJs<ByteArray>(
-        """
+    private fun fetchScreenShot(): BufferedImage =
+        remoteRobot.callJs<ByteArray>(
+            """
             importPackage(java.io)
             importPackage(javax.imageio)
             const screenShot = new java.awt.Robot().createScreenCapture(
@@ -172,12 +205,12 @@ private class UiTestExtension : BeforeAllCallback,
               baos.close();
             }
             pictureBytes;
-        """
-    )
-        .inputStream()
-        .use {
-            ImageIO.read(it)
-        }
+        """,
+        )
+            .inputStream()
+            .use {
+                ImageIO.read(it)
+            }
 }
 
 /**
