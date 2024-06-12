@@ -1,12 +1,22 @@
+/**
+ * These classes represent the settings modal.
+ */
+
 package com.mongodb.jbplugin.settings
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.util.ui.FormBuilder
+import com.mongodb.jbplugin.i18n.SettingsMessages
+import com.mongodb.jbplugin.i18n.TelemetryMessages
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-class PluginSettingsConfigurable: Configurable {
+/**
+ * This class represents a section in the settings modal. The UI will be implemented by
+ * PluginSettingsComponent.
+ */
+class PluginSettingsConfigurable : Configurable {
     private lateinit var settingsComponent: PluginSettingsComponent
 
     override fun createComponent(): JComponent {
@@ -20,8 +30,9 @@ class PluginSettingsConfigurable: Configurable {
     }
 
     override fun apply() {
-        val savedSettings = useSettings()
-        savedSettings.isTelemetryEnabled = settingsComponent.isTelemetryEnabledCheckBox.isSelected
+        val savedSettings = useSettings().apply {
+        isTelemetryEnabled = settingsComponent.isTelemetryEnabledCheckBox.isSelected
+}
     }
 
     override fun reset() {
@@ -29,18 +40,22 @@ class PluginSettingsConfigurable: Configurable {
         settingsComponent.isTelemetryEnabledCheckBox.isSelected = savedSettings.isTelemetryEnabled
     }
 
-    override fun getDisplayName() = "MongoDB"
+    override fun getDisplayName() = SettingsMessages.message("settings.display-name")
 }
 
-class PluginSettingsComponent {
-    internal val root: JPanel
-    internal val isTelemetryEnabledCheckBox = JBCheckBox("Enable telemetry")
+/**
+ * The panel that is shown in the settings section for MongoDB.
+ */
+private class PluginSettingsComponent {
+    val root: JPanel
+    val isTelemetryEnabledCheckBox = JBCheckBox(TelemetryMessages.message("settings.telemetry-collection-checkbox"))
 
     init {
-        root = FormBuilder.createFormBuilder()
-            .addComponent(isTelemetryEnabledCheckBox)
-            .addTooltip("Allow the collection of anonymous diagnostics and usage telemetry data to help improve the product.")
-            .addComponentFillVertically(JPanel(), 0)
-            .panel
+        root =
+            FormBuilder.createFormBuilder()
+                .addComponent(isTelemetryEnabledCheckBox)
+                .addTooltip(TelemetryMessages.message("settings.telemetry-collection-tooltip"))
+                .addComponentFillVertically(JPanel(), 0)
+                .panel
     }
 }

@@ -18,6 +18,8 @@
                 displayName="MongoDB"/>
         <notificationGroup id="com.mongodb.jbplugin.notifications.Telemetry"
                            displayType="BALLOON"
+                           bundle="messages.TelemetryBundle"
+                           key="notification.group.name"
                            />
     </extensions>
     <applicationListeners>

@@ -17,6 +17,8 @@ import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.LogMessageBuilder
 import com.mongodb.jbplugin.observability.RuntimeInformation
 import com.mongodb.jbplugin.observability.RuntimeInformationService
+import com.mongodb.jbplugin.settings.PluginSettings
+import com.mongodb.jbplugin.settings.PluginSettingsStateComponent
 import org.junit.jupiter.api.extension.*
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
@@ -34,44 +36,60 @@ annotation class IntegrationTest
 /**
  * Extension class, should not be used directly.
  */
-private class IntegrationTestExtension : BeforeTestExecutionCallback,
+private class IntegrationTestExtension :
+    BeforeTestExecutionCallback,
     AfterTestExecutionCallback,
     ParameterResolver {
     private lateinit var application: Application
+    private lateinit var settings: PluginSettingsStateComponent
     private lateinit var messageBus: MessageBus
     private lateinit var project: Project
 
     override fun beforeTestExecution(context: ExtensionContext?) {
         application = mock()
         project = mock()
+        settings = PluginSettingsStateComponent()
 
-        messageBus = RootBus(mock<MessageBusOwner>().apply {
-            `when`(this.isDisposed()).thenReturn(false)
-            `when`(this.isParentLazyListenersIgnored()).thenReturn(false)
-            `when`(this.createListener(any())).then {
-                val descriptor = it.arguments[0] as ListenerDescriptor
-                Class.forName(descriptor.listenerClassName).getConstructor().newInstance()
-            }
-        })
+        messageBus =
+            RootBus(
+                mock<MessageBusOwner>().apply {
+                    `when`(this.isDisposed()).thenReturn(false)
+                    `when`(this.isParentLazyListenersIgnored()).thenReturn(false)
+                    `when`(this.createListener(any())).then {
+                        val descriptor = it.arguments[0] as ListenerDescriptor
+                        Class.forName(descriptor.listenerClassName).getConstructor().newInstance()
+                    }
+                },
+            )
 
         `when`(application.getMessageBus()).thenReturn(messageBus)
         `when`(project.getMessageBus()).thenReturn(messageBus)
 
+        application.withMockedService(settings)
         ApplicationManager.setApplication(application) {}
     }
 
     override fun afterTestExecution(context: ExtensionContext?) {
     }
 
-    override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
+    override fun supportsParameter(
+        parameterContext: ParameterContext?,
+        extensionContext: ExtensionContext?,
+    ): Boolean =
         parameterContext?.parameter?.type?.run {
-            equals(Application::class.java) || equals(Project::class.java)
+            equals(Application::class.java) ||
+                equals(Project::class.java) ||
+                equals(PluginSettings::class.java)
         } ?: false
 
-    override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
+    override fun resolveParameter(
+        parameterContext: ParameterContext?,
+        extensionContext: ExtensionContext?,
+    ): Any =
         when (parameterContext?.parameter?.type) {
             Application::class.java -> application
             Project::class.java -> project
+            PluginSettings::class.java -> settings.state
             else -> TODO()
         }
 }
@@ -119,7 +137,7 @@ internal fun mockRuntimeInformationService(
     jvmVendor: String = "Obelisk",
     jvmVersion: String = "42",
     buildVersion: String = "2024.2",
-    applicationName: String = "Cool IDE"
+    applicationName: String = "Cool IDE",
 ) = mock<RuntimeInformationService>().also { service ->
     `when`(service.get()).thenReturn(
         RuntimeInformation(
@@ -129,8 +147,8 @@ internal fun mockRuntimeInformationService(
             jvmVendor = jvmVendor,
             jvmVersion = jvmVersion,
             buildVersion = buildVersion,
-            applicationName = applicationName
-        )
+            applicationName = applicationName,
+        ),
     )
 }
 
@@ -146,8 +164,9 @@ internal fun mockRuntimeInformationService(
  *
  * @return A new mocked LogMessage
  */
-internal fun mockLogMessage() = mock<LogMessage>().also { logMessage ->
-    `when`(logMessage.message(any())).then { message ->
-        LogMessageBuilder(Gson(), message.arguments[0].toString())
+internal fun mockLogMessage() =
+    mock<LogMessage>().also { logMessage ->
+        `when`(logMessage.message(any())).then { message ->
+            LogMessageBuilder(Gson(), message.arguments[0].toString())
+        }
     }
-}

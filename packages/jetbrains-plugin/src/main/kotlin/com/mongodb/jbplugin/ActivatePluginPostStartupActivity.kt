@@ -1,3 +1,7 @@
+/**
+ * These class implement the balloon that shows the first time that the plugin is activated.
+ */
+
 package com.mongodb.jbplugin
 
 import com.intellij.notification.NotificationGroupManager
@@ -9,17 +13,22 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
+import com.mongodb.jbplugin.i18n.TelemetryMessages
 import com.mongodb.jbplugin.observability.probe.PluginActivatedProbe
 import com.mongodb.jbplugin.settings.PluginSettingsConfigurable
 import com.mongodb.jbplugin.settings.useSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-class OpenMongoDBPluginSettingsAction : AnAction("Open Settings") {
-    override fun actionPerformed(e: AnActionEvent) {
-        ShowSettingsUtil.getInstance().showSettingsDialog(e.project, PluginSettingsConfigurable::class.java)
+/**
+ * Class that represents the link that opens the settings page for MongoDB.
+ */
+class OpenMongoDbpluginSettingsAction : AnAction(TelemetryMessages.message("action.disable-telemetry")) {
+    override fun actionPerformed(event: AnActionEvent) {
+        ShowSettingsUtil.getInstance().showSettingsDialog(event.project, PluginSettingsConfigurable::class.java)
     }
 }
+
 /**
  * This notifies that the plugin has been activated.
  *
@@ -35,7 +44,11 @@ class ActivatePluginPostStartupActivity(private val cs: CoroutineScope) : Startu
             if (!settings.hasTelemetryOptOutputNotificationBeenShown) {
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("com.mongodb.jbplugin.notifications.Telemetry")
-                    .createNotification("MongoDB plugin telemetry", "Anonymous telemetry is enabled by default, as it helps us improve the plugin. However, you can disable it in settings and we won't ask you to enable it again.", NotificationType.INFORMATION)
+                    .createNotification(
+                        "MongoDB plugin telemetry",
+                        "Anonymous telemetry is enabled by default, as it helps us improve the plugin.",
+                        NotificationType.INFORMATION,
+                    )
                     .setImportant(true)
                     .addAction(OpenMongoDBPluginSettingsAction())
                     .notify(project)
