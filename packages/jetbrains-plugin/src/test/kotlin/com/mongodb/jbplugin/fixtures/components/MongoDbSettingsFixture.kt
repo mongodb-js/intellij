@@ -12,6 +12,7 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
 import com.mongodb.jbplugin.fixtures.findVisible
+import com.mongodb.jbplugin.fixtures.openSettingsAtSection
 
 /**
  * Component that represents the settings page.
@@ -21,10 +22,15 @@ import com.mongodb.jbplugin.fixtures.findVisible
  */
 @DefaultXpath(by = "accessible name", xpath = "//div[@accessiblename='MongoDB Settings']")
 @FixtureName("MongoDBSettings")
-class MongoDbSettingsFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) : ContainerFixture(remoteRobot,
- remoteComponent) {
+class MongoDbSettingsFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) : ContainerFixture(
+    remoteRobot,
+    remoteComponent,
+) {
     val enableTelemetry by lazy {
         findAll<JCheckboxFixture>().find { it.text == "Enable telemetry" } ?: throw NoSuchElementException()
+    }
+    val privacyPolicyButton by lazy {
+        findAll<JButtonFixture>().find { it.text == "View Privacy Policy" } ?: throw NoSuchElementException()
     }
     val ok by lazy {
         remoteRobot.findAll<JButtonFixture>().find { it.text == "OK" } ?: throw NoSuchElementException()
@@ -37,21 +43,7 @@ class MongoDbSettingsFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteCo
  * @return
  */
 fun RemoteRobot.openSettings(): MongoDbSettingsFixture {
-    this.runJs(
-        """
-        importClass(com.intellij.openapi.application.ApplicationManager)
-        const runAction = new Runnable({
-            run: function() {
-                com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(
-                    null,
-                    "MongoDB",
-                )
-            }
-        })
-        ApplicationManager.getApplication().invokeLater(runAction)
-        """.trimIndent(),
-    )
-
+    openSettingsAtSection("MongoDB")
     return findVisible()
 }
 
@@ -63,7 +55,8 @@ fun RemoteRobot.openSettings(): MongoDbSettingsFixture {
  * @param name
  * @return
  */
-inline fun <reified T> RemoteRobot.useSetting(name: String): T = callJs(
+inline fun <reified T> RemoteRobot.useSetting(name: String): T =
+    callJs(
         """
         global.get('loadPluginService')(
             'com.mongodb.jbplugin.settings.PluginSettingsStateComponent'

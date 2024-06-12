@@ -55,3 +55,27 @@ inline fun <reified T : Fixture> RemoteRobot.findVisible(
 
     find(T::class.java, locator)
 }
+
+/**
+ * Opens the IntelliJ settings modal at the specific section. The section is the name of the
+ * group in the left sidebar. So for example, if you want to open the MongoDB section, you
+ * would specify "MongoDB".
+ *
+ * @param section
+ */
+fun RemoteRobot.openSettingsAtSection(section: String) {
+    this.runJs(
+        """
+        importClass(com.intellij.openapi.application.ApplicationManager)
+        const runAction = new Runnable({
+            run: function() {
+                com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(
+                    null,
+                    "$section",
+                )
+            }
+        })
+        ApplicationManager.getApplication().invokeLater(runAction)
+        """.trimIndent(),
+    )
+}
