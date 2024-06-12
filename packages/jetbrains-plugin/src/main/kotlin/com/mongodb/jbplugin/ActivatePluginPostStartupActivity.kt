@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 /**
  * Class that represents the link that opens the settings page for MongoDB.
  */
-class OpenMongoDbpluginSettingsAction : AnAction(TelemetryMessages.message("action.disable-telemetry")) {
+class OpenMongoDbPluginSettingsAction : AnAction(TelemetryMessages.message("action.disable-telemetry")) {
     override fun actionPerformed(event: AnActionEvent) {
         ShowSettingsUtil.getInstance().showSettingsDialog(event.project, PluginSettingsConfigurable::class.java)
     }
@@ -45,12 +45,12 @@ class ActivatePluginPostStartupActivity(private val cs: CoroutineScope) : Startu
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("com.mongodb.jbplugin.notifications.Telemetry")
                     .createNotification(
-                        "MongoDB plugin telemetry",
-                        "Anonymous telemetry is enabled by default, as it helps us improve the plugin.",
+                        TelemetryMessages.message("notification.title"),
+                        TelemetryMessages.message("notification.message"),
                         NotificationType.INFORMATION,
                     )
                     .setImportant(true)
-                    .addAction(OpenMongoDBPluginSettingsAction())
+                    .addAction(OpenMongoDbPluginSettingsAction())
                     .notify(project)
 
                 settings.hasTelemetryOptOutputNotificationBeenShown = true
