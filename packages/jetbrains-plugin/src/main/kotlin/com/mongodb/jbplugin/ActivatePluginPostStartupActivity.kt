@@ -1,5 +1,5 @@
 /**
- * These class implement the balloon that shows the first time that the plugin is activated.
+ * These classes implement the balloon that shows the first time that the plugin is activated.
  */
 
 package com.mongodb.jbplugin
