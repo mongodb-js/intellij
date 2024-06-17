@@ -1,0 +1,7 @@
+services:
+  mongod:
+    image: "docker.io/mongodb/mongodb-enterprise-server:7.0-ubi8"
+    ports:
+      - "27017"
+  atlas-search:
+    image: "docker.io/mongodb/mongodb-atlas-search:preview"

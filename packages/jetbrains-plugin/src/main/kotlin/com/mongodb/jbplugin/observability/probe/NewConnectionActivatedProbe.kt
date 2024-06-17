@@ -51,7 +51,7 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
                 isEnterprise = serverInfo.isEnterprise,
                 isGenuine = serverInfo.isGenuineMongoDb,
                 nonGenuineServerName = serverInfo.nonGenuineVariant,
-                serverOsFamily = serverInfo.buildEnvironment.targetOs,
+                serverOsFamily = serverInfo.buildEnvironment["target_os"],
                 version = serverInfo.version,
             )
 

@@ -41,7 +41,7 @@ internal sealed class TelemetryEvent(
     /**
      * Represents the event that is emitted when the plugin is started.
      */
-    internal data object PluginActivated : TelemetryEvent(
+    data object PluginActivated : TelemetryEvent(
         name = "plugin-activated",
         properties = emptyMap(),
     )
@@ -58,8 +58,8 @@ internal sealed class TelemetryEvent(
      * @param serverOsFamily
      * @param version
      * @param isLocalAtlas
- */
-    internal class NewConnection(
+     */
+    class NewConnection(
         isAtlas: Boolean,
         isLocalAtlas: Boolean,
         isLocalhost: Boolean,

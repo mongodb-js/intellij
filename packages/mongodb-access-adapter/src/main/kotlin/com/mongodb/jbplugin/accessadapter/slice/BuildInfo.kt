@@ -4,7 +4,6 @@
 
 package com.mongodb.jbplugin.accessadapter.slice
 
-import com.google.gson.annotations.SerializedName
 import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.toNs
@@ -33,7 +32,7 @@ import org.bson.Document
 data class BuildInfo(
     val version: String,
     val gitVersion: String?,
-    val modules: Array<String>?,
+    val modules: List<String>?,
     val isLocalhost: Boolean,
     val isDataLake: Boolean,
     val isEnterprise: Boolean,
@@ -44,7 +43,7 @@ data class BuildInfo(
     val isGenuineMongoDb: Boolean,
     val nonGenuineVariant: String?,
     val serverUrl: String,
-    val buildEnvironment: BuildEnvironment,
+    val buildEnvironment: Map<String, String>,
 ) {
     object Slice : com.mongodb.jbplugin.accessadapter.Slice<BuildInfo> {
         private val atlasRegex = Regex(""".*\.mongodb(-dev|-qa|-stage)?\.net$""")
@@ -108,12 +107,4 @@ data class BuildInfo(
             )
         }
     }
-
-/**
- * @property targetOs
- */
-data class BuildEnvironment(
-        @SerializedName("target_os")
-        val targetOs: String,
-    )
 }
