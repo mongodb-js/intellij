@@ -27,7 +27,7 @@ import org.mockito.kotlin.verify
  * @see NewConnectionActivatedProbeTestForAtlasCliEnvironment
  */
 @IntegrationTest
-internal open class NewConnectionActivatedProbeTest(
+internal abstract class NewConnectionActivatedProbeTest(
     private val isAtlas: Boolean,
     private val isLocalAtlas: Boolean,
     private val isLocalhost: Boolean,

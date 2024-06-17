@@ -26,3 +26,5 @@
   enabled: false
 - name: USE_DATA_CLASS # Do not force to use data classes, some intellij components won't work if they are data classes
   enabled: false
+- name: CLASS_SHOULD_NOT_BE_ABSTRACT # Allow abstract classes even if they don't have abstract methods
+  enabled: false
