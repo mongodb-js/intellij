@@ -1,10 +1,16 @@
 package com.mongodb.jbplugin.accessadapter.slice
 
+import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
+import com.mongodb.jbplugin.accessadapter.toNs
 import org.bson.Document
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.mockito.Mockito.`when`
+import org.mockito.kotlin.eq
+
+import java.net.URI
 
 import kotlinx.coroutines.runBlocking
 
@@ -14,11 +20,15 @@ class BuildInfoTest {
         runBlocking {
             val command = Document(mapOf("buildInfo" to 1))
             val driver = Mockito.mock<MongoDbDriver>()
-            Mockito.`when`(driver.runCommand(command, BuildInfo::class)).thenReturn(
+            `when`(driver.serverUri()).thenReturn(URI.create("mongodb://localhost/"))
+            `when`(
+                driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
+            ).thenReturn(1L)
+            `when`(driver.runCommand(command, BuildInfo::class)).thenReturn(
                 BuildInfo(
                     "7.8.0",
                     "1235abc",
-                    emptyArray(),
+                    emptyList(),
                     false,
                     false,
                     false,
@@ -29,7 +39,7 @@ class BuildInfoTest {
                     false,
                     null,
                     "mongodb://localhost",
-                    buildEnvironment = BuildInfo.BuildEnvironment("winux"),
+                    buildEnvironment = emptyMap(),
                 ),
             )
 
