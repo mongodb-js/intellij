@@ -14,7 +14,6 @@ import com.intellij.util.CachedValuesManagerImpl
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.observability.TelemetryProperty
 import com.mongodb.jbplugin.observability.TelemetryService
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
@@ -57,7 +56,7 @@ internal open class NewConnectionActivatedProbeTest(
         `when`(session.connectionPoint).thenReturn(connectionPoint)
         `when`(connectionPoint.dataSource).thenReturn(dataSource)
 
-        project.withMockedMongoDBConnection(serverUrl)
+        project.withMockedMongoDbConnection(serverUrl)
         val probe = NewConnectionActivatedProbe()
 
         probe.connected(session)

@@ -54,7 +54,7 @@ enum class MongoDbVersion(val value: String) {
  */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
-@ExtendWith(MongoDBEnvironmentTestExtensions::class)
+@ExtendWith(MongoDbEnvironmentTestExtensions::class)
 annotation class RequiresMongoDbCluster(
     val value: MongoDbTestingEnvironment = MongoDbTestingEnvironment.LOCAL,
     val version: MongoDbVersion = MongoDbVersion.LATEST,
@@ -70,7 +70,7 @@ data class MongoDbServerUrl(val value: String)
 /**
  * Extension class, do not use directly.
  */
-class MongoDbenvironmentTestExtensions :
+class MongoDbEnvironmentTestExtensions :
     BeforeAllCallback,
     AfterAllCallback,
     ParameterResolver {
@@ -191,7 +191,7 @@ internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : M
  * @param url
  * @return
  */
-fun Project.withMockedMongoDbconnection(url: MongoDbServerUrl): Project {
+fun Project.withMockedMongoDbConnection(url: MongoDbServerUrl): Project {
     val client = MongoClients.create(url.value)
 
     val readModelProvider =
