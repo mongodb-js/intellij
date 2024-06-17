@@ -9,8 +9,9 @@
 
 package com.mongodb.jbplugin.accessadapter
 
-import org.bson.Document
+import org.bson.conversions.Bson
 import org.owasp.encoder.Encode
+import java.net.URI
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -24,14 +25,20 @@ import kotlin.time.Duration.Companion.seconds
  */
 class Namespace private constructor(val database: String, val collection: String) {
     override fun toString(): String = "$database.$collection"
+
     override fun equals(other: Any?): Boolean = other is Namespace && hashCode() == other.hashCode()
+
     override fun hashCode(): Int = Objects.hash(database, collection)
 
     companion object {
-        operator fun invoke(database: String, collection: String): Namespace = Namespace(
-            Encode.forJavaScript(database),
-            Encode.forJavaScript(collection)
-        )
+        operator fun invoke(
+            database: String,
+            collection: String,
+        ): Namespace =
+            Namespace(
+                Encode.forJavaScript(database),
+                Encode.forJavaScript(collection),
+            )
     }
 }
 
@@ -44,27 +51,35 @@ class Namespace private constructor(val database: String, val collection: String
  * @see com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
  */
 interface MongoDbDriver {
+    suspend fun serverUri(): URI
+
     suspend fun <T : Any> runCommand(
-        command: Document,
+        command: Bson,
         result: KClass<T>,
-        timeout: Duration = 1.seconds
+        timeout: Duration = 1.seconds,
     ): T
 
     suspend fun <T : Any> findOne(
         namespace: Namespace,
-        query: Document,
-        options: Document,
+        query: Bson,
+        options: Bson,
         result: KClass<T>,
-        timeout: Duration = 1.seconds
+        timeout: Duration = 1.seconds,
     ): T?
 
     suspend fun <T : Any> findAll(
         namespace: Namespace,
-        query: Document,
+        query: Bson,
         result: KClass<T>,
         limit: Int = 10,
-        timeout: Duration = 1.seconds
+        timeout: Duration = 1.seconds,
     ): List<T>
+
+    suspend fun countAll(
+        namespace: Namespace,
+        query: Bson,
+        timeout: Duration = 1.seconds,
+    ): Long
 }
 
 /**

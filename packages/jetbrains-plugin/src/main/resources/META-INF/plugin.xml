@@ -24,4 +24,10 @@
     </extensions>
     <applicationListeners>
     </applicationListeners>
+    <projectListeners>
+        <listener class="com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe"
+                  topic="com.intellij.database.console.session.DatabaseSessionStateListener"
+                  activeInHeadlessMode="true"
+                  activeInTestMode="true"/>
+    </projectListeners>
 </idea-plugin>

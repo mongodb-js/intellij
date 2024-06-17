@@ -26,14 +26,47 @@ class LogMessageTest {
     fun `should serialize a log message to json with additional fields`(application: Application) {
         application.withMockedService(mockRuntimeInformationService())
 
-        val message = LogMessage()
-            .message("My Message")
-            .put("jetbrainsId", "someId")
-            .build()
+        val message =
+            LogMessage()
+                .message("My Message")
+                .put("jetbrainsId", "someId")
+                .build()
 
         val parsedMessage = gson.fromJson<Map<String, Any>>(message, Map::class.java)
 
         assertEquals("My Message", parsedMessage["message"])
         assertEquals("someId", parsedMessage["jetbrainsId"])
+    }
+
+    @Test
+    fun `should merge fields from a data class`(application: Application) {
+        application.withMockedService(mockRuntimeInformationService())
+        val message =
+            LogMessage()
+                .message("My Message")
+                .merge(
+                    TelemetryEvent.NewConnection(
+                        isAtlas = true,
+                        isLocalhost = false,
+                        isEnterprise = true,
+                        isGenuine = true,
+                        nonGenuineServerName = null,
+                        serverOsFamily = null,
+                        version = null,
+                        isLocalAtlas = false,
+                    ),
+                )
+                .build()
+
+        val parsedMessage = gson.fromJson<Map<String, Any>>(message, Map::class.java)
+
+        assertEquals("My Message", parsedMessage["message"])
+        assertEquals(true, parsedMessage[TelemetryProperty.IS_ATLAS.publicName])
+        assertEquals(false, parsedMessage[TelemetryProperty.IS_LOCALHOST.publicName])
+        assertEquals(true, parsedMessage[TelemetryProperty.IS_GENUINE.publicName])
+        assertEquals(false, parsedMessage[TelemetryProperty.IS_LOCAL_ATLAS.publicName])
+        assertEquals("", parsedMessage[TelemetryProperty.NON_GENUINE_SERVER_NAME.publicName])
+        assertEquals("", parsedMessage[TelemetryProperty.SERVER_OS_FAMILY.publicName])
+        assertEquals("", parsedMessage[TelemetryProperty.VERSION.publicName])
     }
 }

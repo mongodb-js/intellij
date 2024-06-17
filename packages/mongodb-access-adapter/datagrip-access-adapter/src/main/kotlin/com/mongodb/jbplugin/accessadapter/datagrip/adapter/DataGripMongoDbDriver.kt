@@ -14,7 +14,11 @@ import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
-import org.bson.Document
+import org.bson.conversions.Bson
+import org.bson.json.JsonMode
+import org.bson.json.JsonWriterSettings
+
+import java.net.URI
 
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -33,60 +37,90 @@ import kotlinx.coroutines.withTimeout
  */
 internal class DataGripMongoDbDriver(
     private val project: Project,
-    private val dataSource: LocalDataSource
+    private val dataSource: LocalDataSource,
 ) : MongoDbDriver {
     private val gson = Gson()
+    private val jsonWriterSettings = JsonWriterSettings.builder()
+.outputMode(JsonMode.EXTENDED)
+.indent(false)
+.build()
+
+    private fun Bson.toJson(): String = this.toBsonDocument().toJson(
+            jsonWriterSettings,
+        )
+
+    override suspend fun serverUri(): URI = URI.create(dataSource.url!!)
 
     override suspend fun <T : Any> runCommand(
-        command: Document,
+        command: Bson,
         result: KClass<T>,
-        timeout: Duration
-    ): T = withContext(
-        Dispatchers.IO
-    ) {
-        runQuery(
-            """db.runCommand(${command.toJson()})""",
-            result,
-            timeout
-        )[0]
-    }
+        timeout: Duration,
+    ): T =
+        withContext(
+            Dispatchers.IO,
+        ) {
+            runQuery(
+                """db.runCommand(${command.toJson()})""",
+                result,
+                timeout,
+            )[0]
+        }
 
     override suspend fun <T : Any> findOne(
         namespace: Namespace,
-        query: Document,
-        options: Document,
+        query: Bson,
+        options: Bson,
         result: KClass<T>,
-        timeout: Duration
-    ): T? = withContext(Dispatchers.IO) {
-        runQuery(
-            """db.getSiblingDB("${namespace.database}")
+        timeout: Duration,
+    ): T? =
+        withContext(Dispatchers.IO) {
+            runQuery(
+                """db.getSiblingDB("${namespace.database}")
                  .getCollection("${namespace.collection}")
-                 .findOne(${query.toJson()}, ${options.toJson()}) """.trimMargin(),
-            result,
-            timeout
-        ).getOrNull(0)
-    }
+                 .findOne(${query.toJson()}, ${options.toJson()}) 
+                """.trimMargin(),
+                result,
+                timeout,
+            ).getOrNull(0)
+        }
 
     override suspend fun <T : Any> findAll(
         namespace: Namespace,
-        query: Document,
+        query: Bson,
         result: KClass<T>,
         limit: Int,
-        timeout: Duration
+        timeout: Duration,
     ) = withContext(Dispatchers.IO) {
         runQuery(
             """db.getSiblingDB("${namespace.database}")
                  .getCollection("${namespace.collection}")
-                 .find(${query.toJson()}).limit($limit) """.trimMargin(),
+                 .find(${query.toJson()}).limit($limit) 
+            """.trimMargin(),
             result,
-            timeout
+            timeout,
         )
+    }
+
+    override suspend fun countAll(
+        namespace: Namespace,
+        query: Bson,
+        timeout: Duration,
+    ) = withContext(Dispatchers.IO) {
+        runQuery(
+            """
+            db.getSiblingDB("${namespace.database}")
+                 .getCollection("${namespace.collection}")
+                 .countDocuments(${query.toJson()})
+            """.trimIndent(),
+            Long::class,
+            timeout,
+        )[0]
     }
 
     suspend fun <T : Any> runQuery(
         queryString: String,
         resultClass: KClass<T>,
-        timeout: Duration
+        timeout: Duration,
     ): List<T> =
         withContext(Dispatchers.IO) {
             val connection = getConnection()
@@ -123,7 +157,7 @@ internal class DataGripMongoDbDriver(
                 },
                 ConnectionRequestor.Anonymous(),
                 project,
-                true // if password is not available
+                true, // if password is not available
             )!!
     }
 }
