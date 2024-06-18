@@ -131,7 +131,7 @@ class MongoDbEnvironmentTestExtensions :
 internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : MongoDbDriver {
     val gson = Gson()
 
-    override suspend fun serverUri(): URI = URI.create(uri)
+    override suspend fun connectionString(): URI = URI.create(uri)
 
     override suspend fun <T : Any> runCommand(
         database: String,

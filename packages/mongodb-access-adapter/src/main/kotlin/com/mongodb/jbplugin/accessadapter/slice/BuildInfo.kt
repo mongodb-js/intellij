@@ -63,20 +63,20 @@ data class BuildInfo(
         private val docDbRegex = Regex(""".*docdb(-elastic)?\.amazonaws\.com$""")
 
         override suspend fun queryUsingDriver(from: MongoDbDriver): BuildInfo {
-            val url = from.serverUri()
-            val isLocalHost = url.host.matches(isLocalhostRegex)
-            val isAtlas = url.host.matches(atlasRegex)
+            val connectionString = from.connectionString()
+            val isLocalHost = connectionString.hosts.all { it.matches(isLocalhostRegex) }
+            val isAtlas = connectionString.hosts.all { it.matches(atlasRegex) }
             val isLocalAtlas =
                 from.countAll(
                     "admin.atlascli".toNs(),
                     Filters.eq("managedClusterType", "atlasCliLocalDevCluster"),
                 ) > 0
-            val isAtlasStream = url.host.matches(atlasRegex) && url.host.matches(atlasStreamRegex)
-            val isDigitalOcean = url.host.matches(digitalOceanRegex)
+            val isAtlasStream = connectionString.hosts.all { it.matches(atlasRegex) && it.matches(atlasStreamRegex) }
+            val isDigitalOcean = connectionString.hosts.all { it.matches(digitalOceanRegex) }
             val genuineVariant =
-                if (url.host.matches(cosmosDbRegex)) {
+                if (connectionString.hosts.all { it.matches(cosmosDbRegex) }) {
                     "cosmosdb"
-                } else if (url.host.matches(docDbRegex)) {
+                } else if (connectionString.hosts.all { it.matches(docDbRegex) }) {
                     "documentdb"
                 } else {
                     null
@@ -104,7 +104,7 @@ data class BuildInfo(
                 isDigitalOcean = isDigitalOcean,
                 isGenuineMongoDb = genuineVariant == null,
                 nonGenuineVariant = genuineVariant,
-                serverUrl = url.toASCIIString(),
+                serverUrl = connectionString.toString(),
             )
         }
     }

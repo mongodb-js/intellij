@@ -12,13 +12,12 @@ import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.connection.ConnectionRequestor
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.project.Project
+import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
-
-import java.net.URI
 
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -49,7 +48,7 @@ internal class DataGripMongoDbDriver(
             jsonWriterSettings,
         )
 
-    override suspend fun serverUri(): URI = URI.create(dataSource.url!!)
+    override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
     override suspend fun <T : Any> runCommand(
         database: String,

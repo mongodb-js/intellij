@@ -9,9 +9,9 @@
 
 package com.mongodb.jbplugin.accessadapter
 
+import com.mongodb.ConnectionString
 import org.bson.conversions.Bson
 import org.owasp.encoder.Encode
-import java.net.URI
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -51,7 +51,7 @@ class Namespace private constructor(val database: String, val collection: String
  * @see com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
  */
 interface MongoDbDriver {
-    suspend fun serverUri(): URI
+    suspend fun connectionString(): ConnectionString
 
     suspend fun <T : Any> runCommand(
         database: String,
