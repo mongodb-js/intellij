@@ -44,9 +44,7 @@ internal class DataGripMongoDbDriver(
         .indent(false)
         .build()
 
-    private fun Bson.toJson(): String = this.toBsonDocument().toJson(
-            jsonWriterSettings,
-        )
+    private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings)
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
@@ -111,7 +109,7 @@ internal class DataGripMongoDbDriver(
     ) = withContext(Dispatchers.IO) {
         runQuery(
             """
-            db.getSiblingDBNewConnectionActivatedProbeTestForLocalEnvironment("${namespace.database}")
+            db.getSiblingDB("${namespace.database}")
                  .getCollection("${namespace.collection}")
                  .countDocuments(EJSON.parse(`${query.toJson()}`))
             """.trimIndent(),
