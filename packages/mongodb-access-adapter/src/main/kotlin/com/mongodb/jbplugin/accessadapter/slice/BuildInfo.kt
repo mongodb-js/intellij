@@ -84,6 +84,7 @@ data class BuildInfo(
 
             val buildInfo =
                 from.runCommand(
+                    "admin",
                     Document(
                         mapOf(
                             "buildInfo" to 1,

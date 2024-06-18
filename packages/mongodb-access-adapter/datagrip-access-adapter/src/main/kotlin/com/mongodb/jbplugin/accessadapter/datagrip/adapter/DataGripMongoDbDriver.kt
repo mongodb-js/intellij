@@ -41,9 +41,9 @@ internal class DataGripMongoDbDriver(
 ) : MongoDbDriver {
     private val gson = Gson()
     private val jsonWriterSettings = JsonWriterSettings.builder()
-.outputMode(JsonMode.EXTENDED)
-.indent(false)
-.build()
+        .outputMode(JsonMode.EXTENDED)
+        .indent(false)
+        .build()
 
     private fun Bson.toJson(): String = this.toBsonDocument().toJson(
             jsonWriterSettings,
@@ -52,6 +52,7 @@ internal class DataGripMongoDbDriver(
     override suspend fun serverUri(): URI = URI.create(dataSource.url!!)
 
     override suspend fun <T : Any> runCommand(
+        database: String,
         command: Bson,
         result: KClass<T>,
         timeout: Duration,
@@ -60,7 +61,10 @@ internal class DataGripMongoDbDriver(
             Dispatchers.IO,
         ) {
             runQuery(
-                """db.runCommand(${command.toJson()})""",
+                """
+                    db.getSiblingDB("$database")
+                      .runCommand(EJSON.parse(${command.toJson()}))
+                """.trimIndent(),
                 result,
                 timeout,
             )[0]
@@ -77,7 +81,7 @@ internal class DataGripMongoDbDriver(
             runQuery(
                 """db.getSiblingDB("${namespace.database}")
                  .getCollection("${namespace.collection}")
-                 .findOne(${query.toJson()}, ${options.toJson()}) 
+                 .findOne(EJSON.parse(${query.toJson()}), EJSON.parse(${options.toJson()})) 
                 """.trimMargin(),
                 result,
                 timeout,
@@ -94,7 +98,7 @@ internal class DataGripMongoDbDriver(
         runQuery(
             """db.getSiblingDB("${namespace.database}")
                  .getCollection("${namespace.collection}")
-                 .find(${query.toJson()}).limit($limit) 
+                 .find(EJSON.parse(${query.toJson()})).limit($limit) 
             """.trimMargin(),
             result,
             timeout,
@@ -110,7 +114,7 @@ internal class DataGripMongoDbDriver(
             """
             db.getSiblingDB("${namespace.database}")
                  .getCollection("${namespace.collection}")
-                 .countDocuments(${query.toJson()})
+                 .countDocuments(EJSON.parse(${query.toJson()}))
             """.trimIndent(),
             Long::class,
             timeout,

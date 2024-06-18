@@ -54,6 +54,7 @@ interface MongoDbDriver {
     suspend fun serverUri(): URI
 
     suspend fun <T : Any> runCommand(
+        database: String,
         command: Bson,
         result: KClass<T>,
         timeout: Duration = 1.seconds,

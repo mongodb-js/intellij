@@ -134,11 +134,12 @@ internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : M
     override suspend fun serverUri(): URI = URI.create(uri)
 
     override suspend fun <T : Any> runCommand(
+        database: String,
         command: Bson,
         result: KClass<T>,
         timeout: Duration,
     ): T = withTimeout(timeout) {
-            val doc = client.getDatabase("admin").runCommand(command)
+            val doc = client.getDatabase(database).runCommand(command)
             gson.fromJson(doc.toJson(), result.java)
         }
 
