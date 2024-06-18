@@ -56,7 +56,7 @@ data class BuildInfo(
                     ".([01]?[0-9][0-9]?|2[0-4][0-9]|25[0-5])" +
                     "|0.0.0.0" +
                     "|(?:0*:)*?:?0*1" +
-                    ")$",
+                    ")(:[0-9]+)?$",
             )
         private val digitalOceanRegex = Regex(""".*\.mongo\.ondigitalocean\.com$""")
         private val cosmosDbRegex = Regex(""".*\.cosmos\.azure\.com$""")

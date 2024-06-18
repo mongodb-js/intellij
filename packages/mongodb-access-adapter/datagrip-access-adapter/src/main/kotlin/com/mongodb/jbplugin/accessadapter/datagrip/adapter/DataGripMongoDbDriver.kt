@@ -111,7 +111,7 @@ internal class DataGripMongoDbDriver(
     ) = withContext(Dispatchers.IO) {
         runQuery(
             """
-            db.getSiblingDB("${namespace.database}")
+            db.getSiblingDBNewConnectionActivatedProbeTestForLocalEnvironment("${namespace.database}")
                  .getCollection("${namespace.collection}")
                  .countDocuments(EJSON.parse(`${query.toJson()}`))
             """.trimIndent(),
