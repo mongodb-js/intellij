@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.accessadapter.slice
 
+import com.mongodb.ConnectionString
 import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.toNs
@@ -9,8 +10,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.mockito.Mockito.`when`
 
-import java.net.URI
-
 import kotlinx.coroutines.runBlocking
 
 class BuildInfoTest {
@@ -19,11 +18,11 @@ class BuildInfoTest {
         runBlocking {
             val command = Document(mapOf("buildInfo" to 1))
             val driver = Mockito.mock<MongoDbDriver>()
-            `when`(driver.connectionString()).thenReturn(URI.create("mongodb://localhost/"))
+            `when`(driver.connectionString()).thenReturn(ConnectionString("mongodb://localhost/"))
             `when`(
                 driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
             ).thenReturn(1L)
-            `when`(driver.runCommand(command, BuildInfo::class)).thenReturn(
+            `when`(driver.runCommand("admin", command, BuildInfo::class)).thenReturn(
                 BuildInfo(
                     "7.8.0",
                     "1235abc",

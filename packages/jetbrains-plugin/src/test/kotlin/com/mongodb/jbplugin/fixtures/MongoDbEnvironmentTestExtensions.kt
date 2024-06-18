@@ -7,6 +7,7 @@ package com.mongodb.jbplugin.fixtures
 
 import com.google.gson.Gson
 import com.intellij.openapi.project.Project
+import com.mongodb.ConnectionString
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
@@ -20,7 +21,6 @@ import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.lifecycle.Startable
 
 import java.io.File
-import java.net.URI
 
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -131,7 +131,7 @@ class MongoDbEnvironmentTestExtensions :
 internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : MongoDbDriver {
     val gson = Gson()
 
-    override suspend fun connectionString(): URI = URI.create(uri)
+    override suspend fun connectionString(): ConnectionString = ConnectionString(uri)
 
     override suspend fun <T : Any> runCommand(
         database: String,

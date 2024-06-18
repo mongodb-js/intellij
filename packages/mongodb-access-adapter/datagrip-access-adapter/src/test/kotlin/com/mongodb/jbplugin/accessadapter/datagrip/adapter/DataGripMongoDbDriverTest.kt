@@ -14,6 +14,7 @@ class DataGripMongoDbDriverTest {
     @Test
     fun `can connect and run a command`(version: MongoDbVersion, driver: MongoDbDriver) = runBlocking {
         val result = driver.runCommand(
+            "admin",
             Document(
                 mapOf(
                     "buildInfo" to 1,
@@ -29,6 +30,7 @@ class DataGripMongoDbDriverTest {
         data class MyBuildInfo(val version: String)
 
         val result = driver.runCommand(
+            "admin",
             Document(
                 mapOf(
                     "buildInfo" to 1,
