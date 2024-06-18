@@ -63,6 +63,7 @@ owasp-encoder = { group = "org.owasp.encoder", name = "encoder", version.ref = "
 ######################################################
 ## Testing Libraries.
 testing-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "jupiter" }
+testing-jupiter-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "jupiter" }
 testing-jupiter-vintage-engine = { group = "org.junit.vintage", name = "junit-vintage-engine", version.ref = "jupiter" }
 testing-jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 testing-mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }

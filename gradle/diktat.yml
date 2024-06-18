@@ -28,3 +28,5 @@
   enabled: false
 - name: CLASS_SHOULD_NOT_BE_ABSTRACT # Allow abstract classes even if they don't have abstract methods
   enabled: false
+- name: BACKTICKS_PROHIBITED # does not work with @ParameterizedTest
+  enabled: false
