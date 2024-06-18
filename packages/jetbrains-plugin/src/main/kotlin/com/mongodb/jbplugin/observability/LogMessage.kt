@@ -30,7 +30,7 @@ internal class LogMessageBuilder(private val gson: Gson, message: String) {
         return this
     }
 
-    inline fun <reified T : TelemetryEvent> merge(event: T): LogMessageBuilder {
+    inline fun <reified T : TelemetryEvent> mergeTelemetryEventProperties(event: T): LogMessageBuilder {
         put("event", event.name)
         properties.putAll(event.properties.mapKeys { it.key.publicName })
         return this

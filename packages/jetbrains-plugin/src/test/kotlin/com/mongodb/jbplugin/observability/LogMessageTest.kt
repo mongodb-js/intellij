@@ -44,7 +44,7 @@ class LogMessageTest {
         val message =
             LogMessage()
                 .message("My Message")
-                .merge(
+                .mergeTelemetryEventProperties(
                     TelemetryEvent.NewConnection(
                         isAtlas = true,
                         isLocalhost = false,

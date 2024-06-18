@@ -59,7 +59,7 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
 
         logger.info(
             logMessage.message("New connection activated")
-                .merge(newConnectionEvent)
+                .mergeTelemetryEventProperties(newConnectionEvent)
                 .build(),
         )
     }
