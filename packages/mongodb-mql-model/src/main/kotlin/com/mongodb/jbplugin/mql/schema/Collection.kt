@@ -6,9 +6,17 @@ data class AnyOf(val possibleTypes: Set<BsonType>) : BsonType
 
 data class BsonDocument(val values: Map<String, BsonType>) : BsonType
 
+data class BsonArray(val possibleTypes: List<BsonType>) : BsonType
+
 data object BsonString : BsonType
 
 data object BsonInt32 : BsonType
+
+data object BsonDouble : BsonType
+
+data object BsonBool : BsonType
+
+data object BsonDate : BsonType
 
 data object BsonNull : BsonType
 

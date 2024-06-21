@@ -22,8 +22,8 @@
                            key="notification.group.name"
                            />
         <localInspection language="JAVA"
-                         bundle="messages.InspectionBundle"
-                         key="inspection.using.mongodb.version.constant"
+                         bundle="messages.InspectionsBundle"
+                         key="inspection.type.checking"
                          groupPath="Java"
                          groupBundle="messages.InspectionsBundle"
                          groupKey="group.names.probable.bugs"
