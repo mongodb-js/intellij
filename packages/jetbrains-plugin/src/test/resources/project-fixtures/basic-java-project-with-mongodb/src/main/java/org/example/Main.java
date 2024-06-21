@@ -14,7 +14,7 @@ public class Main {
         try (var client = MongoClients.create()) {
             MongoDatabase database = client.getDatabase("example");
             var collection = database.getCollection("example");
-            collection.find(Filters.eq("myField", 12.9));
+            collection.find(Filters.eq("myField", 12));
             collection.find(Filters.eq("myField", 123f));
         }
     }
@@ -22,5 +22,5 @@ public class Main {
 
 interface MyRepository {
     @Query("{ 'myField': ?0 }")
-    List<Document> myQuery(float field);
+    List<Document> myQuery(int field);
 }
