@@ -5,8 +5,6 @@ import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReferenceExpression
-import com.intellij.psi.PsiType
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.dialects.DialectParser
@@ -19,13 +17,17 @@ object JavaDriverDialectParser : DialectParser<PsiElement, Dialect<PsiElement>> 
         return collection != null
     }
 
+    override suspend fun attachment(source: PsiElement): PsiElement {
+        return PsiTreeUtil.getParentOfType(source.getMongoDBCollectionElement(), PsiMethodCallExpression::class.java)!!
+    }
+
     override suspend fun parse(source: PsiElement): Node<PsiElement> {
-        val collection = source.getMongoDBCollectionElement()
-        val argExpression = source.getMongoDBFilterArgument()
+        val collection = source.getMongoDBCollectionElement()!!
+        val argExpression = collection.getMongoDBFilterArgument()
 
         val filters = parseFilters(argExpression)
         return Node(
-            source,
+            PsiTreeUtil.getParentOfType(collection, PsiMethodCallExpression::class.java)!!,
             arrayOf(HasChildren(filters)),
         )
     }
@@ -81,19 +83,13 @@ object JavaDriverDialectParser : DialectParser<PsiElement, Dialect<PsiElement>> 
 fun PsiElement.getMongoDBCollectionElement(): PsiElement? {
     if (this is PsiMethodCallExpression) {
         val qualifier = this.methodExpression.qualifierExpression ?: return null
-        if (qualifier.type ==
-            PsiType.getTypeByName(
-                "com.mongodb.client.MongoCollection",
-                this.project,
-                GlobalSearchScope.everythingScope(this.project),
-            )
-        ) {
+        if (qualifier.type?.equalsToText("com.mongodb.client.MongoCollection<org.bson.Document>") == true) {
             return qualifier
         } else {
-            return qualifier.getMongoDBCollectionElement()
+            return qualifier.parent.getMongoDBCollectionElement()
         }
     } else {
-        return PsiTreeUtil.getParentOfType(this, PsiMethodCallExpression::class.java)?.getMongoDBCollectionElement()
+        return PsiTreeUtil.getParentOfType(this.parent, PsiMethodCallExpression::class.java)?.getMongoDBCollectionElement()
     }
 }
 

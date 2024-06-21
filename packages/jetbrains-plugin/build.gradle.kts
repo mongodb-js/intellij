@@ -26,6 +26,7 @@ dependencies {
     implementation(project(":packages:mongodb-access-adapter:datagrip-access-adapter"))
     implementation(project(":packages:mongodb-autocomplete-engine"))
     implementation(project(":packages:mongodb-dialects"))
+    implementation(project(":packages:mongodb-dialects:java-driver"))
     implementation(project(":packages:mongodb-linting-engine"))
     implementation(project(":packages:mongodb-mql-model"))
 
@@ -49,7 +50,6 @@ dependencies {
     testImplementation(libs.testing.remoteRobotDeps.retrofit)
     testImplementation(libs.testing.remoteRobotDeps.retrofitGson)
 }
-
 
 jmh {
     benchmarkMode.set(listOf("thrpt"))
@@ -116,14 +116,13 @@ tasks {
                 "ide.show.tips.on.startup.default.value" to false,
                 "idea.is.internal" to true,
                 "robot-server.port" to "8082",
-            )
+            ),
         )
     }
 
     downloadRobotServerPlugin {
         version.set(libs.versions.intellij.remoteRobot)
     }
-
 
     withType<ProcessResources> {
         dependsOn("buildProperties")
@@ -134,15 +133,17 @@ tasks {
         untilBuild.set("242.*")
         version.set(rootProject.version.toString())
 
-        changeNotes.set(provider {
-            changelog.renderItem(
-                changelog
-                    .getUnreleased()
-                    .withHeader(false)
-                    .withEmptySections(false),
-                Changelog.OutputType.HTML
-            )
-        })
+        changeNotes.set(
+            provider {
+                changelog.renderItem(
+                    changelog
+                        .getUnreleased()
+                        .withHeader(false)
+                        .withEmptySections(false),
+                    Changelog.OutputType.HTML,
+                )
+            },
+        )
     }
 
     signPlugin {
@@ -152,11 +153,12 @@ tasks {
     }
 
     publishPlugin {
-        channels = when (System.getenv("JB_PUBLISH_CHANNEL")) {
-            "ga" -> listOf("Stable")
-            "beta" -> listOf("beta")
-            else -> listOf("eap")
-        }
+        channels =
+            when (System.getenv("JB_PUBLISH_CHANNEL")) {
+                "ga" -> listOf("Stable")
+                "beta" -> listOf("beta")
+                else -> listOf("eap")
+            }
         token.set(System.getenv("JB_PUBLISH_TOKEN"))
     }
 }
@@ -169,7 +171,7 @@ changelog {
     introduction.set(
         """
         MongoDB plugin for IntelliJ IDEA.
-        """.trimIndent()
+        """.trimIndent(),
     )
     itemPrefix.set("-")
     keepUnreleasedSection.set(true)

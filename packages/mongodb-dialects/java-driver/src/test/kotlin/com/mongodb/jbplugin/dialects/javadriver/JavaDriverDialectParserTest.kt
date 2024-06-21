@@ -2,6 +2,9 @@ package com.mongodb.jbplugin.dialects.javadriver
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.mongodb.jbplugin.dialects.IntegrationTest
+import com.mongodb.jbplugin.dialects.ParsingTest
+import com.mongodb.jbplugin.dialects.testQuery
 import com.mongodb.jbplugin.mql.ast.HasChildren
 import com.mongodb.jbplugin.mql.ast.HasFieldReference
 import com.mongodb.jbplugin.mql.ast.HasValueReference

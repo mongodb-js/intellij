@@ -1,8 +1,9 @@
-package com.mongodb.jbplugin.dialects.javadriver
+package com.mongodb.jbplugin.dialects
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethodCallExpression
@@ -66,6 +67,8 @@ internal class IntegrationTestExtension :
                 ).toAbsolutePath().toString(),
             ),
         )
+
+        PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
 
         ApplicationManager.getApplication().invokeAndWait {
             val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java)

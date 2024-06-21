@@ -21,6 +21,15 @@
                            bundle="messages.TelemetryBundle"
                            key="notification.group.name"
                            />
+        <localInspection language="JAVA"
+                         bundle="messages.InspectionBundle"
+                         key="inspection.using.mongodb.version.constant"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.mongodb.jbplugin.inspections.JavaDriverTypeCheckInspection"/>
     </extensions>
     <applicationListeners>
     </applicationListeners>
