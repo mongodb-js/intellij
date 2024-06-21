@@ -1,9 +1,8 @@
-package com.mongodb.jbplugin.inspections
+package com.mongodb.jbplugin.inspections.mongodb
 
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElement
-import com.mongodb.jbplugin.dialects.javadriver.JavaDriverDialect
 import com.mongodb.jbplugin.i18n.InspectionsMessages
 import com.mongodb.jbplugin.linting.rules.NotCompatibleTypes
 import com.mongodb.jbplugin.linting.rules.TypeCheckQuery
@@ -13,7 +12,7 @@ import com.mongodb.jbplugin.mql.schema.BsonInt32
 import com.mongodb.jbplugin.mql.schema.Collection
 import kotlinx.coroutines.runBlocking
 
-class JavaDriverTypeCheckInspection : AbstractJavaMongoDbInspection(JavaDriverDialect) {
+object TypeCheckMongoDbInspection : MongoDbInspection {
     override fun visitMongoDbQuery(
         problems: ProblemsHolder,
         query: Node<PsiElement>,

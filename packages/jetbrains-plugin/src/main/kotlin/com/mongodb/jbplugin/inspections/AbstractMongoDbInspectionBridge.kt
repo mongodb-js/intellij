@@ -5,29 +5,22 @@ import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
-import com.intellij.psi.JavaElementVisitor
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiElementVisitor
-import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.*
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.mongodb.jbplugin.dialects.Dialect
-import com.mongodb.jbplugin.dialects.javadriver.JavaDriverDialect
+import com.mongodb.jbplugin.inspections.mongodb.MongoDbInspection
 import com.mongodb.jbplugin.mql.ast.Node
 
-abstract class AbstractJavaMongoDbInspection(
+abstract class AbstractMongoDbInspectionBridge(
     private val dialect: Dialect<PsiElement>,
+    private val inspection: MongoDbInspection,
 ) : AbstractBaseJavaLocalInspectionTool() {
     private val queryKey: Key<CachedValue<Node<PsiElement>>> =
         Key.create(
             "QueryForDialect" + dialect.javaClass.name,
         )
-
-    abstract fun visitMongoDbQuery(
-        problems: ProblemsHolder,
-        query: Node<PsiElement>,
-    )
 
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -36,6 +29,14 @@ abstract class AbstractJavaMongoDbInspection(
     ): PsiElementVisitor {
         return object : JavaElementVisitor() {
             override fun visitMethodCallExpression(expression: PsiMethodCallExpression) {
+                dispatchIfValidMongoDbQuery(expression)
+            }
+
+            override fun visitMethod(method: PsiMethod) {
+                dispatchIfValidMongoDbQuery(method)
+            }
+
+            private fun dispatchIfValidMongoDbQuery(expression: PsiElement) {
                 ApplicationManager.getApplication().runReadAction {
                     var cachedValue: CachedValue<Node<PsiElement>>? = null
                     if (dialect.parser.canParse(expression)) {
@@ -43,7 +44,7 @@ abstract class AbstractJavaMongoDbInspection(
                         if (attachment.getUserData(queryKey) == null) {
                             val parsedAst =
                                 CachedValuesManager.getManager(attachment.project).createCachedValue {
-                                    val parsedAst = JavaDriverDialect.parser.parse(expression)
+                                    val parsedAst = dialect.parser.parse(expression)
                                     CachedValueProvider.Result.create(parsedAst, attachment)
                                 }
 
@@ -55,7 +56,7 @@ abstract class AbstractJavaMongoDbInspection(
                     }
 
                     if (cachedValue != null) {
-                        visitMongoDbQuery(holder, cachedValue.value)
+                        inspection.visitMongoDbQuery(holder, cachedValue.value)
                     }
                 }
             }

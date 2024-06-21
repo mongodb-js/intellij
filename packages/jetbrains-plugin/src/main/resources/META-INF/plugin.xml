@@ -29,7 +29,16 @@
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
                          level="WARNING"
-                         implementationClass="com.mongodb.jbplugin.inspections.JavaDriverTypeCheckInspection"/>
+                         implementationClass="com.mongodb.jbplugin.inspections.JavaDriverTypeCheckMongoDbInspectionBridge"/>
+        <localInspection language="JAVA"
+                         bundle="messages.InspectionsBundle"
+                         key="inspection.type.checking"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.mongodb.jbplugin.inspections.SpringQueryAnnotationTypeCheckMongoDbInspectionBridge"/>
     </extensions>
     <applicationListeners>
     </applicationListeners>
