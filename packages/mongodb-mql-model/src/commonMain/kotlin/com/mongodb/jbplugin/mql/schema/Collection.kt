@@ -1,12 +1,25 @@
+@file:OptIn(ExperimentalJsExport::class)
+@file:JsExport
+
 package com.mongodb.jbplugin.mql.schema
+
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
+import kotlin.js.JsName
 
 sealed interface BsonType
 
-data class AnyOf(val possibleTypes: Set<BsonType>) : BsonType
+data class AnyOf(
+    val possibleTypes: Set<BsonType>,
+) : BsonType
 
-data class BsonDocument(val values: Map<String, BsonType>) : BsonType
+data class BsonDocument(
+    val values: Map<String, BsonType>,
+) : BsonType
 
-data class BsonArray(val possibleTypes: List<BsonType>) : BsonType
+data class BsonArray(
+    val possibleTypes: List<BsonType>,
+) : BsonType
 
 data object BsonString : BsonType
 
@@ -20,7 +33,10 @@ data object BsonDate : BsonType
 
 data object BsonNull : BsonType
 
-class Collection(private val schema: BsonType) {
+class Collection(
+    private val schema: BsonType,
+) {
+    @JsName("typeOf")
     fun typeOf(fieldPath: String): BsonType {
         fun recursivelyFindType(
             fieldPath: List<String>,

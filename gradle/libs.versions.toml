@@ -84,7 +84,7 @@ testing-testContainers-mongodb = { group = "org.testcontainers", name = "mongodb
 testing-testContainers-jupiter = { group = "org.testcontainers", name = "junit-jupiter", version.ref = "testContainers" }
 ######################################################
 ## Libraries and plugins only used for the buildScript.
-buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = "1.9.23" }
+buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = "2.0.0" }
 buildScript-plugin-versions = { group = "com.github.ben-manes", name = "gradle-versions-plugin", version.ref = "versions-plugin" }
 buildScript-plugin-spotless = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version = "6.25.0" }
 ######################################################

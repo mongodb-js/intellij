@@ -1,4 +1,5 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
@@ -12,7 +13,9 @@ plugins {
 
 buildscript {
     repositories {
-        maven("https://plugins.gradle.org/m2/")
+        maven("https://oss.sonatype.org/content/repositories/snapshots/")
+        mavenCentral()
+        gradlePluginPortal()
     }
 
     dependencies {
@@ -22,84 +25,103 @@ buildscript {
     }
 }
 
-subprojects {
-    apply(plugin = "java")
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "com.github.ben-manes.versions")
-    apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "jacoco")
+val kotlinMultiplatform =
+    arrayOf(
+        ":packages:typescript-bindings",
+        ":packages:mongodb-autocomplete-engine",
+        ":packages:mongodb-dialects",
+        ":packages:mongodb-dialects:javascript-ejson",
+        ":packages:mongodb-linting-engine",
+        ":packages:mongodb-mql-model",
+    )
 
+subprojects {
     repositories {
         mavenCentral()
     }
 
-    dependencies {
-        val testImplementation by configurations
-        val compileOnly by configurations
+    if (!kotlinMultiplatform.contains(project.path)) {
+        apply(plugin = "java")
+        apply(plugin = "org.jetbrains.kotlin.jvm")
+        apply(plugin = "jacoco")
 
-        configurations.named("runtimeClasspath").configure {
-            exclude("org.jetbrains.kotlin")
-            exclude("org.jetbrains.kotlinx")
-        }
+        apply(plugin = "com.github.ben-manes.versions")
+        apply(plugin = "com.diffplug.spotless")
 
-        compileOnly(rootProject.libs.kotlin.stdlib)
-        compileOnly(rootProject.libs.kotlin.coroutines.core)
-        compileOnly(rootProject.libs.kotlin.reflect)
-        testImplementation(rootProject.libs.testing.jupiter.engine)
-        testImplementation(rootProject.libs.testing.jupiter.vintage.engine)
-        testImplementation(rootProject.libs.testing.mockito.core)
-        testImplementation(rootProject.libs.testing.mockito.kotlin)
-        testImplementation(rootProject.libs.kotlin.coroutines.test)
-    }
+        dependencies {
+            val testImplementation by configurations
+            val compileOnly by configurations
 
-    tasks {
-        withType<JavaCompile> {
-            sourceCompatibility = "17"
-            targetCompatibility = "17"
-        }
-
-        withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-            kotlinOptions.jvmTarget = "17"
-        }
-
-        withType<Test> {
-            useJUnitPlatform()
-
-            extensions.configure(JacocoTaskExtension::class) {
-                isJmx = true
-                includes = listOf("com.mongodb.*")
-                isIncludeNoLocationClasses = true
+            configurations.named("runtimeClasspath").configure {
+                exclude("org.jetbrains.kotlin")
+                exclude("org.jetbrains.kotlinx")
             }
 
-            jacoco {
-                toolVersion = "0.8.12"
-                isScanForTestClasses = true
+            compileOnly(rootProject.libs.kotlin.stdlib)
+            compileOnly(rootProject.libs.kotlin.coroutines.core)
+            compileOnly(rootProject.libs.kotlin.reflect)
+            testImplementation(rootProject.libs.testing.jupiter.engine)
+            testImplementation(rootProject.libs.testing.jupiter.vintage.engine)
+            testImplementation(rootProject.libs.testing.mockito.core)
+            testImplementation(rootProject.libs.testing.mockito.kotlin)
+            testImplementation(rootProject.libs.kotlin.coroutines.test)
+        }
+
+        tasks {
+            withType<JavaCompile> {
+                sourceCompatibility = "17"
+                targetCompatibility = "17"
             }
 
-            jvmArgs(
-                listOf(
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
+            withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+                compilerOptions {
+                    jvmTarget = JvmTarget.JVM_17
+                }
+            }
+
+            withType<Test> {
+                useJUnitPlatform()
+
+                extensions.configure(JacocoTaskExtension::class) {
+                    isJmx = true
+                    includes = listOf("com.mongodb.*")
+                    isIncludeNoLocationClasses = true
+                }
+
+                jacoco {
+                    toolVersion = "0.8.12"
+                    isScanForTestClasses = true
+                }
+
+                jvmArgs(
+                    listOf(
+                        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                    ),
                 )
-            )
-        }
-
-        withType<JacocoReport> {
-            reports {
-                xml.required = true
-                csv.required = false
-                html.outputLocation = layout.buildDirectory.dir("reports/jacocoHtml")
             }
 
-            executionData(
-                files(withType(Test::class.java)).filter { it.name.endsWith(".exec") && it.exists() }
-            )
-        }
-    }
+            withType<JacocoReport> {
+                reports {
+                    xml.required = true
+                    csv.required = false
+                    html.outputLocation = layout.buildDirectory.dir("reports/jacocoHtml")
+                }
 
-    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
-        kotlin {
-            diktat()
-                .configFile(rootProject.layout.projectDirectory.file("gradle/diktat.yml").asFile.absolutePath)
+                executionData(
+                    files(withType(Test::class.java)).filter { it.name.endsWith(".exec") && it.exists() },
+                )
+            }
+        }
+
+        configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+            kotlin {
+                diktat()
+                    .configFile(
+                        rootProject.layout.projectDirectory
+                            .file("gradle/diktat.yml")
+                            .asFile.absolutePath,
+                    )
+            }
         }
     }
 }
@@ -115,12 +137,13 @@ tasks {
     register("unitTest") {
         group = "verification"
         dependsOn(
-            subprojects.filter {
-                it.project.name != "jetbrains-plugin" &&
+            subprojects
+                .filter {
+                    it.project.name != "jetbrains-plugin" &&
                         it.project.name != "packages"
-            }.map {
-                it.tasks["test"]
-            }
+                }.map {
+                    it.tasks["test"]
+                },
         )
     }
 
@@ -130,7 +153,11 @@ tasks {
 
         fun generateVersion(): String {
             val updateMode = rootProject.findProperty("mode") ?: "patch"
-            val (oldMajor, oldMinor, oldPatch) = rootProject.version.toString().split(".").map(String::toInt)
+            val (oldMajor, oldMinor, oldPatch) =
+                rootProject.version
+                    .toString()
+                    .split(".")
+                    .map(String::toInt)
             var (newMajor, newMinor, newPatch) = arrayOf(oldMajor, oldMinor, 0)
 
             when (updateMode) {

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalJsExport::class)
+
 package com.mongodb.jbplugin.linting.rules
 
 import com.mongodb.jbplugin.linting.CPU
@@ -9,12 +11,23 @@ import com.mongodb.jbplugin.mql.schema.BsonType
 import com.mongodb.jbplugin.mql.schema.Collection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
+@JsExport
 sealed interface TypeCheckWarningInformation
 
-data class NotCompatibleTypes(val codeType: BsonType, val schemaType: BsonType) : TypeCheckWarningInformation
+@JsExport
+data class NotCompatibleTypes(
+    val codeType: BsonType,
+    val schemaType: BsonType,
+) : TypeCheckWarningInformation
 
-data class TypeCheckWarning<S>(val node: Node<S>, val warning: TypeCheckWarningInformation)
+@JsExport
+data class TypeCheckWarning<S>(
+    val node: Node<S>,
+    val warning: TypeCheckWarningInformation,
+)
 
 object TypeCheckQuery {
     suspend fun <S> apply(

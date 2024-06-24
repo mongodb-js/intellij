@@ -8,9 +8,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":packages:mongodb-mql-model"))
+            implementation(project(":packages:mongodb-dialects"))
             implementation(rootProject.libs.kotlin.stdlib)
-            implementation(rootProject.libs.kotlin.coroutines.core)
-            implementation(rootProject.libs.kotlin.reflect)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

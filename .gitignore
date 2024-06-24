@@ -34,3 +34,6 @@ packages/jetbrains-plugin/src/main/resources/build.properties
 /**/.DS_Store
 
 FAKE_BROWSER_OUTPUT
+
+/.kotlin
+/kotlin-js-store
