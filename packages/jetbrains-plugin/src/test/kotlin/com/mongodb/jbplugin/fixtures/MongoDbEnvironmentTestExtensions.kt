@@ -40,7 +40,9 @@ enum class MongoDbTestingEnvironment {
  *
  * @property value
  */
-enum class MongoDbVersion(val value: String) {
+enum class MongoDbVersion(
+    val value: String,
+) {
     V7_0("7.0"),
     LATEST("7.0"),
 ;
@@ -65,7 +67,9 @@ annotation class RequiresMongoDbCluster(
  *
  * @property value
  */
-data class MongoDbServerUrl(val value: String)
+data class MongoDbServerUrl(
+    val value: String,
+)
 
 /**
  * Extension class, do not use directly.
@@ -99,7 +103,8 @@ class MongoDbEnvironmentTestExtensions :
                     )
 
                 val client = MongoClients.create(serverUrl!!.value)
-                client.getDatabase("admin")
+                client
+                    .getDatabase("admin")
                     .getCollection("atlascli")
                     .insertOne(Document("managedClusterType", "atlasCliLocalDevCluster"))
                 client.close()
@@ -128,7 +133,10 @@ class MongoDbEnvironmentTestExtensions :
  * @property uri
  * @property client
  */
-internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : MongoDbDriver {
+internal class DirectMongoDbDriver(
+    val uri: String,
+    val client: MongoClient,
+) : MongoDbDriver {
     val gson = Gson()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(uri)
@@ -138,7 +146,8 @@ internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : M
         command: Bson,
         result: KClass<T>,
         timeout: Duration,
-    ): T = withTimeout(timeout) {
+    ): T =
+        withTimeout(timeout) {
             val doc = client.getDatabase(database).runCommand(command)
             gson.fromJson(doc.toJson(), result.java)
         }
@@ -149,10 +158,12 @@ internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : M
         options: Bson,
         result: KClass<T>,
         timeout: Duration,
-    ): T? = withTimeout(timeout) {
+    ): T? =
+        withTimeout(timeout) {
             val doc =
-                client.getDatabase(namespace.database)
-                    .getCollection(namespace.collection)
+                client
+                    .getDatabase(namespace.escapedDatabase)
+                    .getCollection(namespace.escapedCollection)
                     .find(query)
                     .limit(1)
                     .first()
@@ -166,9 +177,11 @@ internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : M
         result: KClass<T>,
         limit: Int,
         timeout: Duration,
-    ): List<T> = withTimeout(timeout) {
-            client.getDatabase(namespace.database)
-                .getCollection(namespace.collection)
+    ): List<T> =
+        withTimeout(timeout) {
+            client
+                .getDatabase(namespace.escapedDatabase)
+                .getCollection(namespace.escapedCollection)
                 .find(query)
                 .limit(limit)
                 .map { gson.fromJson(it.toJson(), result.java) }
@@ -179,9 +192,11 @@ internal class DirectMongoDbDriver(val uri: String, val client: MongoClient) : M
         namespace: Namespace,
         query: Bson,
         timeout: Duration,
-    ): Long = withTimeout(timeout) {
-            client.getDatabase(namespace.database)
-                .getCollection(namespace.collection)
+    ): Long =
+        withTimeout(timeout) {
+            client
+                .getDatabase(namespace.escapedDatabase)
+                .getCollection(namespace.escapedCollection)
                 .countDocuments(query)
         }
 }
@@ -199,7 +214,7 @@ fun Project.withMockedMongoDbConnection(url: MongoDbServerUrl): Project {
         DataGripBasedReadModelProvider(
             this,
         ).apply {
-    driverFactory = { _, _ -> DirectMongoDbDriver(url.value, client) }
-}
+            driverFactory = { _, _ -> DirectMongoDbDriver(url.value, client) }
+        }
     return withMockedService(readModelProvider)
 }

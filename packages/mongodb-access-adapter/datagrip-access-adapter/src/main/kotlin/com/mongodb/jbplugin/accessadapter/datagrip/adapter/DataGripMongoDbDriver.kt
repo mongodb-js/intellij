@@ -39,10 +39,12 @@ internal class DataGripMongoDbDriver(
     private val dataSource: LocalDataSource,
 ) : MongoDbDriver {
     private val gson = Gson()
-    private val jsonWriterSettings = JsonWriterSettings.builder()
-        .outputMode(JsonMode.EXTENDED)
-        .indent(false)
-        .build()
+    private val jsonWriterSettings =
+        JsonWriterSettings
+            .builder()
+            .outputMode(JsonMode.EXTENDED)
+            .indent(false)
+            .build()
 
     private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings)
 
@@ -59,8 +61,8 @@ internal class DataGripMongoDbDriver(
         ) {
             runQuery(
                 """
-                    db.getSiblingDB("$database")
-                      .runCommand(EJSON.parse(`${command.toJson()}`))
+                db.getSiblingDB("$database")
+                  .runCommand(EJSON.parse(`${command.toJson()}`))
                 """.trimIndent(),
                 result,
                 timeout,
@@ -76,8 +78,8 @@ internal class DataGripMongoDbDriver(
     ): T? =
         withContext(Dispatchers.IO) {
             runQuery(
-                """db.getSiblingDB("${namespace.database}")
-                 .getCollection("${namespace.collection}")
+                """db.getSiblingDB("${namespace.escapedDatabase}")
+                 .getCollection("${namespace.escapedCollection}")
                  .findOne(EJSON.parse(`${query.toJson()}`), EJSON.parse(`${options.toJson()}`)) 
                 """.trimMargin(),
                 result,
@@ -93,8 +95,8 @@ internal class DataGripMongoDbDriver(
         timeout: Duration,
     ) = withContext(Dispatchers.IO) {
         runQuery(
-            """db.getSiblingDB("${namespace.database}")
-                 .getCollection("${namespace.collection}")
+            """db.getSiblingDB("${namespace.escapedDatabase}")
+                 .getCollection("${namespace.escapedCollection}")
                  .find(EJSON.parse(`${query.toJson()}`)).limit($limit) 
             """.trimMargin(),
             result,
@@ -109,8 +111,8 @@ internal class DataGripMongoDbDriver(
     ) = withContext(Dispatchers.IO) {
         runQuery(
             """
-            db.getSiblingDB("${namespace.database}")
-                 .getCollection("${namespace.collection}")
+            db.getSiblingDB("${namespace.escapedDatabase}")
+                 .getCollection("${namespace.escapedCollection}")
                  .countDocuments(EJSON.parse(`${query.toJson()}`))
             """.trimIndent(),
             Long::class,
