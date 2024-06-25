@@ -54,21 +54,6 @@ internal class DataGripMongoDbDriver(
             .outputMode(JsonMode.EXTENDED)
             .indent(false)
             .build()
-    @VisibleForTesting
-    fun forceConnectForTesting() {
-        runBlocking {
-            val connection = getConnection()
-            val connectionsManager = DatabaseConnectionManager.getInstance()
-            val myConnectionsField =
-                connectionsManager.javaClass
-                    .getDeclaredField("myConnections").apply {
-            isAccessible = true
-}
-            val myConnections = myConnectionsField.get(connectionsManager) as MutableSet<DatabaseConnection>
-            myConnections.add(connection)
-            myConnectionsField.isAccessible = false
-        }
-    }
 
     private fun String.encodeForJs(): String = Encode.forJavaScript(this)
 
@@ -188,6 +173,40 @@ internal class DataGripMongoDbDriver(
                 project,
                 true, // if password is not available
             )!!
+    }
+
+    @VisibleForTesting
+    fun forceConnectForTesting() {
+        runBlocking {
+            val connection = getConnection()
+            withActiveConnectionList {
+                it.add(connection)
+            }
+        }
+    }
+
+    @VisibleForTesting
+    fun closeConnectionForTesting() {
+        runBlocking {
+            withActiveConnectionList {
+                it.clear()
+            }
+        }
+    }
+
+    @VisibleForTesting
+    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit): Unit {
+        runBlocking {
+            val connectionsManager = DatabaseConnectionManager.getInstance()
+            val myConnectionsField =
+                connectionsManager.javaClass
+                    .getDeclaredField("myConnections").apply {
+                        isAccessible = true
+                    }
+            val myConnections = myConnectionsField.get(connectionsManager) as MutableSet<DatabaseConnection>
+            fn(myConnections)
+            myConnectionsField.isAccessible = false
+        }
     }
 }
 

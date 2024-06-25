@@ -136,8 +136,10 @@ internal class IntegrationTestExtension :
     override fun afterAll(context: ExtensionContext?) {
         val project = context!!.getStore(namespace).get(projectKey) as Project
         val mongodb = context.getStore(namespace).get(containerKey) as MongoDBContainer
+        val driver = context.getStore(namespace).get(driverKey) as DataGripMongoDbDriver
 
-        ApplicationManager.getApplication().invokeLater({
+        ApplicationManager.getApplication().invokeAndWait({
+            driver.closeConnectionForTesting()
             ProjectManager.getInstance().closeAndDispose(project)
         }, ModalityState.defaultModalityState())
 
