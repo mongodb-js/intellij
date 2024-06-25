@@ -22,13 +22,15 @@ import kotlin.time.Duration.Companion.seconds
  * your function or class with this annotation and the compiler will allow you
  * to use the unescaped variants of database and collection.
  */
-@RequiresOptIn(level = RequiresOptIn.Level.WARNING,
- message = "This API is dangerous to use. Prefer the escaped versions if possible.")
+@RequiresOptIn(
+    level = RequiresOptIn.Level.ERROR,
+    message = "This API is dangerous to use. Prefer the escaped versions if possible.",
+)
 @Retention(AnnotationRetention.BINARY)
 @Target(
-AnnotationTarget.CLASS,
- AnnotationTarget.FUNCTION,
- AnnotationTarget.PROPERTY
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
 )
 annotation class AllowUnescapedAccess
 
