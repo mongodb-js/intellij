@@ -65,7 +65,7 @@ internal class DataGripMongoDbDriver(
             runQuery(
                 """
                 db.getSiblingDB("${database.encodeForJs()}")
-                  .runCommand(EJSON.parse(`${command.toJson()}`))
+                  .runCommand(EJSON.parse("${command.toJson()}"))
                 """.trimIndent(),
                 result,
                 timeout,
@@ -83,7 +83,7 @@ internal class DataGripMongoDbDriver(
             runQuery(
                 """db.getSiblingDB("${namespace.database.encodeForJs()}")
                  .getCollection("${namespace.collection.encodeForJs()}")
-                 .findOne(EJSON.parse(`${query.toJson()}`), EJSON.parse(`${options.toJson()}`)) 
+                 .findOne(EJSON.parse("${query.toJson()}"), EJSON.parse("${options.toJson()}")) 
                 """.trimMargin(),
                 result,
                 timeout,
@@ -100,7 +100,7 @@ internal class DataGripMongoDbDriver(
         runQuery(
             """db.getSiblingDB("${namespace.database.encodeForJs()}")
                  .getCollection("${namespace.collection.encodeForJs()}")
-                 .find(EJSON.parse(`${query.toJson()}`)).limit($limit) 
+                 .find(EJSON.parse("${query.toJson()}")).limit($limit) 
             """.trimMargin(),
             result,
             timeout,
@@ -116,7 +116,7 @@ internal class DataGripMongoDbDriver(
             """
             db.getSiblingDB("${namespace.database.encodeForJs()}")
                  .getCollection("${namespace.collection.encodeForJs()}")
-                 .countDocuments(EJSON.parse(`${query.toJson()}`))
+                 .countDocuments(EJSON.parse("${query.toJson()}"))
             """.trimIndent(),
             Long::class,
             timeout,
