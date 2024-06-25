@@ -18,11 +18,13 @@ import com.mongodb.jbplugin.accessadapter.Namespace
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
+import org.jetbrains.annotations.VisibleForTesting
 import org.owasp.encoder.Encode
 
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
@@ -52,6 +54,21 @@ internal class DataGripMongoDbDriver(
             .outputMode(JsonMode.EXTENDED)
             .indent(false)
             .build()
+    @VisibleForTesting
+    fun forceConnectForTesting() {
+        runBlocking {
+            val connection = getConnection()
+            val connectionsManager = DatabaseConnectionManager.getInstance()
+            val myConnectionsField =
+                connectionsManager.javaClass
+                    .getDeclaredField("myConnections").apply {
+            isAccessible = true
+}
+            val myConnections = myConnectionsField.get(connectionsManager) as MutableSet<DatabaseConnection>
+            myConnections.add(connection)
+            myConnectionsField.isAccessible = false
+        }
+    }
 
     private fun String.encodeForJs(): String = Encode.forJavaScript(this)
 
