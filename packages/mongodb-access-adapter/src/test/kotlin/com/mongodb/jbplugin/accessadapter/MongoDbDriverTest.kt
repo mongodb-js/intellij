@@ -19,17 +19,10 @@ class MongoDbDriverTest {
     }
 
     @Test
-    fun `escapes characters that can be dangerous in javascript`() {
-        val namespace = """mydb.myco"ll""".toNs()
-        assertEquals("mydb", namespace.database)
-        assertEquals("myco\\x22ll", namespace.collection)
-    }
-
-    @Test
     fun `removes trailing spaces`() {
         val namespace = """ mydb.myco"ll    """.toNs()
         assertEquals("mydb", namespace.database)
-        assertEquals("myco\\x22ll", namespace.collection)
+        assertEquals("myco\"ll", namespace.collection)
     }
 
     @Test

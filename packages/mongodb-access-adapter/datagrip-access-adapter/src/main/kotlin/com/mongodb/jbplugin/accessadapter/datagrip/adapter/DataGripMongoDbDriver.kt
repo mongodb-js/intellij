@@ -12,15 +12,18 @@ import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.connection.ConnectionRequestor
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.project.Project
+import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
-import org.bson.Document
-
-import kotlin.reflect.KClass
-import kotlin.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.bson.conversions.Bson
+import org.bson.json.JsonMode
+import org.bson.json.JsonWriterSettings
+import org.owasp.encoder.Encode
+import kotlin.reflect.KClass
+import kotlin.time.Duration
 
 /**
  * The driver itself. Shouldn't be used directly, but through the
@@ -33,60 +36,96 @@ import kotlinx.coroutines.withTimeout
  */
 internal class DataGripMongoDbDriver(
     private val project: Project,
-    private val dataSource: LocalDataSource
+    private val dataSource: LocalDataSource,
 ) : MongoDbDriver {
     private val gson = Gson()
+    private val jsonWriterSettings =
+        JsonWriterSettings
+            .builder()
+            .outputMode(JsonMode.EXTENDED)
+            .indent(false)
+            .build()
+
+    private fun String.encodeForJs(): String = Encode.forJavaScript(this)
+
+    private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings).encodeForJs()
+
+    override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
     override suspend fun <T : Any> runCommand(
-        command: Document,
+        database: String,
+        command: Bson,
         result: KClass<T>,
-        timeout: Duration
-    ): T = withContext(
-        Dispatchers.IO
-    ) {
-        runQuery(
-            """db.runCommand(${command.toJson()})""",
-            result,
-            timeout
-        )[0]
-    }
+        timeout: Duration,
+    ): T =
+        withContext(
+            Dispatchers.IO,
+        ) {
+            runQuery(
+                """
+                db.getSiblingDB("${database.encodeForJs()}")
+                  .runCommand(EJSON.parse("${command.toJson()}"))
+                """.trimIndent(),
+                result,
+                timeout,
+            )[0]
+        }
 
     override suspend fun <T : Any> findOne(
         namespace: Namespace,
-        query: Document,
-        options: Document,
+        query: Bson,
+        options: Bson,
         result: KClass<T>,
-        timeout: Duration
-    ): T? = withContext(Dispatchers.IO) {
-        runQuery(
-            """db.getSiblingDB("${namespace.database}")
-                 .getCollection("${namespace.collection}")
-                 .findOne(${query.toJson()}, ${options.toJson()}) """.trimMargin(),
-            result,
-            timeout
-        ).getOrNull(0)
-    }
+        timeout: Duration,
+    ): T? =
+        withContext(Dispatchers.IO) {
+            runQuery(
+                """db.getSiblingDB("${namespace.database.encodeForJs()}")
+                 .getCollection("${namespace.collection.encodeForJs()}")
+                 .findOne(EJSON.parse("${query.toJson()}"), EJSON.parse("${options.toJson()}")) 
+                """.trimMargin(),
+                result,
+                timeout,
+            ).getOrNull(0)
+        }
 
     override suspend fun <T : Any> findAll(
         namespace: Namespace,
-        query: Document,
+        query: Bson,
         result: KClass<T>,
         limit: Int,
-        timeout: Duration
+        timeout: Duration,
     ) = withContext(Dispatchers.IO) {
         runQuery(
-            """db.getSiblingDB("${namespace.database}")
-                 .getCollection("${namespace.collection}")
-                 .find(${query.toJson()}).limit($limit) """.trimMargin(),
+            """db.getSiblingDB("${namespace.database.encodeForJs()}")
+                 .getCollection("${namespace.collection.encodeForJs()}")
+                 .find(EJSON.parse("${query.toJson()}")).limit($limit) 
+            """.trimMargin(),
             result,
-            timeout
+            timeout,
         )
+    }
+
+    override suspend fun countAll(
+        namespace: Namespace,
+        query: Bson,
+        timeout: Duration,
+    ) = withContext(Dispatchers.IO) {
+        runQuery(
+            """
+            db.getSiblingDB("${namespace.database.encodeForJs()}")
+                 .getCollection("${namespace.collection.encodeForJs()}")
+                 .countDocuments(EJSON.parse("${query.toJson()}"))
+            """.trimIndent(),
+            Long::class,
+            timeout,
+        )[0]
     }
 
     suspend fun <T : Any> runQuery(
         queryString: String,
         resultClass: KClass<T>,
-        timeout: Duration
+        timeout: Duration,
     ): List<T> =
         withContext(Dispatchers.IO) {
             val connection = getConnection()
@@ -123,7 +162,7 @@ internal class DataGripMongoDbDriver(
                 },
                 ConnectionRequestor.Anonymous(),
                 project,
-                true // if password is not available
+                true, // if password is not available
             )!!
     }
 }

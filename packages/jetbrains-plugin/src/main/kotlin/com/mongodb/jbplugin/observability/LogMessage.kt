@@ -22,8 +22,17 @@ import com.intellij.openapi.components.Service
 internal class LogMessageBuilder(private val gson: Gson, message: String) {
     private val properties: MutableMap<String, Any> = mutableMapOf("message" to message)
 
-    fun put(key: String, value: Any): LogMessageBuilder {
+    fun put(
+        key: String,
+        value: Any,
+    ): LogMessageBuilder {
         properties[key] = value
+        return this
+    }
+
+    inline fun <reified T : TelemetryEvent> mergeTelemetryEventProperties(event: T): LogMessageBuilder {
+        put("event", event.name)
+        properties.putAll(event.properties.mapKeys { it.key.publicName })
         return this
     }
 
@@ -50,9 +59,10 @@ internal class LogMessage {
     private val gson = GsonBuilder().generateNonExecutableJson().disableJdkUnsafe().create()
 
     fun message(key: String): LogMessageBuilder {
-        val runtimeInformationService = ApplicationManager.getApplication().getService(
-RuntimeInformationService::class.java
-)
+        val runtimeInformationService =
+            ApplicationManager.getApplication().getService(
+                RuntimeInformationService::class.java,
+            )
         val runtimeInformation = runtimeInformationService.get()
 
         return LogMessageBuilder(gson, key)

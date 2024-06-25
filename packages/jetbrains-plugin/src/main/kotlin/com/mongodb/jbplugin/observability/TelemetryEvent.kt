@@ -14,13 +14,14 @@ package com.mongodb.jbplugin.observability
  */
 internal enum class TelemetryProperty(val publicName: String) {
     IS_ATLAS("is_atlas"),
+    IS_LOCAL_ATLAS("is_local_atlas"),
     IS_LOCALHOST("is_localhost"),
     IS_ENTERPRISE("is_enterprise"),
     IS_GENUINE("is_genuine"),
     NON_GENUINE_SERVER_NAME("non_genuine_server_name"),
     SERVER_OS_FAMILY("server_os_family"),
     VERSION("version"),
-    ;
+;
 }
 
 /**
@@ -35,14 +36,14 @@ internal enum class TelemetryProperty(val publicName: String) {
  */
 internal sealed class TelemetryEvent(
     internal val name: String,
-    internal val properties: Map<TelemetryProperty, Any>
+    internal val properties: Map<TelemetryProperty, Any>,
 ) {
     /**
      * Represents the event that is emitted when the plugin is started.
      */
-    internal data object PluginActivated : TelemetryEvent(
+    data object PluginActivated : TelemetryEvent(
         name = "plugin-activated",
-        properties = emptyMap()
+        properties = emptyMap(),
     )
 
     /**
@@ -56,25 +57,29 @@ internal sealed class TelemetryEvent(
      * @param nonGenuineServerName
      * @param serverOsFamily
      * @param version
+     * @param isLocalAtlas
      */
-    internal class NewConnection(
+    class NewConnection(
         isAtlas: Boolean,
+        isLocalAtlas: Boolean,
         isLocalhost: Boolean,
         isEnterprise: Boolean,
         isGenuine: Boolean,
         nonGenuineServerName: String?,
         serverOsFamily: String?,
-        version: String?
+        version: String?,
     ) : TelemetryEvent(
-        name = "new-connection",
-        properties = mapOf(
-            TelemetryProperty.IS_ATLAS to isAtlas,
-            TelemetryProperty.IS_LOCALHOST to isLocalhost,
-            TelemetryProperty.IS_ENTERPRISE to isEnterprise,
-            TelemetryProperty.IS_GENUINE to isGenuine,
-            TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
-            TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
-            TelemetryProperty.VERSION to (version ?: "")
+            name = "new-connection",
+            properties =
+                mapOf(
+                    TelemetryProperty.IS_ATLAS to isAtlas,
+                    TelemetryProperty.IS_LOCAL_ATLAS to isLocalAtlas,
+                    TelemetryProperty.IS_LOCALHOST to isLocalhost,
+                    TelemetryProperty.IS_ENTERPRISE to isEnterprise,
+                    TelemetryProperty.IS_GENUINE to isGenuine,
+                    TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
+                    TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
+                    TelemetryProperty.VERSION to (version ?: ""),
+                ),
         )
-    )
 }
