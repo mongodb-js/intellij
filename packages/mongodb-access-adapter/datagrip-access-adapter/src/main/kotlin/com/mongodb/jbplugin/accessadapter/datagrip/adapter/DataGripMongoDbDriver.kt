@@ -18,6 +18,7 @@ import com.mongodb.jbplugin.accessadapter.Namespace
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
+import org.owasp.encoder.Encode
 
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -46,6 +47,8 @@ internal class DataGripMongoDbDriver(
             .indent(false)
             .build()
 
+    private fun String.encodeForJs(): String = Encode.forJavaScript(this)
+
     private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings)
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
@@ -61,7 +64,7 @@ internal class DataGripMongoDbDriver(
         ) {
             runQuery(
                 """
-                db.getSiblingDB("$database")
+                db.getSiblingDB("${database.encodeForJs()}")
                   .runCommand(EJSON.parse(`${command.toJson()}`))
                 """.trimIndent(),
                 result,
@@ -78,8 +81,8 @@ internal class DataGripMongoDbDriver(
     ): T? =
         withContext(Dispatchers.IO) {
             runQuery(
-                """db.getSiblingDB("${namespace.escapedDatabase}")
-                 .getCollection("${namespace.escapedCollection}")
+                """db.getSiblingDB("${namespace.database.encodeForJs()}")
+                 .getCollection("${namespace.collection.encodeForJs()}")
                  .findOne(EJSON.parse(`${query.toJson()}`), EJSON.parse(`${options.toJson()}`)) 
                 """.trimMargin(),
                 result,
@@ -95,8 +98,8 @@ internal class DataGripMongoDbDriver(
         timeout: Duration,
     ) = withContext(Dispatchers.IO) {
         runQuery(
-            """db.getSiblingDB("${namespace.escapedDatabase}")
-                 .getCollection("${namespace.escapedCollection}")
+            """db.getSiblingDB("${namespace.database.encodeForJs()}")
+                 .getCollection("${namespace.collection.encodeForJs()}")
                  .find(EJSON.parse(`${query.toJson()}`)).limit($limit) 
             """.trimMargin(),
             result,
@@ -111,8 +114,8 @@ internal class DataGripMongoDbDriver(
     ) = withContext(Dispatchers.IO) {
         runQuery(
             """
-            db.getSiblingDB("${namespace.escapedDatabase}")
-                 .getCollection("${namespace.escapedCollection}")
+            db.getSiblingDB("${namespace.database.encodeForJs()}")
+                 .getCollection("${namespace.collection.encodeForJs()}")
                  .countDocuments(EJSON.parse(`${query.toJson()}`))
             """.trimIndent(),
             Long::class,

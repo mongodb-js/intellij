@@ -11,48 +11,26 @@ package com.mongodb.jbplugin.accessadapter
 
 import com.mongodb.ConnectionString
 import org.bson.conversions.Bson
-import org.owasp.encoder.Encode
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Annotation required to use the unescaped versions of the namespace. Annotate
- * your function or class with this annotation and the compiler will allow you
- * to use the unescaped variants of database and collection.
- */
-@RequiresOptIn(
-    level = RequiresOptIn.Level.ERROR,
-    message = "This API is dangerous to use. Prefer the escaped versions if possible.",
-)
-@Retention(AnnotationRetention.BINARY)
-@Target(
-    AnnotationTarget.CLASS,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.PROPERTY,
-)
-annotation class AllowUnescapedAccess
-
-/**
  * Represents a MongoDB Namespace (db/coll)
  *
- * @property escapedDatabase
- * @property escapedCollection
  * @property database
  * @property collection
  */
 class Namespace private constructor(
-    val escapedDatabase: String,
-    val escapedCollection: String,
-    @property:AllowUnescapedAccess val database: String,
-    @property:AllowUnescapedAccess val collection: String,
+    val database: String,
+    val collection: String,
 ) {
-    override fun toString(): String = "$escapedDatabase.$escapedCollection"
+    override fun toString(): String = "$database.$collection"
 
     override fun equals(other: Any?): Boolean = other is Namespace && hashCode() == other.hashCode()
 
-    override fun hashCode(): Int = Objects.hash(escapedDatabase, escapedCollection)
+    override fun hashCode(): Int = Objects.hash(database, collection)
 
     companion object {
         operator fun invoke(
@@ -60,8 +38,6 @@ class Namespace private constructor(
             collection: String,
         ): Namespace =
             Namespace(
-                Encode.forJavaScript(database),
-                Encode.forJavaScript(collection),
                 database,
                 collection,
             )

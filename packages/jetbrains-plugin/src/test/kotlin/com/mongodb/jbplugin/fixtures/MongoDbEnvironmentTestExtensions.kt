@@ -162,8 +162,8 @@ internal class DirectMongoDbDriver(
         withTimeout(timeout) {
             val doc =
                 client
-                    .getDatabase(namespace.escapedDatabase)
-                    .getCollection(namespace.escapedCollection)
+                    .getDatabase(namespace.database)
+                    .getCollection(namespace.collection)
                     .find(query)
                     .limit(1)
                     .first()
@@ -180,8 +180,8 @@ internal class DirectMongoDbDriver(
     ): List<T> =
         withTimeout(timeout) {
             client
-                .getDatabase(namespace.escapedDatabase)
-                .getCollection(namespace.escapedCollection)
+                .getDatabase(namespace.database)
+                .getCollection(namespace.collection)
                 .find(query)
                 .limit(limit)
                 .map { gson.fromJson(it.toJson(), result.java) }
@@ -195,8 +195,8 @@ internal class DirectMongoDbDriver(
     ): Long =
         withTimeout(timeout) {
             client
-                .getDatabase(namespace.escapedDatabase)
-                .getCollection(namespace.escapedCollection)
+                .getDatabase(namespace.database)
+                .getCollection(namespace.collection)
                 .countDocuments(query)
         }
 }

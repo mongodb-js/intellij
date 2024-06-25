@@ -7,11 +7,14 @@ plugins {
     alias(libs.plugins.intellij)
 }
 
-
 tasks {
     named("test", Test::class) {
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
-        val homePath = project.layout.buildDirectory.dir("idea-sandbox/config-test").get().asFile.absolutePath
+        val homePath =
+            project.layout.buildDirectory
+                .dir("idea-sandbox/config-test")
+                .get()
+                .asFile.absolutePath
 
         jvmArgs(
             listOf(
@@ -21,8 +24,8 @@ tasks {
                 "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
                 "-Dpolyglot.engine.WarnInterpreterOnly=false",
                 "-Dpolyglot.log.level=OFF",
-                "-Didea.home.path=${homePath}"
-            )
+                "-Didea.home.path=$homePath",
+            ),
         )
     }
 }
@@ -36,6 +39,7 @@ intellij {
 
 dependencies {
     implementation(libs.gson)
+    implementation(libs.owasp.encoder)
     implementation(libs.mongodb.driver)
     implementation(project(":packages:mongodb-access-adapter"))
 
