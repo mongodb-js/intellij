@@ -15,16 +15,15 @@ import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
 import org.owasp.encoder.Encode
-
 import kotlin.reflect.KClass
 import kotlin.time.Duration
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 
 /**
  * The driver itself. Shouldn't be used directly, but through the
@@ -49,7 +48,7 @@ internal class DataGripMongoDbDriver(
 
     private fun String.encodeForJs(): String = Encode.forJavaScript(this)
 
-    private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings)
+    private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings).encodeForJs()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
