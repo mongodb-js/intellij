@@ -12,7 +12,9 @@ package com.mongodb.jbplugin.observability
  *
  * @property publicName Name of the field in Segment.
  */
-internal enum class TelemetryProperty(val publicName: String) {
+internal enum class TelemetryProperty(
+    val publicName: String,
+) {
     IS_ATLAS("is_atlas"),
     IS_LOCAL_ATLAS("is_local_atlas"),
     IS_LOCALHOST("is_localhost"),
@@ -21,6 +23,8 @@ internal enum class TelemetryProperty(val publicName: String) {
     NON_GENUINE_SERVER_NAME("non_genuine_server_name"),
     SERVER_OS_FAMILY("server_os_family"),
     VERSION("version"),
+    ERROR_CODE("error_code"),
+    ERROR_NAME("error_name"),
 ;
 }
 
@@ -80,6 +84,49 @@ internal sealed class TelemetryEvent(
                     TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
                     TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
                     TelemetryProperty.VERSION to (version ?: ""),
+                ),
+        )
+
+    /**
+     * Represents the event that is emitted when the there is an error
+     * during the connection to a MongoDB Cluster.
+     *
+     * @param isAtlas
+     * @param isLocalhost
+     * @param isEnterprise
+     * @param isGenuine
+     * @param nonGenuineServerName
+     * @param serverOsFamily
+     * @param version
+     * @param isLocalAtlas
+     * @param errorCode
+     * @param errorName
+     */
+    class ConnectionError(
+        errorCode: String,
+        errorName: String,
+        isAtlas: Boolean?,
+        isLocalAtlas: Boolean?,
+        isLocalhost: Boolean?,
+        isEnterprise: Boolean?,
+        isGenuine: Boolean?,
+        nonGenuineServerName: String?,
+        serverOsFamily: String?,
+        version: String?,
+    ) : TelemetryEvent(
+            name = "connection-error",
+            properties =
+                mapOf(
+                    TelemetryProperty.IS_ATLAS to (isAtlas ?: ""),
+                    TelemetryProperty.IS_LOCAL_ATLAS to (isLocalAtlas ?: ""),
+                    TelemetryProperty.IS_LOCALHOST to (isLocalhost ?: ""),
+                    TelemetryProperty.IS_ENTERPRISE to (isEnterprise ?: ""),
+                    TelemetryProperty.IS_GENUINE to (isGenuine ?: ""),
+                    TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
+                    TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
+                    TelemetryProperty.VERSION to (version ?: ""),
+                    TelemetryProperty.ERROR_CODE to errorCode,
+                    TelemetryProperty.ERROR_NAME to errorName,
                 ),
         )
 }

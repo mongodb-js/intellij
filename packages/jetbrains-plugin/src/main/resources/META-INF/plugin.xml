@@ -29,5 +29,9 @@
                   topic="com.intellij.database.console.session.DatabaseSessionStateListener"
                   activeInHeadlessMode="true"
                   activeInTestMode="true"/>
+        <listener class="com.mongodb.jbplugin.observability.probe.ConnectionFailureProbe"
+                  topic="com.intellij.database.dataSource.DatabaseConnectionManager$Listener"
+                  activeInHeadlessMode="true"
+                  activeInTestMode="true"/>
     </projectListeners>
 </idea-plugin>

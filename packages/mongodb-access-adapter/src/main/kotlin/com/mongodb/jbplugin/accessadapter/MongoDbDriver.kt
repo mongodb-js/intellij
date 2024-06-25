@@ -53,6 +53,8 @@ class Namespace private constructor(
  * @see com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
  */
 interface MongoDbDriver {
+    val connected: Boolean
+
     suspend fun connectionString(): ConnectionString
 
     suspend fun <T : Any> runCommand(
