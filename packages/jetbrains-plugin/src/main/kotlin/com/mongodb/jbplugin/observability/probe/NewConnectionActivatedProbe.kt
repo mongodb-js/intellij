@@ -7,6 +7,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
+import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.accessadapter.slice.BuildInfo
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.TelemetryEvent
@@ -41,6 +42,11 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
 
         val readModelProvider = session.project.getService(DataGripBasedReadModelProvider::class.java)
         val dataSource = session.connectionPoint.dataSource
+
+        if (!dataSource.isMongoDbDataSource()) {
+            return
+        }
+
         val serverInfo = readModelProvider.slice(dataSource, BuildInfo.Slice)
 
         val newConnectionEvent =
@@ -58,7 +64,8 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
         telemetryService.sendEvent(newConnectionEvent)
 
         logger.info(
-            logMessage.message("New connection activated")
+            logMessage
+                .message("New connection activated")
                 .mergeTelemetryEventProperties(newConnectionEvent)
                 .build(),
         )

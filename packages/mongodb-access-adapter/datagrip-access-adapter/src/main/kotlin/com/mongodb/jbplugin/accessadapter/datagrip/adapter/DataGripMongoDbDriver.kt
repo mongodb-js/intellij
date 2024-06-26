@@ -15,15 +15,18 @@ import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
+import org.jetbrains.annotations.VisibleForTesting
 import org.owasp.encoder.Encode
+
 import kotlin.reflect.KClass
 import kotlin.time.Duration
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 /**
  * The driver itself. Shouldn't be used directly, but through the
@@ -38,6 +41,12 @@ internal class DataGripMongoDbDriver(
     private val project: Project,
     private val dataSource: LocalDataSource,
 ) : MongoDbDriver {
+    override val connected: Boolean
+        get() =
+            DatabaseConnectionManager.getInstance().activeConnections.any {
+                it.connectionPoint.dataSource == dataSource
+            }
+
     private val gson = Gson()
     private val jsonWriterSettings =
         JsonWriterSettings
@@ -165,4 +174,45 @@ internal class DataGripMongoDbDriver(
                 true, // if password is not available
             )!!
     }
+
+    @VisibleForTesting
+    fun forceConnectForTesting() {
+        runBlocking {
+            val connection = getConnection()
+            withActiveConnectionList {
+                it.add(connection)
+            }
+        }
+    }
+
+    @VisibleForTesting
+    fun closeConnectionForTesting() {
+        runBlocking {
+            withActiveConnectionList {
+                it.clear()
+            }
+        }
+    }
+
+    @VisibleForTesting
+    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit): Unit {
+        runBlocking {
+            val connectionsManager = DatabaseConnectionManager.getInstance()
+            val myConnectionsField =
+                connectionsManager.javaClass
+                    .getDeclaredField("myConnections").apply {
+                        isAccessible = true
+                    }
+            val myConnections = myConnectionsField.get(connectionsManager) as MutableSet<DatabaseConnection>
+            fn(myConnections)
+            myConnectionsField.isAccessible = false
+        }
+    }
 }
+
+/**
+ * Returns true if the provided local data source is a MongoDB data source.
+ *
+ * @return
+ */
+fun LocalDataSource.isMongoDbDataSource(): Boolean = this.databaseDriver?.id == "mongo" || this.databaseDriver == null

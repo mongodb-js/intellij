@@ -67,10 +67,8 @@ data class BuildInfo(
             val isLocalHost = connectionString.hosts.all { it.matches(isLocalhostRegex) }
             val isAtlas = connectionString.hosts.all { it.matches(atlasRegex) }
             val isLocalAtlas =
-                from.countAll(
-                    "admin.atlascli".toNs(),
-                    Filters.eq("managedClusterType", "atlasCliLocalDevCluster"),
-                ) > 0
+                checkIsAtlasCliIfConnected(from)
+
             val isAtlasStream = connectionString.hosts.all { it.matches(atlasRegex) && it.matches(atlasStreamRegex) }
             val isDigitalOcean = connectionString.hosts.all { it.matches(digitalOceanRegex) }
             val genuineVariant =
@@ -83,15 +81,7 @@ data class BuildInfo(
                 }
 
             val buildInfo =
-                from.runCommand(
-                    "admin",
-                    Document(
-                        mapOf(
-                            "buildInfo" to 1,
-                        ),
-                    ),
-                    BuildInfo::class,
-                )
+                runBuildInfoCommandIfConnected(from)
 
             return buildInfo.copy(
                 isLocalhost = isLocalHost,
@@ -107,5 +97,49 @@ data class BuildInfo(
                 serverUrl = connectionString.toString(),
             )
         }
+
+        private suspend fun checkIsAtlasCliIfConnected(from: MongoDbDriver) =
+            if (from.connected) {
+                from.countAll(
+                    "admin.atlascli".toNs(),
+                    Filters.eq("managedClusterType", "atlasCliLocalDevCluster"),
+                ) > 0
+            } else {
+                false
+            }
+
+        private suspend fun runBuildInfoCommandIfConnected(from: MongoDbDriver) =
+            if (from.connected) {
+                from.runCommand(
+                    "admin",
+                    Document(
+                        mapOf(
+                            "buildInfo" to 1,
+                        ),
+                    ),
+                    BuildInfo::class,
+                )
+            } else {
+                empty()
+            }
+    }
+    companion object {
+        fun empty(): BuildInfo =
+            BuildInfo(
+                "<unknown>",
+                null,
+                null,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                null,
+                "",
+                emptyMap(),
+            )
     }
 }

@@ -37,9 +37,11 @@ import kotlinx.coroutines.runBlocking
 /**
  * Represents what version of MongoDB we support in the plugin.
  */
-enum class MongoDbVersion(val versionString: String) {
+enum class MongoDbVersion(
+    val versionString: String,
+) {
     LATEST("7.0.9"),
-    ;
+;
 }
 
 /**
@@ -51,12 +53,16 @@ enum class MongoDbVersion(val versionString: String) {
 @RunInEdt(allMethods = true, writeIntent = true)
 @ExtendWith(IntegrationTestExtension::class)
 @Testcontainers(parallel = false)
-annotation class IntegrationTest(val mongodb: MongoDbVersion = MongoDbVersion.LATEST, val sharded: Boolean = false)
+annotation class IntegrationTest(
+    val mongodb: MongoDbVersion = MongoDbVersion.LATEST,
+    val sharded: Boolean = false,
+)
 
 /**
  * Extension implementation. Must not be used directly.
  */
-internal class IntegrationTestExtension : BeforeAllCallback,
+internal class IntegrationTestExtension :
+    BeforeAllCallback,
     AfterAllCallback,
     ParameterResolver {
     private val namespace = ExtensionContext.Namespace.create(IntegrationTestExtension::class.java)
@@ -68,45 +74,49 @@ internal class IntegrationTestExtension : BeforeAllCallback,
 
     override fun beforeAll(context: ExtensionContext?) {
         val annotation = context!!.requiredTestClass.getAnnotation(IntegrationTest::class.java)
-        val container = MongoDBContainer("mongo:${annotation.mongodb.versionString}-jammy")
-            .let {
-                if (annotation.sharded) {
-                    it.withSharding()
-                } else {
-                    it
+        val container =
+            MongoDBContainer("mongo:${annotation.mongodb.versionString}-jammy")
+                .let {
+                    if (annotation.sharded) {
+                        it.withSharding()
+                    } else {
+                        it
+                    }
                 }
-            }
 
         Startables.deepStart(container).join()
         context.getStore(namespace).put(containerKey, container)
         context.getStore(namespace).put(versionKey, annotation.mongodb)
 
-        val project = runBlocking(Dispatchers.EDT) {
-            val testClassName = context.requiredTestClass.simpleName
-            ProjectUtil.openOrCreateProject(testClassName, Files.createTempDirectory(testClassName))!!
-        }
+        val project =
+            runBlocking(Dispatchers.EDT) {
+                val testClassName = context.requiredTestClass.simpleName
+                ProjectUtil.openOrCreateProject(testClassName, Files.createTempDirectory(testClassName))!!
+            }
 
         Disposer.register(ApplicationManager.getApplication(), project)
         context.getStore(namespace).put(projectKey, project)
 
-        val dataSource = runBlocking {
-            val dataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java)!!
-            val instance = DatabaseDriverManagerImpl.getInstance()
-            val jdbcDriver = instance.getDriver("mongo")
+        val dataSource =
+            runBlocking {
+                val dataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java)!!
+                val instance = DatabaseDriverManagerImpl.getInstance()
+                val jdbcDriver = instance.getDriver("mongo")
 
-            val dataSource = LocalDataSource().apply {
-                name = UUID.randomUUID().toString()
-                url = container.connectionString
-                isConfiguredByUrl = true
-                username = ""
-                passwordStorage = LocalDataSource.Storage.PERSIST
-                databaseDriver = jdbcDriver
+                val dataSource =
+                    LocalDataSource().apply {
+                        name = UUID.randomUUID().toString()
+                        url = container.connectionString
+                        isConfiguredByUrl = true
+                        username = ""
+                        passwordStorage = LocalDataSource.Storage.PERSIST
+                        databaseDriver = jdbcDriver
+                    }
+
+                context.getStore(namespace).put(dataSourceKey, dataSource)
+                dataSourceManager.addDataSource(dataSource)
+                dataSource
             }
-
-            context.getStore(namespace).put(dataSourceKey, dataSource)
-            dataSourceManager.addDataSource(dataSource)
-            dataSource
-        }
 
         createDownloaderTask(dataSource, null).run(EmptyProgressIndicator())
 
@@ -115,6 +125,7 @@ internal class IntegrationTestExtension : BeforeAllCallback,
         }
 
         val driver = DataGripMongoDbDriver(project, dataSource)
+        driver.forceConnectForTesting()
         context.getStore(namespace).put(driverKey, driver)
 
         runBlocking(Dispatchers.EDT) {
@@ -125,21 +136,29 @@ internal class IntegrationTestExtension : BeforeAllCallback,
     override fun afterAll(context: ExtensionContext?) {
         val project = context!!.getStore(namespace).get(projectKey) as Project
         val mongodb = context.getStore(namespace).get(containerKey) as MongoDBContainer
+        val driver = context.getStore(namespace).get(driverKey) as DataGripMongoDbDriver
 
-        ApplicationManager.getApplication().invokeLater({
+        ApplicationManager.getApplication().invokeAndWait({
+            driver.closeConnectionForTesting()
             ProjectManager.getInstance().closeAndDispose(project)
         }, ModalityState.defaultModalityState())
 
         mongodb.close()
     }
 
-    override fun supportsParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Boolean =
+    override fun supportsParameter(
+        parameterContext: ParameterContext?,
+        extensionContext: ExtensionContext?,
+    ): Boolean =
         parameterContext?.parameter?.type == Project::class.java ||
-                parameterContext?.parameter?.type == MongoDbDriver::class.java ||
-                parameterContext?.parameter?.type == LocalDataSource::class.java ||
-                parameterContext?.parameter?.type == MongoDbVersion::class.java
+            parameterContext?.parameter?.type == MongoDbDriver::class.java ||
+            parameterContext?.parameter?.type == LocalDataSource::class.java ||
+            parameterContext?.parameter?.type == MongoDbVersion::class.java
 
-    override fun resolveParameter(parameterContext: ParameterContext?, extensionContext: ExtensionContext?): Any =
+    override fun resolveParameter(
+        parameterContext: ParameterContext?,
+        extensionContext: ExtensionContext?,
+    ): Any =
         when (parameterContext?.parameter?.type) {
             Project::class.java -> extensionContext!!.getStore(namespace).get(projectKey)
             MongoDbDriver::class.java -> extensionContext!!.getStore(namespace).get(driverKey)

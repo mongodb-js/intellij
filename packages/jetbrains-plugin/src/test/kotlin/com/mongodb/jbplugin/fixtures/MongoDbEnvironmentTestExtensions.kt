@@ -16,6 +16,8 @@ import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvide
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.junit.jupiter.api.extension.*
+import org.mockito.Mockito.`when`
+import org.mockito.kotlin.mock
 import org.testcontainers.containers.DockerComposeContainer
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.lifecycle.Startable
@@ -137,6 +139,7 @@ internal class DirectMongoDbDriver(
     val uri: String,
     val client: MongoClient,
 ) : MongoDbDriver {
+    override val connected = true
     val gson = Gson()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(uri)
@@ -216,5 +219,26 @@ fun Project.withMockedMongoDbConnection(url: MongoDbServerUrl): Project {
         ).apply {
             driverFactory = { _, _ -> DirectMongoDbDriver(url.value, client) }
         }
+    return withMockedService(readModelProvider)
+}
+
+/**
+ * Allows to mock a MongoDB connection at the project level that is not connected.
+ *
+ * @param url
+ * @return
+ */
+suspend fun Project.withMockedUnconnectedMongoDbConnection(url: MongoDbServerUrl): Project {
+    val driver = mock<MongoDbDriver>()
+    `when`(driver.connected).thenReturn(false)
+    `when`(driver.connectionString()).thenReturn(ConnectionString(url.value))
+
+    val readModelProvider =
+        DataGripBasedReadModelProvider(
+            this,
+        ).apply {
+            driverFactory = { _, _ -> driver }
+        }
+
     return withMockedService(readModelProvider)
 }

@@ -26,6 +26,7 @@ replay_pid*
 /.gradle
 /build
 /.idea
+/**/.idea
 /**/build
 
 # This file is generated at compile time.
