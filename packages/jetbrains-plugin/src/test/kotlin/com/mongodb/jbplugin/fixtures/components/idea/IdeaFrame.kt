@@ -25,6 +25,8 @@ class IdeaFrame(
     remoteComponent: RemoteComponent,
 ) : CommonContainerFixture(remoteRobot, remoteComponent) {
     fun openFile(path: String) {
+        this.closeAllFiles()
+
         runJs(
             """
             importPackage(com.intellij.openapi.fileEditor)
@@ -48,7 +50,33 @@ class IdeaFrame(
                         )
                     }
                 })
-                ApplicationManager.getApplication().invokeLater(openFileFunction)
+                ApplicationManager.getApplication().invokeAndWait(openFileFunction)
+            }
+        """,
+            true,
+        )
+    }
+
+    fun closeAllFiles() {
+        runJs(
+            """
+            importPackage(com.intellij.openapi.fileEditor)
+            importPackage(com.intellij.openapi.vfs)
+            importPackage(com.intellij.openapi.wm.impl)
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            
+            const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+            if (frameHelper) {
+                const project = frameHelper.getProject()
+                const closeEditorsFunction = new Runnable({
+                    run: function() {
+                         const editorManager = FileEditorManager.getInstance(project)
+                         const files = editorManager.openFiles
+                         files.forEach((file) => { editorManager.closeFile(file) })
+                    }
+                })
+
+                ApplicationManager.getApplication().invokeAndWait(closeEditorsFunction)
             }
         """,
             true,
