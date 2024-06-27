@@ -12,8 +12,6 @@ import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import okhttp3.Request
-import org.jsoup.Jsoup
-import org.jsoup.safety.Safelist
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
 import java.awt.image.BufferedImage
@@ -38,7 +36,9 @@ annotation class UiTest
  */
 @Target(AnnotationTarget.FUNCTION)
 @Video
-annotation class RequiresProject(val value: String)
+annotation class RequiresProject(
+    val value: String,
+)
 
 /**
  * Test Extension for JUnit. Shouldn't be used directly.
@@ -69,7 +69,9 @@ private class UiTestExtension :
 
     override fun beforeTestExecution(context: ExtensionContext?) {
         val requiresProject =
-            context?.requiredTestMethod?.annotations
+            context
+                ?.requiredTestMethod
+                ?.annotations
                 ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
 
         CommonSteps(remoteRobot).closeProject()
@@ -133,11 +135,13 @@ private class UiTestExtension :
         name: String,
     ): File {
         val response = client.newCall(Request.Builder().url(url).build()).execute()
-        return File(this).apply {
-            mkdirs()
-        }.resolve(name).apply {
-            writeText(response.body?.string() ?: "")
-        }
+        return File(this)
+            .apply {
+                mkdirs()
+            }.resolve(name)
+            .apply {
+                writeText(response.body?.string() ?: "")
+            }
     }
 
     private fun BufferedImage.save(name: String) {
@@ -151,7 +155,8 @@ private class UiTestExtension :
     }
 
     private fun saveIdeaFrames(testName: String) {
-        remoteRobot.findAll<ContainerFixture>(byXpath("//div[@class='IdeFrameImpl']"))
+        remoteRobot
+            .findAll<ContainerFixture>(byXpath("//div[@class='IdeFrameImpl']"))
             .forEachIndexed { index, frame ->
                 val pic =
                     try {
@@ -182,15 +187,18 @@ private class UiTestExtension :
                         e.printStackTrace()
                         throw e
                     }
-                pic.inputStream().use {
-                    ImageIO.read(it)
-                }.save(testName + "_" + index)
+                pic
+                    .inputStream()
+                    .use {
+                        ImageIO.read(it)
+                    }.save(testName + "_" + index)
             }
     }
 
     private fun fetchScreenShot(): BufferedImage =
-        remoteRobot.callJs<ByteArray>(
-            """
+        remoteRobot
+            .callJs<ByteArray>(
+                """
             importPackage(java.io)
             importPackage(javax.imageio)
             const screenShot = new java.awt.Robot().createScreenCapture(
@@ -206,16 +214,46 @@ private class UiTestExtension :
             }
             pictureBytes;
         """,
-        )
-            .inputStream()
+            ).inputStream()
             .use {
                 ImageIO.read(it)
             }
 }
 
 /**
- * Removes all html tags and only keeps the plain text.
+ * Opens a file in the current project.
  *
- * @return
+ * From https://github.com/JetBrains/intellij-ui-test-robot/blob/master/ui-test-example/src/test/kotlin/org/intellij/examples/simple/plugin/pages/IdeaFrame.kt
+ *
+ * @param path
  */
-fun String.stripHtml(): String = Jsoup.clean(this, Safelist.none())
+fun RemoteRobot.openFile(path: String) {
+    runJs(
+        """
+            importPackage(com.intellij.openapi.fileEditor)
+            importPackage(com.intellij.openapi.vfs)
+            importPackage(com.intellij.openapi.wm.impl)
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            
+            const path = '$path'
+            const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+            if (frameHelper) {
+                const project = frameHelper.getProject()
+                const projectPath = project.getBasePath()
+                const file = LocalFileSystem.getInstance().findFileByPath(projectPath + '/' + path)
+                const openFileFunction = new Runnable({
+                    run: function() {
+                        FileEditorManager.getInstance(project).openTextEditor(
+                            new OpenFileDescriptor(
+                                project,
+                                file
+                            ), true
+                        )
+                    }
+                })
+                ApplicationManager.getApplication().invokeLater(openFileFunction)
+            }
+        """,
+        true,
+    )
+}

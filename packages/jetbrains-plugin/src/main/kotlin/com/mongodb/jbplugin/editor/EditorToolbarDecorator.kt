@@ -31,23 +31,19 @@ class EditorToolbarDecorator : EditorFactoryListener {
 
     private fun ensureToolbarIsVisibleIfNecessary() {
         if (!editor.hasHeaderComponent()) {
-            if (isEditingJavaFileWithMongoDBRelatedCode()) {
-                if (editor is EditorEx) {
-                    editor.permanentHeaderComponent = toolbar
-                }
+            if (isEditingJavaFileWithMongoDbRelatedCode()) {
+                (editor as EditorEx?)?.permanentHeaderComponent = toolbar
                 editor.headerComponent = toolbar
             }
         } else {
-            if (!isEditingJavaFileWithMongoDBRelatedCode()) {
-                if (editor is EditorEx) {
-                    editor.permanentHeaderComponent = null
-                }
+            if (!isEditingJavaFileWithMongoDbRelatedCode()) {
+                (editor as EditorEx?)?.permanentHeaderComponent = toolbar
                 editor.headerComponent = null
             }
         }
     }
 
-    private fun isEditingJavaFileWithMongoDbrelatedCode(): Boolean {
+    private fun isEditingJavaFileWithMongoDbRelatedCode(): Boolean {
         val project = editor.project ?: return false
         val psiFile = PsiManager.getInstance(project).findFile(editor.virtualFile) ?: return false
         if (psiFile.language != JavaLanguage.INSTANCE) {
