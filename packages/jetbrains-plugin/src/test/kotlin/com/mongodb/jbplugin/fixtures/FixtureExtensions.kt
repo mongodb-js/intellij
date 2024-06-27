@@ -7,9 +7,16 @@ package com.mongodb.jbplugin.fixtures
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.Fixture
+import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.search.locators.Locator
+import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.waitFor
+import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import org.owasp.encoder.Encode
 import java.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 /**
  * Returns a fixture by the default xpath of the fixture.
@@ -25,7 +32,7 @@ inline fun <reified T : Fixture> RemoteRobot.findVisible(timeout: Duration = Dur
             errorMessage = "Could not find component of class ${T::class.java.canonicalName}",
         ) {
             runCatching {
-                find(T::class.java, Duration.ofMillis(100)).callJs<Boolean>("true")
+                find(T::class.java).callJs<Boolean>("true")
             }.getOrDefault(false)
         }
 
@@ -78,4 +85,84 @@ fun RemoteRobot.openSettingsAtSection(section: String) {
         ApplicationManager.getApplication().invokeLater(runAction)
         """.trimIndent(),
     )
+}
+
+/**
+ * Runs an action and waits until dispatched.
+ *
+ * @param actionId
+ */
+fun RemoteRobot.invokeAction(actionId: String) {
+    val encodedActionId = Encode.forJavaScript(actionId)
+
+    runJs(
+        """
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            
+            const actionId = "$actionId";
+            const actionManager = com.intellij.openapi.actionSystem.ActionManager.getInstance();
+            const action = actionManager.getAction("$encodedActionId");
+            
+            const runAction = new Runnable({
+                run: function() {
+                    actionManager.tryToExecute(action, 
+                        com.intellij.openapi.ui.playback.commands.ActionCommand.getInputEvent(actionId), 
+                        null, 
+                        null, 
+                        true
+                    );
+                }
+            })
+            ApplicationManager.getApplication().invokeLater(runAction)
+        """,
+        true,
+    )
+}
+
+/**
+ * Opens the project and waits until ready.
+ *
+ * @param absolutePath
+ */
+fun RemoteRobot.openProject(absolutePath: String) {
+    val encodedPath = Encode.forJavaScript(absolutePath)
+
+    runJs(
+        """
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            importClass(com.intellij.ide.impl.OpenProjectTask)
+           
+            const projectManager = com.intellij.openapi.project.ex.ProjectManagerEx.getInstanceEx()
+            let task 
+            try { 
+                task = OpenProjectTask.build()
+            } catch(e) {
+                task = OpenProjectTask.newProject()
+            }
+            const path = new java.io.File("$encodedPath").toPath()
+           
+            const openProjectFunction = new Runnable({
+                run: function() {
+                    projectManager.openProject(path, task)
+                }
+            })
+           
+            ApplicationManager.getApplication().invokeLater(openProjectFunction)
+        """,
+    )
+
+    ideaFrame().closeAllFiles()
+}
+
+/**
+ * Closes the project and waits until properly closed.
+ */
+fun RemoteRobot.closeProject() {
+    invokeAction("CloseProject")
+    CommonSteps(this).waitMs(500)
+    runCatching {
+        val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"),
+ timeout = 1.seconds.toJavaDuration())
+        terminateButton.click()
+    }.getOrDefault(Unit)
 }

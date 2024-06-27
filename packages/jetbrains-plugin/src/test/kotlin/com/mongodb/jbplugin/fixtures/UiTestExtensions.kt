@@ -9,11 +9,8 @@ import com.automation.remarks.junit5.Video
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import okhttp3.Request
-import org.jsoup.Jsoup
-import org.jsoup.safety.Safelist
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
 import java.awt.image.BufferedImage
@@ -38,7 +35,9 @@ annotation class UiTest
  */
 @Target(AnnotationTarget.FUNCTION)
 @Video
-annotation class RequiresProject(val value: String)
+annotation class RequiresProject(
+    val value: String,
+)
 
 /**
  * Test Extension for JUnit. Shouldn't be used directly.
@@ -65,14 +64,6 @@ private class UiTestExtension :
 
     override fun beforeAll(context: ExtensionContext?) {
         remoteRobot = RemoteRobot(remoteRobotUrl)
-    }
-
-    override fun beforeTestExecution(context: ExtensionContext?) {
-        val requiresProject =
-            context?.requiredTestMethod?.annotations
-                ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
-
-        CommonSteps(remoteRobot).closeProject()
 
         remoteRobot.runJs(
             """
@@ -95,10 +86,20 @@ private class UiTestExtension :
             });
             """.trimIndent(),
         )
+    }
+
+    override fun beforeTestExecution(context: ExtensionContext?) {
+        val requiresProject =
+            context
+                ?.requiredTestMethod
+                ?.annotations
+                ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
+
+        remoteRobot.closeProject()
 
         requiresProject?.let {
             // If we have the @RequireProject annotation, load that project on startup
-            CommonSteps(remoteRobot).openProject(
+            remoteRobot.openProject(
                 Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
             )
         }
@@ -114,7 +115,7 @@ private class UiTestExtension :
             saveHierarchy(testMethodName)
         }
 
-        CommonSteps(remoteRobot).closeProject()
+        remoteRobot.closeProject()
     }
 
     private fun saveScreenshot(testName: String) {
@@ -133,11 +134,13 @@ private class UiTestExtension :
         name: String,
     ): File {
         val response = client.newCall(Request.Builder().url(url).build()).execute()
-        return File(this).apply {
-            mkdirs()
-        }.resolve(name).apply {
-            writeText(response.body?.string() ?: "")
-        }
+        return File(this)
+            .apply {
+                mkdirs()
+            }.resolve(name)
+            .apply {
+                writeText(response.body?.string() ?: "")
+            }
     }
 
     private fun BufferedImage.save(name: String) {
@@ -151,7 +154,8 @@ private class UiTestExtension :
     }
 
     private fun saveIdeaFrames(testName: String) {
-        remoteRobot.findAll<ContainerFixture>(byXpath("//div[@class='IdeFrameImpl']"))
+        remoteRobot
+            .findAll<ContainerFixture>(byXpath("//div[@class='IdeFrameImpl']"))
             .forEachIndexed { index, frame ->
                 val pic =
                     try {
@@ -182,15 +186,18 @@ private class UiTestExtension :
                         e.printStackTrace()
                         throw e
                     }
-                pic.inputStream().use {
-                    ImageIO.read(it)
-                }.save(testName + "_" + index)
+                pic
+                    .inputStream()
+                    .use {
+                        ImageIO.read(it)
+                    }.save(testName + "_" + index)
             }
     }
 
     private fun fetchScreenShot(): BufferedImage =
-        remoteRobot.callJs<ByteArray>(
-            """
+        remoteRobot
+            .callJs<ByteArray>(
+                """
             importPackage(java.io)
             importPackage(javax.imageio)
             const screenShot = new java.awt.Robot().createScreenCapture(
@@ -206,16 +213,8 @@ private class UiTestExtension :
             }
             pictureBytes;
         """,
-        )
-            .inputStream()
+            ).inputStream()
             .use {
                 ImageIO.read(it)
             }
 }
-
-/**
- * Removes all html tags and only keeps the plain text.
- *
- * @return
- */
-fun String.stripHtml(): String = Jsoup.clean(this, Safelist.none())

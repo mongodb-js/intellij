@@ -51,6 +51,7 @@ dependencies {
     testImplementation(libs.testing.testContainers.core)
     testImplementation(libs.testing.testContainers.mongodb)
     testImplementation(libs.testing.testContainers.jupiter)
+    testImplementation(libs.owasp.encoder)
 }
 
 jmh {
@@ -76,8 +77,16 @@ jmh {
 }
 
 jmhReport {
-    jmhResultPath = rootProject.layout.buildDirectory.file("reports/jmh/results.json").get().asFile.absolutePath
-    jmhReportOutput = rootProject.layout.buildDirectory.dir("reports/jmh/").get().asFile.absolutePath
+    jmhResultPath =
+        rootProject.layout.buildDirectory
+            .file("reports/jmh/results.json")
+            .get()
+            .asFile.absolutePath
+    jmhReportOutput =
+        rootProject.layout.buildDirectory
+            .dir("reports/jmh/")
+            .get()
+            .asFile.absolutePath
 }
 
 tasks {
@@ -101,7 +110,16 @@ tasks {
             includeTags("UI")
         }
 
-        dependsOn("instrumentTestCode")
+        extensions.configure(JacocoTaskExtension::class) {
+            isJmx = true
+            includes = listOf("com.mongodb.*")
+            isIncludeNoLocationClasses = true
+        }
+
+        jacoco {
+            toolVersion = "0.8.12"
+            isScanForTestClasses = true
+        }
     }
 
     named("runIdeForUiTests", RunIdeForUiTestTask::class) {
