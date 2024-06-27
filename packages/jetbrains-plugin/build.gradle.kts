@@ -110,7 +110,16 @@ tasks {
             includeTags("UI")
         }
 
-        dependsOn("instrumentTestCode")
+        extensions.configure(JacocoTaskExtension::class) {
+            isJmx = true
+            includes = listOf("com.mongodb.*")
+            isIncludeNoLocationClasses = true
+        }
+
+        jacoco {
+            toolVersion = "0.8.12"
+            isScanForTestClasses = true
+        }
     }
 
     named("runIdeForUiTests", RunIdeForUiTestTask::class) {
