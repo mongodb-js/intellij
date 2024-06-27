@@ -11,6 +11,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.mongodb.jbplugin.ActivatePluginPostStartupActivity"/>
+        <editorFactoryListener implementation="com.mongodb.jbplugin.editor.EditorToolbarDecorator" />
         <applicationConfigurable
                 parentId="tools"
                 instance="com.mongodb.jbplugin.settings.PluginSettingsConfigurable"
