@@ -160,7 +160,9 @@ fun RemoteRobot.openProject(absolutePath: String) {
 fun RemoteRobot.closeProject() {
     invokeAction("CloseProject")
     CommonSteps(this).waitMs(500)
-    val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"), timeout = 1.seconds.toJavaDuration(
-))
-    terminateButton.click()
+    runCatching {
+        val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"),
+ timeout = 1.seconds.toJavaDuration())
+        terminateButton.click()
+    }.getOrDefault(Unit)
 }
