@@ -7,11 +7,16 @@ package com.mongodb.jbplugin.fixtures
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.Fixture
+import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.search.locators.Locator
+import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import org.owasp.encoder.Encode
 import java.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 /**
  * Returns a fixture by the default xpath of the fixture.
@@ -154,4 +159,8 @@ fun RemoteRobot.openProject(absolutePath: String) {
  */
 fun RemoteRobot.closeProject() {
     invokeAction("CloseProject")
+    CommonSteps(this).waitMs(500)
+    val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"), timeout = 1.seconds.toJavaDuration(
+))
+    terminateButton.click()
 }
