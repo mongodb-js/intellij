@@ -5,7 +5,12 @@ import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.fixtures.DefaultXpath
 import com.intellij.remoterobot.fixtures.FixtureName
+import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.findVisible
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 /** Component that represents the toolbar that contains the data sources
  * and actions relevant to our MongoDB plugin in a Java Editor
@@ -33,6 +38,19 @@ fun RemoteRobot.findJavaEditorToolbar(): MdbJavaEditorToolbarFixture = findVisib
 /**
  * Checks if the toolbar exists.
  *
+ * @param timeout
  * @return
  */
-fun RemoteRobot.hasJavaEditorToolbar(): Boolean = findAll(MdbJavaEditorToolbarFixture::class.java).isNotEmpty()
+fun RemoteRobot.isJavaEditorToolbarHidden(timeout: Duration = 10.seconds): Boolean =
+    run {
+        waitFor(
+            timeout.toJavaDuration(),
+            100.milliseconds.toJavaDuration(),
+        ) {
+            return@waitFor runCatching {
+                findAll<MdbJavaEditorToolbarFixture>().isEmpty()
+            }.getOrDefault(false)
+        }
+
+        findAll<MdbJavaEditorToolbarFixture>().isEmpty()
+    }

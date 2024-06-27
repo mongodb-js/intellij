@@ -5,10 +5,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
-import com.intellij.util.messages.MessageBusConnection
 
 /**
  * This decorator listens to an IntelliJ Editor lifecycle
@@ -16,7 +14,6 @@ import com.intellij.util.messages.MessageBusConnection
  */
 class EditorToolbarDecorator : EditorFactoryListener {
     private val toolbar = MdbJavaEditorToolbar()
-    private lateinit var connection: MessageBusConnection
     private lateinit var editor: Editor
 
     override fun editorCreated(event: EditorFactoryEvent) {
@@ -26,7 +23,6 @@ class EditorToolbarDecorator : EditorFactoryListener {
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {
-        Disposer.dispose(connection)
     }
 
     private fun ensureToolbarIsVisibleIfNecessary() {

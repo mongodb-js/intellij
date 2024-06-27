@@ -10,6 +10,7 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
 import com.mongodb.jbplugin.fixtures.findVisible
+import org.owasp.encoder.Encode
 
 /**
  * Fixture that represents the frame itself. You can add more functions here if you want to interact
@@ -27,6 +28,8 @@ class IdeaFrame(
     fun openFile(path: String) {
         this.closeAllFiles()
 
+        val escapedPath = Encode.forJavaScript(path)
+
         runJs(
             """
             importPackage(com.intellij.openapi.fileEditor)
@@ -34,7 +37,7 @@ class IdeaFrame(
             importPackage(com.intellij.openapi.wm.impl)
             importClass(com.intellij.openapi.application.ApplicationManager)
             
-            const path = '$path'
+            const path = '$escapedPath'
             const frameHelper = ProjectFrameHelper.getFrameHelper(component)
             if (frameHelper) {
                 const project = frameHelper.getProject()
@@ -50,7 +53,7 @@ class IdeaFrame(
                         )
                     }
                 })
-                ApplicationManager.getApplication().invokeAndWait(openFileFunction)
+                ApplicationManager.getApplication().invokeLater(openFileFunction)
             }
         """,
             true,
@@ -76,7 +79,7 @@ class IdeaFrame(
                     }
                 })
 
-                ApplicationManager.getApplication().invokeAndWait(closeEditorsFunction)
+                ApplicationManager.getApplication().invokeLater(closeEditorsFunction)
             }
         """,
             true,
