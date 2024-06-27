@@ -9,9 +9,7 @@ import com.automation.remarks.junit5.Video
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
-import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import okhttp3.Request
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
@@ -97,14 +95,13 @@ private class UiTestExtension :
                 ?.annotations
                 ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
 
-        CommonSteps(remoteRobot).closeProject()
+        remoteRobot.closeProject()
 
         requiresProject?.let {
             // If we have the @RequireProject annotation, load that project on startup
-            CommonSteps(remoteRobot).openProject(
+            remoteRobot.openProject(
                 Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
             )
-            remoteRobot.ideaFrame().closeAllFiles()
         }
     }
 
@@ -118,7 +115,7 @@ private class UiTestExtension :
             saveHierarchy(testMethodName)
         }
 
-        CommonSteps(remoteRobot).closeProject()
+        remoteRobot.closeProject()
     }
 
     private fun saveScreenshot(testName: String) {

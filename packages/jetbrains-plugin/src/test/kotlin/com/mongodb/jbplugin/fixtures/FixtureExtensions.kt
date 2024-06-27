@@ -9,6 +9,8 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.Fixture
 import com.intellij.remoterobot.search.locators.Locator
 import com.intellij.remoterobot.utils.waitFor
+import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import org.owasp.encoder.Encode
 import java.time.Duration
 
 /**
@@ -78,4 +80,78 @@ fun RemoteRobot.openSettingsAtSection(section: String) {
         ApplicationManager.getApplication().invokeLater(runAction)
         """.trimIndent(),
     )
+}
+
+/**
+ * Runs an action and waits until dispatched.
+ *
+ * @param actionId
+ */
+fun RemoteRobot.invokeAction(actionId: String) {
+    val encodedActionId = Encode.forJavaScript(actionId)
+
+    runJs(
+        """
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            
+            const actionId = "$actionId";
+            const actionManager = com.intellij.openapi.actionSystem.ActionManager.getInstance();
+            const action = actionManager.getAction("$encodedActionId");
+            
+            const runAction = new Runnable({
+                run: function() {
+                    actionManager.tryToExecute(action, 
+                        com.intellij.openapi.ui.playback.commands.ActionCommand.getInputEvent(actionId), 
+                        null, 
+                        null, 
+                        true
+                    );
+                }
+            })
+            ApplicationManager.getApplication().invokeAndWait(runAction)
+        """,
+        true,
+    )
+}
+
+/**
+ * Opens the project and waits until ready.
+ *
+ * @param absolutePath
+ */
+fun RemoteRobot.openProject(absolutePath: String) {
+    val encodedPath = Encode.forJavaScript(absolutePath)
+
+    runJs(
+        """
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            importClass(com.intellij.ide.impl.OpenProjectTask)
+           
+            const projectManager = com.intellij.openapi.project.ex.ProjectManagerEx.getInstanceEx()
+            let task 
+            try { 
+                task = OpenProjectTask.build()
+            } catch(e) {
+                task = OpenProjectTask.newProject()
+            }
+            const path = new java.io.File("$encodedPath").toPath()
+           
+            const openProjectFunction = new Runnable({
+                run: function() {
+                    projectManager.openProject(path, task)
+                }
+            })
+           
+            ApplicationManager.getApplication().invokeAndWait(openProjectFunction)
+        """,
+    )
+
+    ideaFrame().closeAllFiles()
+}
+
+/**
+ * Closes the project and waits until properly closed.
+ */
+fun RemoteRobot.closeProject() {
+    invokeAction("CloseProject")
 }
