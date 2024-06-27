@@ -108,7 +108,7 @@ fun RemoteRobot.invokeAction(actionId: String) {
                     );
                 }
             })
-            ApplicationManager.getApplication().invokeAndWait(runAction)
+            ApplicationManager.getApplication().invokeLater(runAction)
         """,
         true,
     )
