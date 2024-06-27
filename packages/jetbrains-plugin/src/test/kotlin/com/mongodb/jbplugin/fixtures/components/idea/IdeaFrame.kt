@@ -9,8 +9,6 @@ package com.mongodb.jbplugin.fixtures.components.idea
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
-import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.stepsProcessing.step
 import com.mongodb.jbplugin.fixtures.findVisible
 
 /**
@@ -26,32 +24,6 @@ class IdeaFrame(
     remoteRobot: RemoteRobot,
     remoteComponent: RemoteComponent,
 ) : CommonContainerFixture(remoteRobot, remoteComponent) {
-    val projectViewTree
-        get() = find<ContainerFixture>(byXpath("ProjectViewTree", "//div[@class='ProjectViewTree']"))
-
-    val projectName
-        get() = step("Get project name") { return@step callJs<String>("component.getProject().getName()") }
-
-    val menuBar: JMenuBarFixture
-        get() =
-            step("Menu...") {
-                return@step remoteRobot.find(JMenuBarFixture::class.java, JMenuBarFixture.byType())
-            }
-
-    fun isDumbMode(): Boolean =
-        callJs(
-            """
-            const frameHelper = com.intellij.openapi.wm.impl.ProjectFrameHelper.getFrameHelper(component)
-            if (frameHelper) {
-                const project = frameHelper.getProject()
-                project ? com.intellij.openapi.project.DumbService.isDumb(project) : true
-            } else { 
-                true 
-            }
-        """,
-            true,
-        )
-
     fun openFile(path: String) {
         runJs(
             """
