@@ -33,7 +33,7 @@ class EditorToolbarDecorator : EditorFactoryListener {
             }
         } else {
             if (!isEditingJavaFileWithMongoDbRelatedCode()) {
-                (editor as EditorEx?)?.permanentHeaderComponent = toolbar
+                (editor as EditorEx?)?.permanentHeaderComponent = null
                 editor.headerComponent = null
             }
         }
