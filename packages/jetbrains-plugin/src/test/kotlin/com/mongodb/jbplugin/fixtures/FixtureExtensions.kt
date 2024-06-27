@@ -142,7 +142,7 @@ fun RemoteRobot.openProject(absolutePath: String) {
                 }
             })
            
-            ApplicationManager.getApplication().invokeAndWait(openProjectFunction)
+            ApplicationManager.getApplication().invokeLater(openProjectFunction)
         """,
     )
 
