@@ -6,7 +6,6 @@ import com.mongodb.jbplugin.fixtures.UiTest
 import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.hasJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
-import com.mongodb.jbplugin.fixtures.openFile
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
