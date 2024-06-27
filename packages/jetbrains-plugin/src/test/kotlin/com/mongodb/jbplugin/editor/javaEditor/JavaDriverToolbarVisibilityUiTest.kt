@@ -7,6 +7,7 @@ import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.hasJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.openFile
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -26,6 +27,6 @@ class JavaDriverToolbarVisibilityUiTest {
     @RequiresProject("basic-java-project-with-mongodb")
     fun `does not show the toolbar in a java file without references to the driver`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/NoDriverReference.java")
-        assertTrue(remoteRobot.hasJavaEditorToolbar())
+        assertFalse(remoteRobot.hasJavaEditorToolbar())
     }
 }
