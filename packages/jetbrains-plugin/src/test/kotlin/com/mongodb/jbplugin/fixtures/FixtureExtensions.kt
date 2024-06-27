@@ -25,7 +25,7 @@ inline fun <reified T : Fixture> RemoteRobot.findVisible(timeout: Duration = Dur
             errorMessage = "Could not find component of class ${T::class.java.canonicalName}",
         ) {
             runCatching {
-                find(T::class.java, Duration.ofMillis(100)).callJs<Boolean>("true")
+                find(T::class.java).callJs<Boolean>("true")
             }.getOrDefault(false)
         }
 
