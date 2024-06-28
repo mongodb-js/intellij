@@ -9,6 +9,7 @@ import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.components.isJavaEditorToolbarHidden
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -54,5 +55,20 @@ class JavaDriverToolbarVisibilityUiTest {
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
+    }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `does remove all deleted data sources`(
+        remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
+    ) {
+        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepositoryExample.java")
+
+        val toolbar = remoteRobot.findJavaEditorToolbar()
+        assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
+
+        remoteRobot.ideaFrame().cleanDataSources()
+        assertFalse(toolbar.dataSources.listValues().contains(javaClass.simpleName))
     }
 }

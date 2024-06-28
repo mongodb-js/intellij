@@ -8,6 +8,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
 
+/**
+ * Returns the data source, if attached to the editor through the MongoDB Plugin.
+ */
 class MongoDbVirtualFileDataSourceProvider : VirtualFileDataSourceProvider() {
     /**
      * This needs to be synchronised with the EditorToolbarDecorator field with the same name.

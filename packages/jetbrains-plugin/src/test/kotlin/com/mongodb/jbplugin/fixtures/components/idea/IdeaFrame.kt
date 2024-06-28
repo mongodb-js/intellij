@@ -12,6 +12,8 @@ import com.intellij.remoterobot.fixtures.*
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.findVisible
 import org.owasp.encoder.Encode
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.toJavaDuration
 
 /**
  * Fixture that represents the frame itself. You can add more functions here if you want to interact
@@ -180,3 +182,15 @@ class IdeaFrame(
  * @return
  */
 fun RemoteRobot.ideaFrame(): IdeaFrame = findVisible()
+
+/**
+ * Returns the idea frame if visible, it doesn't wait to be visible, instead returns null.
+ *
+ * @see ideaFrame in case you need to wait for it to be visible.
+ *
+ * @return
+ */
+fun RemoteRobot.maybeIdeaFrame(): IdeaFrame? =
+    runCatching {
+        find<IdeaFrame>(timeout = 15.milliseconds.toJavaDuration())
+    }.getOrNull()

@@ -24,14 +24,16 @@ import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.ui.EDT
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriver
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.extension.*
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.lifecycle.Startables
+
 import java.nio.file.Files
 import java.util.*
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 
 /**
  * Represents what version of MongoDB we support in the plugin.
@@ -40,6 +42,7 @@ enum class MongoDbVersion(
     val versionString: String,
 ) {
     LATEST("7.0.9"),
+;
 }
 
 /**
@@ -95,27 +98,7 @@ internal class IntegrationTestExtension :
         Disposer.register(ApplicationManager.getApplication(), project)
         context.getStore(namespace).put(projectKey, project)
 
-        val dataSource =
-            runBlocking {
-                val dataSourceManager = LocalDataSourceManager.byDataSource(project, LocalDataSource::class.java)!!
-                val instance = DatabaseDriverManager.getInstance()
-                val jdbcDriver = instance.getDriver("mongo")
-
-                project.putUserData(Key.create("xxx"), 1)
-                val dataSource =
-                    LocalDataSource().apply {
-                        name = UUID.randomUUID().toString()
-                        url = container.connectionString
-                        isConfiguredByUrl = true
-                        username = ""
-                        passwordStorage = LocalDataSource.Storage.PERSIST
-                        databaseDriver = jdbcDriver
-                    }
-
-                context.getStore(namespace).put(dataSourceKey, dataSource)
-                dataSourceManager.addDataSource(dataSource)
-                dataSource
-            }
+        val dataSource = createDataSource(project, container, context)
 
         createDownloaderTask(dataSource, null).run(EmptyProgressIndicator())
 
@@ -123,13 +106,47 @@ internal class IntegrationTestExtension :
             EDT.dispatchAllInvocationEvents()
         }
 
-        val driver = DataGripMongoDbDriver(project, dataSource)
-        driver.forceConnectForTesting()
-        context.getStore(namespace).put(driverKey, driver)
+        extracted(project, dataSource, context)
 
         runBlocking(Dispatchers.EDT) {
             EDT.dispatchAllInvocationEvents()
         }
+    }
+
+    private fun createDataSource(
+        project: Project,
+        container: MongoDBContainer,
+        context: ExtensionContext,
+    ): LocalDataSource =
+        runBlocking {
+            val dataSourceManager = LocalDataSourceManager.byDataSource(project, LocalDataSource::class.java)!!
+            val instance = DatabaseDriverManager.getInstance()
+            val jdbcDriver = instance.getDriver("mongo")
+
+            project.putUserData(Key.create("xxx"), 1)
+            val dataSource =
+                LocalDataSource().apply {
+                    name = UUID.randomUUID().toString()
+                    url = container.connectionString
+                    isConfiguredByUrl = true
+                    username = ""
+                    passwordStorage = LocalDataSource.Storage.PERSIST
+                    databaseDriver = jdbcDriver
+                }
+
+            context.getStore(namespace).put(dataSourceKey, dataSource)
+            dataSourceManager.addDataSource(dataSource)
+            dataSource
+        }
+
+    private fun extracted(
+        project: Project,
+        dataSource: LocalDataSource,
+        context: ExtensionContext,
+    ) {
+        val driver = DataGripMongoDbDriver(project, dataSource)
+        driver.forceConnectForTesting()
+        context.getStore(namespace).put(driverKey, driver)
     }
 
     override fun afterAll(context: ExtensionContext?) {

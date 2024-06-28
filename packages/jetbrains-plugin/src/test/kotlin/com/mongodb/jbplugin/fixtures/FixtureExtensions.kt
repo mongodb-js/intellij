@@ -11,7 +11,7 @@ import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.search.locators.Locator
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.utils.waitFor
-import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.mongodb.jbplugin.fixtures.components.idea.maybeIdeaFrame
 import org.owasp.encoder.Encode
 import java.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -150,7 +150,7 @@ fun RemoteRobot.openProject(absolutePath: String) {
         """,
     )
 
-    ideaFrame().closeAllFiles()
+    maybeIdeaFrame()?.closeAllFiles()
 }
 
 /**
@@ -159,7 +159,8 @@ fun RemoteRobot.openProject(absolutePath: String) {
 fun RemoteRobot.closeProject() {
     invokeAction("CloseProject")
     runCatching {
-        val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"), timeout = 500.milliseconds.toJavaDuration())
+        val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"),
+ timeout = 50.milliseconds.toJavaDuration())
         terminateButton.click()
     }.getOrDefault(Unit)
 }

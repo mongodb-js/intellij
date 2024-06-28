@@ -15,17 +15,18 @@ import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
 import org.jetbrains.annotations.VisibleForTesting
 import org.owasp.encoder.Encode
+
 import kotlin.reflect.KClass
 import kotlin.time.Duration
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 /**
  * The driver itself. Shouldn't be used directly, but through the
@@ -224,14 +225,16 @@ fun LocalDataSource.isMongoDbDataSource(): Boolean = this.databaseDriver?.id == 
 /**
  * Returns true if the provided local data source has at least one active connection
  * attached to it.
+ *
+ * @return
  */
 fun LocalDataSource.isConnected(): Boolean =
     DatabaseConnectionManager
         .getInstance()
         .activeConnections
-        .any {
-            it.connectionPoint.dataSource == dataSource &&
+        .any { connection ->
+            connection.connectionPoint.dataSource == dataSource &&
                 runCatching {
-                    !it.remoteConnection.isClosed && it.remoteConnection.isValid(5)
+                    !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(5)
                 }.getOrDefault(false)
         }

@@ -16,8 +16,14 @@ import java.awt.event.ItemEvent.DESELECTED
 import javax.swing.DefaultComboBoxModel
 import javax.swing.SwingConstants
 
+typealias DataSourceSelectedListener = (LocalDataSource) -> Unit
+typealias DataSourceUnselectedListener = () -> Unit
+
 /**
  * Represents the toolbar that will be inserted into an active Java editor.
+ *
+ * @param onDataSourceSelected
+ * @param onDataSourceUnselected
  */
 class MdbJavaEditorToolbar(
     private val onDataSourceSelected: DataSourceSelectedListener,
@@ -25,13 +31,40 @@ class MdbJavaEditorToolbar(
 ) : JBPanel<MdbJavaEditorToolbar>(BorderLayout()) {
     var connecting: Boolean = false
     var failedConnection: LocalDataSource? = null
-
     private val connectionComboBox =
         ComboBox(
             DefaultComboBoxModel(
                 emptyArray<LocalDataSource>(),
             ),
         )
+
+    var dataSources: List<LocalDataSource>
+        set(value) {
+            failedConnection = null
+            connecting = false
+
+            val selectedItem = this.selectedDataSource?.uniqueId
+            val model = connectionComboBox.model as DefaultComboBoxModel<LocalDataSource>
+            model.removeAllElements()
+            model.addElement(null)
+            model.addAll(value)
+            selectDataSourceWithId(selectedItem)
+        }
+        get() = (connectionComboBox.model as DefaultComboBoxModel<LocalDataSource>).asSequence().toList().filterNotNull(
+)
+
+    var selectedDataSource: LocalDataSource?
+        set(value) {
+            failedConnection = null
+            connecting = false
+
+            value?.let {
+connectionComboBox.selectedItem = value
+} ?: run {
+connectionComboBox.selectedItem = null
+}
+        }
+        get() = connectionComboBox.selectedItem as? LocalDataSource
 
     init {
         add(connectionComboBox, BorderLayout.EAST)
@@ -48,69 +81,41 @@ class MdbJavaEditorToolbar(
         connectionComboBox.putClientProperty(ANIMATION_IN_RENDERER_ALLOWED, true)
         connectionComboBox.setRenderer { _, value, index, _, _ ->
             if (value == null && index == -1) {
-                JBLabel(MdbToolbarMessages.message("attach.datasource.to.editor"), Icons.Logo.scaledToText(), SwingConstants.LEFT)
-            } else if (value == null) {
-                JBLabel(MdbToolbarMessages.message("detach.datasource.from.editor"), Icons.Remove.scaledToText(), SwingConstants.LEFT)
+                JBLabel(MdbToolbarMessages.message("attach.datasource.to.editor"), Icons.logo.scaledToText(),
+ SwingConstants.LEFT)
             } else {
-                val icon =
-                    if (value.isConnected()) {
-                        Icons.LogoConnected.scaledToText()
-                    } else if (connecting) {
-                        Icons.LoadingIcon.scaledToText()
-                    } else if (failedConnection?.uniqueId == value.uniqueId) {
-                        Icons.ConnectionFailed.scaledToText()
-                    } else {
-                        Icons.Logo.scaledToText()
-                    }
-                JBLabel(value.name, icon, SwingConstants.LEFT)
+                value?.let {
+val icon =
+if (value.isConnected()) {
+Icons.logoConnected.scaledToText()
+} else if (connecting) {
+Icons.loading.scaledToText()
+} else if (failedConnection?.uniqueId == value.uniqueId) {
+Icons.connectionFailed.scaledToText()
+} else {
+Icons.logo.scaledToText()
+}
+JBLabel(value.name, icon, SwingConstants.LEFT)
+} ?: JBLabel(MdbToolbarMessages.message("detach.datasource.from.editor"), Icons.remove.scaledToText(),
+SwingConstants.LEFT)
             }
         }
     }
-
-    var dataSources: List<LocalDataSource>
-        set(value) {
-            failedConnection = null
-            connecting = false
-
-            val selectedItem = this.selectedDataSource?.uniqueId
-            val model = connectionComboBox.model as DefaultComboBoxModel<LocalDataSource>
-            model.removeAllElements()
-            model.addElement(null)
-            model.addAll(value)
-            selectDataSourceWithId(selectedItem)
-        }
-        get() = (connectionComboBox.model as DefaultComboBoxModel<LocalDataSource>).asSequence().toList().filterNotNull()
-
-    var selectedDataSource: LocalDataSource?
-        set(value) {
-            failedConnection = null
-            connecting = false
-
-            if (value == null) {
-                connectionComboBox.selectedItem = null
-            } else {
-                connectionComboBox.selectedItem = value
-            }
-        }
-        get() = connectionComboBox.selectedItem as? LocalDataSource
 
     private fun selectDataSourceWithId(id: String?) {
-        if (id == null) {
-            connectionComboBox.selectedItem = null
-        } else {
-            val dataSourceIndex =
-                (connectionComboBox.model as DefaultComboBoxModel<LocalDataSource?>)
-                    .asSequence()
-                    .toList()
-                    .indexOf { it?.uniqueId == id }
-            if (dataSourceIndex == -1) {
-                connectionComboBox.selectedItem = null
-            } else {
-                connectionComboBox.selectedIndex = dataSourceIndex
-            }
-        }
+        id?.let {
+val dataSourceIndex =
+(connectionComboBox.model as DefaultComboBoxModel<LocalDataSource?>)
+.asSequence()
+.toList()
+.indexOf { it?.uniqueId == id }
+if (dataSourceIndex == -1) {
+connectionComboBox.selectedItem = null
+} else {
+connectionComboBox.selectedIndex = dataSourceIndex
+}
+} ?: run {
+connectionComboBox.selectedItem = null
+}
     }
 }
-
-typealias DataSourceSelectedListener = (LocalDataSource) -> Unit
-typealias DataSourceUnselectedListener = () -> Unit

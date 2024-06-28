@@ -46,7 +46,7 @@ annotation class RequiresProject(
  */
 private class UiTestExtension :
     BeforeAllCallback,
-    BeforeTestExecutionCallback,
+    BeforeEachCallback,
     AfterTestExecutionCallback,
     AfterEachCallback,
     ParameterResolver {
@@ -103,7 +103,7 @@ private class UiTestExtension :
         )
     }
 
-    override fun beforeTestExecution(context: ExtensionContext?) {
+    override fun beforeEach(context: ExtensionContext?) {
         val requiresProject =
             context
                 ?.requiredTestMethod

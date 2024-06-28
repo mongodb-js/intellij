@@ -11,18 +11,16 @@ import javax.swing.Icon
 import javax.swing.SwingConstants
 
 object Icons {
-    val LoadingIcon = AnimatedIcon.Default()
-    val GreenCircle = IconLoader.getIcon("/icons/GreenCircle.svg", javaClass)
-
-    val Logo = AllIcons.Providers.MongoDB
-    val LogoConnected =
-        LayeredIcon.layeredIcon(arrayOf(Logo, GreenCircle)).apply {
-            val scaledGreenCircle = IconUtil.resizeSquared(GreenCircle, 6)
+    val loading = AnimatedIcon.Default()
+    val greenCircle = IconLoader.getIcon("/icons/GreenCircle.svg", javaClass)
+    val logo = AllIcons.Providers.MongoDB
+    val logoConnected =
+        LayeredIcon.layeredIcon(arrayOf(logo, greenCircle)).apply {
+            val scaledGreenCircle = IconUtil.resizeSquared(greenCircle, 6)
             setIcon(scaledGreenCircle, 1, SwingConstants.SOUTH_EAST)
         }
-
-    val ConnectionFailed = AllIcons.General.Error
-    val Remove = AllIcons.Diff.Remove
+    val connectionFailed = AllIcons.General.Error
+    val remove = AllIcons.Diff.Remove
 
     fun Icon.scaledToText(parentComponent: Component? = null): Icon {
         val settingsManager: NotRoamableUiSettings = NotRoamableUiSettings.getInstance()
