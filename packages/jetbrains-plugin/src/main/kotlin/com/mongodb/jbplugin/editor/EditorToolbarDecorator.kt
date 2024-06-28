@@ -53,12 +53,6 @@ class EditorToolbarDecorator(
 
         if (!dataSource.isConnected()) {
             coroutineScope.launch {
-                /**
-                 * We don't track connection failures here, as we really don't care. If we have a connection, attach
-                 * it, if we don't, reset the form. We already have ConnectionFailureProbe for error tracking.
-                 *
-                 * @see com.mongodb.jbplugin.observability.probe.ConnectionFailureProbe
-                 */
                 toolbar.connecting = true
                 val connectionManager = DatabaseConnectionManager.getInstance()
                 val connectionHandler =
@@ -76,6 +70,7 @@ class EditorToolbarDecorator(
                     async {
                         val loadingAnimation =
                             launchChildOnUi {
+                                // keep updating the UI for the loading spinner
                                 while (true) {
                                     delay(50)
                                     toolbar.updateUI()
