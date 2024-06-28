@@ -6,10 +6,10 @@
 
 package com.mongodb.jbplugin.accessadapter.datagrip
 
-import com.intellij.database.dataSource.DatabaseDriverManagerImpl
+import com.intellij.database.dataSource.DatabaseDriverManager
 import com.intellij.database.dataSource.LocalDataSource
+import com.intellij.database.dataSource.LocalDataSourceManager
 import com.intellij.database.dataSource.validation.DatabaseDriverValidator.createDownloaderTask
-import com.intellij.database.psi.DataSourceManager
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
@@ -18,21 +18,20 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.Key
 import com.intellij.testFramework.junit5.RunInEdt
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.ui.EDT
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.extension.*
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.lifecycle.Startables
-
 import java.nio.file.Files
 import java.util.*
-
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 
 /**
  * Represents what version of MongoDB we support in the plugin.
@@ -41,7 +40,6 @@ enum class MongoDbVersion(
     val versionString: String,
 ) {
     LATEST("7.0.9"),
-;
 }
 
 /**
@@ -99,10 +97,11 @@ internal class IntegrationTestExtension :
 
         val dataSource =
             runBlocking {
-                val dataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java)!!
-                val instance = DatabaseDriverManagerImpl.getInstance()
+                val dataSourceManager = LocalDataSourceManager.byDataSource(project, LocalDataSource::class.java)!!
+                val instance = DatabaseDriverManager.getInstance()
                 val jdbcDriver = instance.getDriver("mongo")
 
+                project.putUserData(Key.create("xxx"), 1)
                 val dataSource =
                     LocalDataSource().apply {
                         name = UUID.randomUUID().toString()

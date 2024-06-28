@@ -9,6 +9,7 @@ package com.mongodb.jbplugin.fixtures.components.idea
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
+import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.findVisible
 import org.owasp.encoder.Encode
 
@@ -57,6 +58,91 @@ class IdeaFrame(
             }
         """,
             true,
+        )
+    }
+
+    fun addDataSourceWithUrl(
+        name: String,
+        url: MongoDbServerUrl,
+    ) {
+        runJs(
+            """
+            const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
+                'com.intellij.database.dataSource.LocalDataSourceManager'
+            )
+
+            const DatabaseDriverManager = global.get('loadDataGripPluginClass')(
+                'com.intellij.database.dataSource.DatabaseDriverManager'
+            )
+
+            const LocalDataSource = global.get('loadDataGripPluginClass')(
+                'com.intellij.database.dataSource.LocalDataSource'
+            )
+
+            const DatabaseDriverValidator = global.get('loadDataGripPluginClass')(
+                'com.intellij.database.dataSource.validation.DatabaseDriverValidator'
+            )
+
+            const DatabaseConfigEditor = global.get('loadDataGripPluginClass')(
+                'com.intellij.database.view.ui.DatabaseConfigEditor'
+            )
+
+            importClass(com.intellij.openapi.project.Project)
+            importPackage(com.intellij.openapi.progress)
+            importPackage(com.intellij.openapi.wm.impl)
+            importPackage(com.intellij.database.view.ui)
+
+            const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+            if (frameHelper) {
+                const project = frameHelper.getProject()
+                
+                const dataSourceManager = LocalDataSourceManager.getMethod("getInstance", Project).invoke(null, project)
+                const driverManager = DatabaseDriverManager.getMethod("getInstance").invoke(null)
+                const jdbcDriver = driverManager.getDriver("mongo")
+                
+                const dataSource = LocalDataSource.newInstance()
+                dataSource.setName("$name")
+                dataSource.setUrl("${url.value}")
+                dataSource.setConfiguredByUrl(true)
+                dataSource.setDatabaseDriver(jdbcDriver)
+                dataSourceManager.addDataSource(dataSource)
+                
+                global.put("dataSource", dataSource);
+                DatabaseDriverValidator.getMethod("createDownloaderTask", LocalDataSource, DatabaseConfigEditor)
+                    .invoke(null, dataSource, null)
+                    .run(new EmptyProgressIndicator())
+            }
+            """.trimIndent(),
+            runInEdt = true,
+        )
+    }
+
+    fun cleanDataSources() {
+        runJs(
+            """
+            const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
+                'com.intellij.database.dataSource.LocalDataSourceManager'
+            )
+            
+            importClass(java.lang.System)
+            importClass(com.intellij.openapi.project.Project)
+            importClass(com.intellij.openapi.util.Key)
+            importPackage(com.intellij.openapi.progress)
+            importPackage(com.intellij.openapi.wm.impl)
+            importPackage(com.intellij.database.view.ui)
+            importClass(com.intellij.openapi.application.ApplicationManager)
+
+            const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+            const project = frameHelper.getProject()
+            const dataSourceManager = LocalDataSourceManager.getMethod("getInstance", Project).invoke(null, project)
+            const dataSources = dataSourceManager.getDataSources();
+            for (let i = 0; i < dataSources.size(); i++) {
+                dataSourceManager.removeDataSource(dataSources.get(i));
+            }
+            const dataSource = global.get("dataSource");
+            dataSourceManager.removeDataSource(dataSource)
+            """.trimIndent(),
+            runInEdt = true,
         )
     }
 
