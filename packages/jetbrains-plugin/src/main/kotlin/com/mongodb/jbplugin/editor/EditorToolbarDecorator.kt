@@ -39,16 +39,16 @@ class EditorToolbarDecorator(
      *
      * @see MongoDbVirtualFileDataSourceProvider
      */
-    private val attachedDataSource: Key<LocalDataSource> = Key.create("com.mongodb.jbplugin.AttachedDataSource")
-    private val toolbar =
+    internal val attachedDataSource: Key<LocalDataSource> = Key.create("com.mongodb.jbplugin.AttachedDataSource")
+    internal val toolbar =
         MdbJavaEditorToolbar(
             onDataSourceSelected = this::onDataSourceSelected,
             onDataSourceUnselected = this::onDataSourceUnselected,
         )
-    private lateinit var editor: Editor
-    private lateinit var connection: MessageBusConnection
+    internal lateinit var editor: Editor
+    internal lateinit var messageBusConnection: MessageBusConnection
 
-    private fun onDataSourceSelected(dataSource: LocalDataSource) {
+    fun onDataSourceSelected(dataSource: LocalDataSource) {
         editor.putUserData(attachedDataSource, dataSource)
         val project = editor.project ?: return
 
@@ -88,14 +88,14 @@ class EditorToolbarDecorator(
                     }.await()
 
                 toolbar.failedConnection?.let {
-return@launch
-}
+                    return@launch
+                }
 
                 toolbar.connecting = false
                 toolbar.updateUI()
 
+                // could not connect, do nothing
                 if (connection == null || !dataSource.isConnected()) {
-// could not connect, do nothing
                     toolbar.selectedDataSource = null // remove data source because we didn't connect
                     return@launch
                 }
@@ -107,7 +107,7 @@ return@launch
         }
     }
 
-    private fun onDataSourceUnselected() {
+    fun onDataSourceUnselected() {
         editor.virtualFile?.removeUserData(attachedDataSource)
     }
 
@@ -115,13 +115,13 @@ return@launch
         editor = event.editor
 
         editor.project?.let {
-val project = editor.project!!
-connection = project.messageBus.connect()
-connection.subscribe(DataSourceManager.TOPIC, this)
-connection.subscribe(DatabaseConnectionManager.TOPIC, this)
-val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
-toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
-}
+            val project = editor.project!!
+            messageBusConnection = project.messageBus.connect()
+            messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
+            messageBusConnection.subscribe(DatabaseConnectionManager.TOPIC, this)
+            val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
+            toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+        }
 
         ensureToolbarIsVisibleIfNecessary()
     }
@@ -204,8 +204,10 @@ toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDa
         val dataSource = connection.connectionPoint.dataSource
         val selectedDataSource = toolbar.selectedDataSource
 
-        if (dataSource.isMongoDbDataSource() && !dataSource.isConnected() &&
- selectedDataSource?.uniqueId == dataSource.uniqueId) {
+        if (dataSource.isMongoDbDataSource() &&
+            !dataSource.isConnected() &&
+            selectedDataSource?.uniqueId == dataSource.uniqueId
+        ) {
             toolbar.selectedDataSource = null
         }
     }

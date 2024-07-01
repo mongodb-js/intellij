@@ -5,6 +5,8 @@
 package com.mongodb.jbplugin.fixtures
 
 import com.google.gson.Gson
+import com.intellij.database.dataSource.*
+import com.intellij.ide.ui.NotRoamableUiSettings
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ComponentManager
@@ -23,6 +25,10 @@ import org.junit.jupiter.api.extension.*
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+
+import java.util.UUID
+
+import kotlinx.coroutines.test.TestScope
 
 /**
  * Annotation to be used within the test. It provides, as a parameter of a test,
@@ -66,6 +72,9 @@ private class IntegrationTestExtension :
         `when`(project.getMessageBus()).thenReturn(messageBus)
 
         application.withMockedService(settings)
+        application.withMockedService(DatabaseConnectionManager(TestScope()))
+        application.withMockedService(NotRoamableUiSettings())
+
         ApplicationManager.setApplication(application) {}
     }
 
@@ -169,4 +178,31 @@ internal fun mockLogMessage() =
         `when`(logMessage.message(any())).then { message ->
             LogMessageBuilder(Gson(), message.arguments[0].toString())
         }
+    }
+
+/**
+ * Returns a mocked data source configured for MongoDB.
+ *
+ * @return
+ */
+internal fun mockDataSource() =
+    mock<LocalDataSource>().also { dataSource ->
+        val driver = mock<DatabaseDriver>()
+        `when`(driver.id).thenReturn("mongo")
+        `when`(dataSource.databaseDriver).thenReturn(driver)
+        val testClass = Thread.currentThread().stackTrace[2].className
+        `when`(dataSource.name).thenReturn(testClass + "_" + UUID.randomUUID().toString())
+    }
+
+/**
+ * Returns a mocked connection for the provided dataSource.
+ *
+ * @param dataSource Either a mock or a real data source.
+ * @return
+ */
+internal fun mockDatabaseConnection(dataSource: LocalDataSource) =
+    mock<DatabaseConnection>().also { connection ->
+        val connectionPoint = mock<DatabaseConnectionPoint>()
+        `when`(connection.connectionPoint).thenReturn(connectionPoint)
+        `when`(connectionPoint.dataSource).thenReturn(dataSource)
     }

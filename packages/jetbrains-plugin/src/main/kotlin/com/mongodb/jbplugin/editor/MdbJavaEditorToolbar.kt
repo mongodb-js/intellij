@@ -50,8 +50,8 @@ class MdbJavaEditorToolbar(
             model.addAll(value)
             selectDataSourceWithId(selectedItem)
         }
-        get() = (connectionComboBox.model as DefaultComboBoxModel<LocalDataSource>).asSequence().toList().filterNotNull(
-)
+        get() =
+            (connectionComboBox.model as DefaultComboBoxModel<LocalDataSource>).asSequence().toList().filterNotNull()
 
     var selectedDataSource: LocalDataSource?
         set(value) {
@@ -59,10 +59,10 @@ class MdbJavaEditorToolbar(
             connecting = false
 
             value?.let {
-connectionComboBox.selectedItem = value
-} ?: run {
-connectionComboBox.selectedItem = null
-}
+                connectionComboBox.selectedItem = value
+            } ?: run {
+                connectionComboBox.selectedItem = null
+            }
         }
         get() = connectionComboBox.selectedItem as? LocalDataSource
 
@@ -81,41 +81,47 @@ connectionComboBox.selectedItem = null
         connectionComboBox.putClientProperty(ANIMATION_IN_RENDERER_ALLOWED, true)
         connectionComboBox.setRenderer { _, value, index, _, _ ->
             if (value == null && index == -1) {
-                JBLabel(MdbToolbarMessages.message("attach.datasource.to.editor"), Icons.logo.scaledToText(),
- SwingConstants.LEFT)
+                JBLabel(
+                    MdbToolbarMessages.message("attach.datasource.to.editor"),
+                    Icons.logo.scaledToText(),
+                    SwingConstants.LEFT,
+                )
             } else {
                 value?.let {
-val icon =
-if (value.isConnected()) {
-Icons.logoConnected.scaledToText()
-} else if (connecting) {
-Icons.loading.scaledToText()
-} else if (failedConnection?.uniqueId == value.uniqueId) {
-Icons.connectionFailed.scaledToText()
-} else {
-Icons.logo.scaledToText()
-}
-JBLabel(value.name, icon, SwingConstants.LEFT)
-} ?: JBLabel(MdbToolbarMessages.message("detach.datasource.from.editor"), Icons.remove.scaledToText(),
-SwingConstants.LEFT)
+                    val icon =
+                        if (value.isConnected()) {
+                            Icons.logoConnected.scaledToText()
+                        } else if (connecting) {
+                            Icons.loading.scaledToText()
+                        } else if (failedConnection?.uniqueId == value.uniqueId) {
+                            Icons.connectionFailed.scaledToText()
+                        } else {
+                            Icons.logo.scaledToText()
+                        }
+                    JBLabel(value.name, icon, SwingConstants.LEFT)
+                } ?: JBLabel(
+                    MdbToolbarMessages.message("detach.datasource.from.editor"),
+                    Icons.remove.scaledToText(),
+                    SwingConstants.LEFT,
+                )
             }
         }
     }
 
     private fun selectDataSourceWithId(id: String?) {
         id?.let {
-val dataSourceIndex =
-(connectionComboBox.model as DefaultComboBoxModel<LocalDataSource?>)
-.asSequence()
-.toList()
-.indexOf { it?.uniqueId == id }
-if (dataSourceIndex == -1) {
-connectionComboBox.selectedItem = null
-} else {
-connectionComboBox.selectedIndex = dataSourceIndex
-}
-} ?: run {
-connectionComboBox.selectedItem = null
-}
+            val dataSourceIndex =
+                (connectionComboBox.model as DefaultComboBoxModel<LocalDataSource?>)
+                    .asSequence()
+                    .toList()
+                    .indexOf { it?.uniqueId == id }
+            if (dataSourceIndex == -1) {
+                connectionComboBox.selectedItem = null
+            } else {
+                connectionComboBox.selectedIndex = dataSourceIndex
+            }
+        } ?: run {
+            connectionComboBox.selectedItem = null
+        }
     }
 }
