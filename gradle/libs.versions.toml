@@ -58,6 +58,7 @@ intellij-database-core-impl = { group = "com.jetbrains.intellij.database", name 
 ## Production Libraries.
 segment = { group = "com.segment.analytics.java", name = "analytics", version.ref = "segment" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+bson-kotlin = { group  = "org.mongodb", name = "bson-kotlin", version.ref = "mongodb-driver" }
 mongodb-driver = { group = "org.mongodb", name = "mongodb-driver-kotlin-sync", version.ref = "mongodb-driver" }
 owasp-encoder = { group = "org.owasp.encoder", name = "encoder", version.ref = "owasp-encoder" }
 ######################################################

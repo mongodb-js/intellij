@@ -23,6 +23,7 @@ import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.ui.EDT
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriver
+import org.bson.Document
 import org.junit.jupiter.api.extension.*
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -63,6 +64,8 @@ annotation class IntegrationTest(
  */
 internal class IntegrationTestExtension :
     BeforeAllCallback,
+    BeforeEachCallback,
+    AfterEachCallback,
     AfterAllCallback,
     ParameterResolver {
     private val namespace = ExtensionContext.Namespace.create(IntegrationTestExtension::class.java)
@@ -145,6 +148,20 @@ internal class IntegrationTestExtension :
         val driver = DataGripMongoDbDriver(project, dataSource)
         driver.forceConnectForTesting()
         context.getStore(namespace).put(driverKey, driver)
+    }
+
+    override fun beforeEach(context: ExtensionContext) {
+        val driver = context.getStore(namespace).get(driverKey) as MongoDbDriver
+        runBlocking {
+            driver.runCommand("test", Document(mapOf("dropDatabase" to 1)), Unit::class)
+        }
+    }
+
+    override fun afterEach(context: ExtensionContext) {
+        val driver = context.getStore(namespace).get(driverKey) as MongoDbDriver
+        runBlocking {
+            driver.runCommand("test", Document(mapOf("dropDatabase" to 1)), Unit::class)
+        }
     }
 
     override fun afterAll(context: ExtensionContext?) {

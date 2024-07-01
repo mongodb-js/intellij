@@ -13,8 +13,11 @@ import com.intellij.database.dataSource.connection.ConnectionRequestor
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
+import org.bson.codecs.configuration.CodecRegistries.fromRegistries
+import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
@@ -47,6 +50,10 @@ internal class DataGripMongoDbDriver(
                 it.connectionPoint.dataSource == dataSource
             }
 
+    private val codecRegistry: CodecRegistry =
+        fromRegistries(
+            MongoClientSettings.getDefaultCodecRegistry(),
+        )
     private val gson = Gson()
     private val jsonWriterSettings =
         JsonWriterSettings
@@ -57,7 +64,8 @@ internal class DataGripMongoDbDriver(
 
     private fun String.encodeForJs(): String = Encode.forJavaScript(this)
 
-    private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings).encodeForJs()
+    private fun Bson.toJson(): String = this.toBsonDocument(Bson::class.java, codecRegistry).toJson(jsonWriterSettings)
+.encodeForJs()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
