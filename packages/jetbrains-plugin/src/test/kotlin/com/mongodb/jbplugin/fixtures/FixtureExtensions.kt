@@ -150,7 +150,9 @@ fun RemoteRobot.openProject(absolutePath: String) {
         """,
     )
 
+    maybeTerminateButton()
     maybeIdeaFrame()?.closeAllFiles()
+    maybeTerminateButton()
 }
 
 /**
@@ -158,9 +160,16 @@ fun RemoteRobot.openProject(absolutePath: String) {
  */
 fun RemoteRobot.closeProject() {
     invokeAction("CloseProject")
+    maybeTerminateButton()
+}
+
+private fun RemoteRobot.maybeTerminateButton() {
     runCatching {
-        val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"),
- timeout = 50.milliseconds.toJavaDuration())
+        val terminateButton =
+            find<JButtonFixture>(
+                byXpath("//div[@text='Terminate']"),
+                timeout = 50.milliseconds.toJavaDuration(),
+            )
         terminateButton.click()
     }.getOrDefault(Unit)
 }
