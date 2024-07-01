@@ -21,7 +21,10 @@ import org.mockito.kotlin.argThat
 import org.mockito.kotlin.verify
 
 /**
- * Abstract class that implements the tests, it's not run.
+ * Abstract class that implements the tests, it's not run. This test will get metadata from a bootstrapped cluster
+ * using podman/docker. If this test fails in CI but works in your local machine, make sure to download the latest
+ * docker image: there is a chance that the latest version of the image changed in docker.io and now the version here
+ * does not match exactly.
  *
  * @see NewConnectionActivatedProbeTestForLocalEnvironment
  * @see NewConnectionActivatedProbeTestForAtlasCliEnvironment
@@ -68,28 +71,30 @@ internal abstract class NewConnectionActivatedProbeTest(
                     event.properties[TelemetryProperty.IS_LOCALHOST] == isLocalhost &&
                     event.properties[TelemetryProperty.IS_ENTERPRISE] == isEnterprise &&
                     event.properties[TelemetryProperty.IS_GENUINE] == isGenuine &&
-                    event.properties[TelemetryProperty.VERSION] == version
+                    event.properties[TelemetryProperty.VERSION].toString().startsWith(version)
             },
         )
     }
 }
 
 @RequiresMongoDbCluster(version = MongoDbVersion.V7_0)
-internal class NewConnectionActivatedProbeTestForLocalEnvironment : NewConnectionActivatedProbeTest(
-    isAtlas = false,
-    isLocalAtlas = false,
-    isLocalhost = true,
-    isEnterprise = false,
-    isGenuine = true,
-    version = "7.0.11",
-)
+internal class NewConnectionActivatedProbeTestForLocalEnvironment :
+    NewConnectionActivatedProbeTest(
+        isAtlas = false,
+        isLocalAtlas = false,
+        isLocalhost = true,
+        isEnterprise = false,
+        isGenuine = true,
+        version = "7.0",
+    )
 
 @RequiresMongoDbCluster(MongoDbTestingEnvironment.LOCAL_ATLAS)
-internal class NewConnectionActivatedProbeTestForAtlasCliEnvironment : NewConnectionActivatedProbeTest(
-    isAtlas = false,
-    isLocalAtlas = true,
-    isLocalhost = true,
-    isEnterprise = true,
-    isGenuine = true,
-    version = "7.0.11",
-)
+internal class NewConnectionActivatedProbeTestForAtlasCliEnvironment :
+    NewConnectionActivatedProbeTest(
+        isAtlas = false,
+        isLocalAtlas = true,
+        isLocalhost = true,
+        isEnterprise = true,
+        isGenuine = true,
+        version = "7.0",
+    )

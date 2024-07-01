@@ -32,3 +32,5 @@
   enabled: false
 - name: CUSTOM_GETTERS_SETTERS # allow custom getters, they are useful for tests
   enabled: false
+- name: NO_CORRESPONDING_PROPERTY # do not use backing properties if possible
+  enabled: false

@@ -2,9 +2,11 @@ package com.mongodb.jbplugin.fixtures.components
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
+import com.intellij.remoterobot.fixtures.ComboBoxFixture
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.fixtures.DefaultXpath
 import com.intellij.remoterobot.fixtures.FixtureName
+import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.findVisible
 import kotlin.time.Duration
@@ -26,7 +28,10 @@ class MdbJavaEditorToolbarFixture(
 ) : ContainerFixture(
         remoteRobot,
         remoteComponent,
-    )
+    ) {
+    val dataSources: ComboBoxFixture
+        get() = find(byXpath("//div[@class='ComboBox']"))
+}
 
 /**
  * Forcefully returns the toolbar, if it is not visible, throws an exception.

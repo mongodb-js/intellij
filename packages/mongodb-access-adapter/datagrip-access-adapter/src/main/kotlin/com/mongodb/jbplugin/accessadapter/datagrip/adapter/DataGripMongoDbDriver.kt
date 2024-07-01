@@ -13,8 +13,11 @@ import com.intellij.database.dataSource.connection.ConnectionRequestor
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.Namespace
+import org.bson.codecs.configuration.CodecRegistries.fromRegistries
+import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
@@ -47,6 +50,10 @@ internal class DataGripMongoDbDriver(
                 it.connectionPoint.dataSource == dataSource
             }
 
+    private val codecRegistry: CodecRegistry =
+        fromRegistries(
+            MongoClientSettings.getDefaultCodecRegistry(),
+        )
     private val gson = Gson()
     private val jsonWriterSettings =
         JsonWriterSettings
@@ -57,7 +64,8 @@ internal class DataGripMongoDbDriver(
 
     private fun String.encodeForJs(): String = Encode.forJavaScript(this)
 
-    private fun Bson.toJson(): String = this.toBsonDocument().toJson(jsonWriterSettings).encodeForJs()
+    private fun Bson.toJson(): String = this.toBsonDocument(Bson::class.java, codecRegistry).toJson(jsonWriterSettings)
+.encodeForJs()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
@@ -163,16 +171,20 @@ internal class DataGripMongoDbDriver(
 
     private suspend fun getConnection(): DatabaseConnection {
         val connections = DatabaseConnectionManager.getInstance().activeConnections
+        val connectionHandler =
+            DatabaseConnectionManager
+                .getInstance()
+                .build(project, dataSource)
+                .setRequestor(ConnectionRequestor.Anonymous())
+                .setAskPassword(true)
+                .setRunConfiguration(
+                    ConsoleRunConfiguration.newConfiguration(project).apply {
+                        setOptionsFromDataSource(dataSource)
+                    },
+                )
+
         return connections.firstOrNull { it.connectionPoint.dataSource == dataSource }
-            ?: DatabaseConnectionManager.establishConnection(
-                dataSource,
-                ConsoleRunConfiguration.newConfiguration(project).apply {
-                    setOptionsFromDataSource(dataSource)
-                },
-                ConnectionRequestor.Anonymous(),
-                project,
-                true, // if password is not available
-            )!!
+            ?: connectionHandler.create()!!.get()
     }
 
     @VisibleForTesting
@@ -195,12 +207,13 @@ internal class DataGripMongoDbDriver(
     }
 
     @VisibleForTesting
-    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit): Unit {
+    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit) {
         runBlocking {
             val connectionsManager = DatabaseConnectionManager.getInstance()
             val myConnectionsField =
                 connectionsManager.javaClass
-                    .getDeclaredField("myConnections").apply {
+                    .getDeclaredField("myConnections")
+                    .apply {
                         isAccessible = true
                     }
             val myConnections = myConnectionsField.get(connectionsManager) as MutableSet<DatabaseConnection>
@@ -216,3 +229,20 @@ internal class DataGripMongoDbDriver(
  * @return
  */
 fun LocalDataSource.isMongoDbDataSource(): Boolean = this.databaseDriver?.id == "mongo" || this.databaseDriver == null
+
+/**
+ * Returns true if the provided local data source has at least one active connection
+ * attached to it.
+ *
+ * @return
+ */
+fun LocalDataSource.isConnected(): Boolean =
+    DatabaseConnectionManager
+        .getInstance()
+        .activeConnections
+        .any { connection ->
+            connection.connectionPoint.dataSource == dataSource &&
+                runCatching {
+                    !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(5)
+                }.getOrDefault(false)
+        }

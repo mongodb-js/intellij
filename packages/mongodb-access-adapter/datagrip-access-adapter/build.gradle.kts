@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.owasp.encoder)
     implementation(libs.mongodb.driver)
+    implementation(libs.bson.kotlin)
     implementation(project(":packages:mongodb-access-adapter"))
 
     testImplementation("com.jetbrains.intellij.platform:test-framework-junit5:241.15989.155") {
