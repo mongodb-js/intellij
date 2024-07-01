@@ -19,6 +19,7 @@ class BsonTypeTest {
     ) {
         assertEquals(expected, javaClass.toBsonType())
     }
+
     companion object {
         @JvmStatic
         fun `java to bson`(): Array<Any> =
@@ -50,8 +51,9 @@ class BsonTypeTest {
                     ),
                 ),
             )
+
         data class ExampleClass(
             val field: String,
         )
-}
+    }
 }
