@@ -14,7 +14,6 @@ import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
-import com.mongodb.jbplugin.accessadapter.Namespace
 import com.mongodb.jbplugin.mql.Namespace
 import org.bson.conversions.Bson
 import org.bson.json.JsonMode
