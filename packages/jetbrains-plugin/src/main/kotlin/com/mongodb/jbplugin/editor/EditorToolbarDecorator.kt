@@ -1,6 +1,6 @@
 package com.mongodb.jbplugin.editor
 
-import com.intellij.database.dataSource.DatabaseConnection
+import com.intellij.database.console.JdbcDriverManager
 import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager
@@ -33,7 +33,7 @@ class EditorToolbarDecorator(
     private val coroutineScope: CoroutineScope,
 ) : EditorFactoryListener,
     DataSourceManager.Listener,
-    DatabaseConnectionManager.Listener {
+    JdbcDriverManager.Listener {
     /**
      * This needs to be synchronised with the MongoDbVirtualFileDataSourceProvider field with the same name.
      *
@@ -100,7 +100,8 @@ class EditorToolbarDecorator(
             val project = editor.project!!
             messageBusConnection = project.messageBus.connect()
             messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
-            messageBusConnection.subscribe(DatabaseConnectionManager.TOPIC, this)
+            messageBusConnection.subscribe(JdbcDriverManager.TOPIC, this)
+
             val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
             toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
         }
@@ -179,11 +180,10 @@ class EditorToolbarDecorator(
         toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
     }
 
-    override fun connectionChanged(
-        connection: DatabaseConnection,
-        added: Boolean,
+    override fun onTerminated(
+        dataSource: LocalDataSource,
+        configuration: ConsoleRunConfiguration?,
     ) {
-        val dataSource = connection.connectionPoint.dataSource
         val selectedDataSource = toolbar.selectedDataSource
 
         if (dataSource.isMongoDbDataSource() &&
@@ -192,7 +192,5 @@ class EditorToolbarDecorator(
         ) {
             toolbar.selectedDataSource = null
         }
-
-        toolbar.updateUI()
     }
 }

@@ -5,9 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.mongodb.jbplugin.fixtures.IntegrationTest
-import com.mongodb.jbplugin.fixtures.RequiresMongoDbCluster
 import com.mongodb.jbplugin.fixtures.mockDataSource
-import com.mongodb.jbplugin.fixtures.mockDatabaseConnection
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -20,7 +18,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
 @IntegrationTest
-@RequiresMongoDbCluster
 class EditorToolbarDecoratorTest {
     @Test
     fun `should refresh the data sources when one is added`() {
@@ -65,14 +62,13 @@ class EditorToolbarDecoratorTest {
     fun `should remove the selected data source when it is disconnected`() {
         val decorator = EditorToolbarDecorator(TestScope())
         val dataSource = mockDataSource()
-        val connection = mockDatabaseConnection(dataSource)
         decorator.editor = mock<Editor>()
 
         decorator.toolbar.dataSources = listOf(dataSource)
         decorator.toolbar.selectedDataSource = dataSource
 
         assertEquals(dataSource, decorator.toolbar.selectedDataSource)
-        decorator.connectionChanged(connection, true)
+        decorator.onTerminated(dataSource, null)
         assertNull(decorator.toolbar.selectedDataSource)
     }
 
