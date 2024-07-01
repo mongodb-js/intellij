@@ -10,39 +10,12 @@
 package com.mongodb.jbplugin.accessadapter
 
 import com.mongodb.ConnectionString
+import com.mongodb.jbplugin.mql.Namespace
 import org.bson.conversions.Bson
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-
-/**
- * Represents a MongoDB Namespace (db/coll)
- *
- * @property database
- * @property collection
- */
-class Namespace private constructor(
-    val database: String,
-    val collection: String,
-) {
-    override fun toString(): String = "$database.$collection"
-
-    override fun equals(other: Any?): Boolean = other is Namespace && hashCode() == other.hashCode()
-
-    override fun hashCode(): Int = Objects.hash(database, collection)
-
-    companion object {
-        operator fun invoke(
-            database: String,
-            collection: String,
-        ): Namespace =
-            Namespace(
-                database,
-                collection,
-            )
-    }
-}
 
 /**
  * Represents the MongoDB Driver facade that we will use internally.

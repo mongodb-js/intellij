@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.owasp.encoder)
     implementation(libs.mongodb.driver)
     implementation(project(":packages:mongodb-access-adapter"))
+    implementation(project(":packages:mongodb-mql-model"))
 
     testImplementation("com.jetbrains.intellij.platform:test-framework-junit5:241.15989.155") {
         exclude("ai.grazie.spell")

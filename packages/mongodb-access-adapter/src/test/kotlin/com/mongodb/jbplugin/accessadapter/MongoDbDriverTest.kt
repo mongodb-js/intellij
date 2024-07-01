@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.accessadapter
 
+import com.mongodb.jbplugin.mql.Namespace
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -23,12 +24,6 @@ class MongoDbDriverTest {
         val namespace = """ mydb.myco"ll    """.toNs()
         assertEquals("mydb", namespace.database)
         assertEquals("myco\"ll", namespace.collection)
-    }
-
-    @Test
-    fun `serialises to a valid namespace string`() {
-        val namespace = Namespace("mydb", "my.cool.col")
-        assertEquals("mydb.my.cool.col", namespace.toString())
     }
 
     @Test

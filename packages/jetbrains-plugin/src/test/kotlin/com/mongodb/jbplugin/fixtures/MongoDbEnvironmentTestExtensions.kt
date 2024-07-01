@@ -11,8 +11,8 @@ import com.mongodb.ConnectionString
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
-import com.mongodb.jbplugin.accessadapter.Namespace
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
+import com.mongodb.jbplugin.mql.Namespace
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.junit.jupiter.api.extension.*
