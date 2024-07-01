@@ -75,21 +75,23 @@ internal abstract class NewConnectionActivatedProbeTest(
 }
 
 @RequiresMongoDbCluster(version = MongoDbVersion.V7_0)
-internal class NewConnectionActivatedProbeTestForLocalEnvironment : NewConnectionActivatedProbeTest(
-    isAtlas = false,
-    isLocalAtlas = false,
-    isLocalhost = true,
-    isEnterprise = false,
-    isGenuine = true,
-    version = "7.0.11",
-)
+internal class NewConnectionActivatedProbeTestForLocalEnvironment :
+    NewConnectionActivatedProbeTest(
+        isAtlas = false,
+        isLocalAtlas = false,
+        isLocalhost = true,
+        isEnterprise = false,
+        isGenuine = true,
+        version = "7.0.12",
+    )
 
 @RequiresMongoDbCluster(MongoDbTestingEnvironment.LOCAL_ATLAS)
-internal class NewConnectionActivatedProbeTestForAtlasCliEnvironment : NewConnectionActivatedProbeTest(
-    isAtlas = false,
-    isLocalAtlas = true,
-    isLocalhost = true,
-    isEnterprise = true,
-    isGenuine = true,
-    version = "7.0.11",
-)
+internal class NewConnectionActivatedProbeTestForAtlasCliEnvironment :
+    NewConnectionActivatedProbeTest(
+        isAtlas = false,
+        isLocalAtlas = true,
+        isLocalhost = true,
+        isEnterprise = true,
+        isGenuine = true,
+        version = "7.0.12",
+    )
