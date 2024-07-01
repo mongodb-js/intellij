@@ -17,7 +17,7 @@ class MongoDbVirtualFileDataSourceProvider : VirtualFileDataSourceProvider() {
      *
      * @see EditorToolbarDecorator
      */
-    private val attachedDataSource: Key<LocalDataSource> = Key.create("com.mongodb.jbplugin.AttachedDataSource")
+    internal val attachedDataSource: Key<LocalDataSource> = Key.create("com.mongodb.jbplugin.AttachedDataSource")
 
     override fun getDataSource(
         project: Project,
