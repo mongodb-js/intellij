@@ -13,7 +13,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.rd.util.launchChildOnUi
+import com.intellij.openapi.rd.util.launchChildBackground
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiJavaFile
@@ -49,11 +49,10 @@ class EditorToolbarDecorator(
     internal lateinit var messageBusConnection: MessageBusConnection
 
     fun onDataSourceSelected(dataSource: LocalDataSource) {
-        editor.putUserData(attachedDataSource, dataSource)
         val project = editor.project ?: return
 
         if (!dataSource.isConnected()) {
-            coroutineScope.launch {
+            coroutineScope.launchChildBackground {
                 toolbar.connecting = true
                 val connectionManager = DatabaseConnectionManager.getInstance()
                 val connectionHandler =
@@ -67,37 +66,20 @@ class EditorToolbarDecorator(
                             },
                         )
 
-                val connection =
-                    async {
-                        val loadingAnimation =
-                            launchChildOnUi {
-                                // keep updating the UI for the loading spinner
-                                while (true) {
-                                    delay(50)
-                                    toolbar.updateUI()
-                                }
-                            }
-                        val connectionJob = runCatching { connectionHandler.create()?.get() }
-                        connectionJob.onFailure {
-                            toolbar.connecting = false
-                            toolbar.failedConnection = dataSource
-                        }
-
-                        loadingAnimation.cancelAndJoin()
-                        connectionJob.getOrNull()
-                    }.await()
-
-                toolbar.failedConnection?.let {
-                    return@launch
+                val connectionJob = runCatching { connectionHandler.create()?.get() }
+                connectionJob.onFailure {
+                    toolbar.connecting = false
+                    toolbar.failedConnection = dataSource
+                    return@launchChildBackground
                 }
 
+                val connection = connectionJob.getOrNull()
                 toolbar.connecting = false
-                toolbar.updateUI()
 
                 // could not connect, do nothing
                 if (connection == null || !dataSource.isConnected()) {
                     toolbar.selectedDataSource = null // remove data source because we didn't connect
-                    return@launch
+                    return@launchChildBackground
                 }
 
                 editor.virtualFile?.putUserData(attachedDataSource, dataSource)
@@ -210,5 +192,7 @@ class EditorToolbarDecorator(
         ) {
             toolbar.selectedDataSource = null
         }
+
+        toolbar.updateUI()
     }
 }

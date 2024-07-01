@@ -5,29 +5,32 @@
 package com.mongodb.jbplugin.fixtures
 
 import com.google.gson.Gson
+import com.intellij.database.Dbms
 import com.intellij.database.dataSource.*
-import com.intellij.ide.ui.NotRoamableUiSettings
-import com.intellij.openapi.application.Application
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.*
+import com.intellij.openapi.application.ex.ApplicationEx
+import com.intellij.openapi.client.ClientSessionsManager
 import com.intellij.openapi.components.ComponentManager
 import com.intellij.openapi.project.Project
-import com.intellij.util.messages.ListenerDescriptor
-import com.intellij.util.messages.MessageBus
-import com.intellij.util.messages.MessageBusOwner
-import com.intellij.util.messages.impl.RootBus
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.project.impl.ProjectImpl
+import com.intellij.serviceContainer.ComponentManagerImpl
+import com.intellij.testFramework.junit5.TestApplication
+import com.intellij.testFramework.replaceService
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.LogMessageBuilder
 import com.mongodb.jbplugin.observability.RuntimeInformation
 import com.mongodb.jbplugin.observability.RuntimeInformationService
 import com.mongodb.jbplugin.settings.PluginSettings
-import com.mongodb.jbplugin.settings.PluginSettingsStateComponent
+import com.mongodb.jbplugin.settings.useSettings
 import org.junit.jupiter.api.extension.*
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 
-import java.util.UUID
+import java.util.*
 
+import kotlin.io.path.Path
 import kotlinx.coroutines.test.TestScope
 
 /**
@@ -36,6 +39,7 @@ import kotlinx.coroutines.test.TestScope
  *
  * @see com.mongodb.jbplugin.observability.LogMessageTest
  */
+@TestApplication
 @ExtendWith(IntegrationTestExtension::class)
 annotation class IntegrationTest
 
@@ -46,39 +50,29 @@ private class IntegrationTestExtension :
     BeforeTestExecutionCallback,
     AfterTestExecutionCallback,
     ParameterResolver {
-    private lateinit var application: Application
-    private lateinit var settings: PluginSettingsStateComponent
-    private lateinit var messageBus: MessageBus
+    private lateinit var application: ApplicationEx
+    private lateinit var settings: PluginSettings
     private lateinit var project: Project
+    private lateinit var testScope: TestScope
 
     override fun beforeTestExecution(context: ExtensionContext?) {
-        application = mock()
-        project = mock()
-        settings = PluginSettingsStateComponent()
-
-        messageBus =
-            RootBus(
-                mock<MessageBusOwner>().apply {
-                    `when`(this.isDisposed()).thenReturn(false)
-                    `when`(this.isParentLazyListenersIgnored()).thenReturn(false)
-                    `when`(this.createListener(any())).then {
-                        val descriptor = it.arguments[0] as ListenerDescriptor
-                        Class.forName(descriptor.listenerClassName).getConstructor().newInstance()
-                    }
-                },
+        application = ApplicationManager.getApplication() as ApplicationEx
+        project =
+            ProjectImpl(
+                application as ComponentManagerImpl,
+                Path("src/test/resources/project-fixtures/basic-java-project-with-mongodb"),
+                null,
             )
-
-        `when`(application.getMessageBus()).thenReturn(messageBus)
-        `when`(project.getMessageBus()).thenReturn(messageBus)
-
-        application.withMockedService(settings)
-        application.withMockedService(DatabaseConnectionManager(TestScope()))
-        application.withMockedService(NotRoamableUiSettings())
-
-        ApplicationManager.setApplication(application) {}
+        settings = useSettings()
+        settings.isTelemetryEnabled = true
+        testScope = TestScope()
+        project.withMockedService(application.getService(ClientSessionsManager::class.java))
     }
 
     override fun afterTestExecution(context: ExtensionContext?) {
+        application.invokeAndWait({
+            ProjectManager.getInstance().closeAndDispose(project)
+        }, ModalityState.defaultModalityState())
     }
 
     override fun supportsParameter(
@@ -88,7 +82,8 @@ private class IntegrationTestExtension :
         parameterContext?.parameter?.type?.run {
             equals(Application::class.java) ||
                 equals(Project::class.java) ||
-                equals(PluginSettings::class.java)
+                equals(PluginSettings::class.java) ||
+                equals(TestScope::class.java)
         } ?: false
 
     override fun resolveParameter(
@@ -98,7 +93,8 @@ private class IntegrationTestExtension :
         when (parameterContext?.parameter?.type) {
             Application::class.java -> application
             Project::class.java -> project
-            PluginSettings::class.java -> settings.state
+            PluginSettings::class.java -> settings
+            TestScope::class.java -> testScope
             else -> TODO()
         }
 }
@@ -115,8 +111,8 @@ private class IntegrationTestExtension :
  * @param serviceImpl
  * @return itself so it can be chained
  */
-inline fun <reified S : ComponentManager, reified T> S.withMockedService(serviceImpl: T): S {
-    `when`(getService(T::class.java)).thenReturn(serviceImpl)
+inline fun <reified S : ComponentManager, reified T : Any> S.withMockedService(serviceImpl: T): S {
+    replaceService(T::class.java, serviceImpl, this)
     return this
 }
 
@@ -183,13 +179,16 @@ internal fun mockLogMessage() =
 /**
  * Returns a mocked data source configured for MongoDB.
  *
+ * @param url
  * @return
  */
-internal fun mockDataSource() =
+internal fun mockDataSource(url: MongoDbServerUrl = MongoDbServerUrl("http://localhost:27017")) =
     mock<LocalDataSource>().also { dataSource ->
         val driver = mock<DatabaseDriver>()
         `when`(driver.id).thenReturn("mongo")
+        `when`(dataSource.url).thenReturn(url.value)
         `when`(dataSource.databaseDriver).thenReturn(driver)
+        `when`(dataSource.dbms).thenReturn(Dbms.MONGO)
         val testClass = Thread.currentThread().stackTrace[2].className
         `when`(dataSource.name).thenReturn(testClass + "_" + UUID.randomUUID().toString())
     }
