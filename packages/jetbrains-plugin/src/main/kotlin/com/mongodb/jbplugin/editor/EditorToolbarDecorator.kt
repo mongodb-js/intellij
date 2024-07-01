@@ -26,6 +26,8 @@ import kotlinx.coroutines.*
 /**
  * This decorator listens to an IntelliJ Editor lifecycle
  * and attaches our toolbar if necessary.
+ *
+ * @param coroutineScope
  */
 class EditorToolbarDecorator(
     private val coroutineScope: CoroutineScope,
@@ -43,7 +45,6 @@ class EditorToolbarDecorator(
             onDataSourceSelected = this::onDataSourceSelected,
             onDataSourceUnselected = this::onDataSourceUnselected,
         )
-
     private lateinit var editor: Editor
     private lateinit var connection: MessageBusConnection
 
@@ -86,14 +87,15 @@ class EditorToolbarDecorator(
                         connectionJob.getOrNull()
                     }.await()
 
-                if (toolbar.failedConnection != null) {
-                    return@launch
-                }
+                toolbar.failedConnection?.let {
+return@launch
+}
 
                 toolbar.connecting = false
                 toolbar.updateUI()
 
-                if (connection == null || !dataSource.isConnected()) { // could not connect, do nothing
+                if (connection == null || !dataSource.isConnected()) {
+// could not connect, do nothing
                     toolbar.selectedDataSource = null // remove data source because we didn't connect
                     return@launch
                 }
@@ -112,15 +114,14 @@ class EditorToolbarDecorator(
     override fun editorCreated(event: EditorFactoryEvent) {
         editor = event.editor
 
-        if (editor.project != null) {
-            val project = editor.project!!
-            connection = project.messageBus.connect()
-            connection.subscribe(DataSourceManager.TOPIC, this)
-            connection.subscribe(DatabaseConnectionManager.TOPIC, this)
-
-            val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
-            toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
-        }
+        editor.project?.let {
+val project = editor.project!!
+connection = project.messageBus.connect()
+connection.subscribe(DataSourceManager.TOPIC, this)
+connection.subscribe(DatabaseConnectionManager.TOPIC, this)
+val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
+toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+}
 
         ensureToolbarIsVisibleIfNecessary()
     }
@@ -203,7 +204,8 @@ class EditorToolbarDecorator(
         val dataSource = connection.connectionPoint.dataSource
         val selectedDataSource = toolbar.selectedDataSource
 
-        if (dataSource.isMongoDbDataSource() && !dataSource.isConnected() && selectedDataSource?.uniqueId == dataSource.uniqueId) {
+        if (dataSource.isMongoDbDataSource() && !dataSource.isConnected() &&
+ selectedDataSource?.uniqueId == dataSource.uniqueId) {
             toolbar.selectedDataSource = null
         }
     }

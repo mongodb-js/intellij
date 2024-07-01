@@ -18,7 +18,6 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.Key
 import com.intellij.testFramework.junit5.RunInEdt
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.ui.EDT
@@ -106,7 +105,7 @@ internal class IntegrationTestExtension :
             EDT.dispatchAllInvocationEvents()
         }
 
-        extracted(project, dataSource, context)
+        forceConnectForTesting(project, dataSource, context)
 
         runBlocking(Dispatchers.EDT) {
             EDT.dispatchAllInvocationEvents()
@@ -123,7 +122,6 @@ internal class IntegrationTestExtension :
             val instance = DatabaseDriverManager.getInstance()
             val jdbcDriver = instance.getDriver("mongo")
 
-            project.putUserData(Key.create("xxx"), 1)
             val dataSource =
                 LocalDataSource().apply {
                     name = UUID.randomUUID().toString()
@@ -139,7 +137,7 @@ internal class IntegrationTestExtension :
             dataSource
         }
 
-    private fun extracted(
+    private fun forceConnectForTesting(
         project: Project,
         dataSource: LocalDataSource,
         context: ExtensionContext,
