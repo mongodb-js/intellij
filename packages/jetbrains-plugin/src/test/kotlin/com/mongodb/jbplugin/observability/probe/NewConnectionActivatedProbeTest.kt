@@ -21,7 +21,10 @@ import org.mockito.kotlin.argThat
 import org.mockito.kotlin.verify
 
 /**
- * Abstract class that implements the tests, it's not run.
+ * Abstract class that implements the tests, it's not run. This test will get metadata from a bootstrapped cluster
+ * using podman/docker. If this test fails in CI but works in your local machine, make sure to download the latest
+ * docker image: there is a chance that the latest version of the image changed in docker.io and now the version here
+ * does not match exactly.
  *
  * @see NewConnectionActivatedProbeTestForLocalEnvironment
  * @see NewConnectionActivatedProbeTestForAtlasCliEnvironment
