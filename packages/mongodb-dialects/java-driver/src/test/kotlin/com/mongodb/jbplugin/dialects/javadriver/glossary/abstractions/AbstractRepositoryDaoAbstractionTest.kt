@@ -34,7 +34,7 @@ import com.mongodb.client.MongoClient;
 public abstract class MyService {
 }
 
-public final class Repository extends AbstractRepository {
+public final class Repository extends MyService {
 }
         """,
     )
