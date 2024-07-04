@@ -15,6 +15,7 @@ import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.PsiTestUtil
@@ -28,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
+
+private const val MONGO_CLIENT = "com.mongodb.client.MongoClient"
 
 @Retention(AnnotationRetention.RUNTIME)
 @Test
@@ -117,6 +120,14 @@ internal class IntegrationTestExtension :
         dumbService.runWhenSmart {
             val result =
                 runCatching {
+                    val javaPsiFacade = JavaPsiFacade.getInstance(fixture.project)
+                    val searchEverywhere = GlobalSearchScope.everythingScope(fixture.project)
+                    var times = 0
+                    while (javaPsiFacade.findClass(MONGO_CLIENT, searchEverywhere) == null && times < 10) {
+                        System.err.println("Driver not loaded yet. Waiting for 100ms")
+                        Thread.sleep(100)
+                        times++
+                    }
                     invocation.proceed()
                 }
             result.onSuccess {
