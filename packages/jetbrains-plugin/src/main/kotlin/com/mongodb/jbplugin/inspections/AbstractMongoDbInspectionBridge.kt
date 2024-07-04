@@ -48,21 +48,21 @@ abstract class AbstractMongoDbInspectionBridge(
                     if (dialect.parser.canParse(expression)) {
                         val attachment = dialect.parser.attachment(expression)
                         attachment.getUserData(queryKey)?.let {
-cachedValue = attachment.getUserData(queryKey)!!
-} ?: run {
-val parsedAst =
-CachedValuesManager.getManager(attachment.project).createCachedValue {
-val parsedAst = dialect.parser.parse(expression)
-CachedValueProvider.Result.create(parsedAst, attachment)
-}
-attachment.putUserData(queryKey, parsedAst)
-cachedValue = parsedAst
-}
+                            cachedValue = attachment.getUserData(queryKey)!!
+                        } ?: run {
+                            val parsedAst =
+                                CachedValuesManager.getManager(attachment.project).createCachedValue {
+                                    val parsedAst = dialect.parser.parse(expression)
+                                    CachedValueProvider.Result.create(parsedAst, attachment)
+                                }
+                            attachment.putUserData(queryKey, parsedAst)
+                            cachedValue = parsedAst
+                        }
                     }
 
                     cachedValue?.let {
-inspection.visitMongoDbQuery(holder, cachedValue.value)
-}
+                        inspection.visitMongoDbQuery(holder, cachedValue!!.value)
+                    }
                 }
             }
         }
