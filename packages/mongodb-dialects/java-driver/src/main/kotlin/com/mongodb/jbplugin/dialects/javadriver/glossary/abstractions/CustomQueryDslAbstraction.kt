@@ -1,12 +1,11 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary.abstractions
 
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.javadriver.glossary.Abstraction
 import com.mongodb.jbplugin.dialects.javadriver.glossary.findContainingClass
-import com.mongodb.jbplugin.dialects.javadriver.glossary.isMongoDbClass
+import com.mongodb.jbplugin.dialects.javadriver.glossary.isUsingMongoDbClasses
 
 object CustomQueryDslAbstraction : Abstraction {
     override fun isIn(psiElement: PsiElement): Boolean {
@@ -39,14 +38,7 @@ object CustomQueryDslAbstraction : Abstraction {
                 }
             } ||
                 DriverInFactoryMethodAbstraction.isIn(method) ||
-                isMethodUsingMongoDbClasses(method)
+                method.isUsingMongoDbClasses()
         }
     }
-
-    private fun isMethodUsingMongoDbClasses(method: PsiMethod): Boolean =
-        PsiTreeUtil.findChildrenOfType(method, PsiMethodCallExpression::class.java).any {
-            it.methodExpression.qualifierExpression
-                ?.type
-                ?.isMongoDbClass(method.project) == true
-        }
 }
