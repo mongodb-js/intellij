@@ -129,4 +129,100 @@ public final class BookRepository extends AbstractRepository<Book> {
         assertEquals("production", namespace.database)
         assertEquals("books", namespace.collection)
     }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public final class BookRepository {
+    private final MongoCollection<Book> collection;
+    
+    public BookRepository(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+    
+    public User findBookById(ObjectId id) {
+        return this.collection.find(eq("_id", id)).first();
+    }
+}
+        """,
+    )
+    fun `extracts from a basic repository with dependency injection`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
+        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        assertEquals("simple", namespace.database)
+        assertEquals("books", namespace.collection)
+    }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public final class BookRepository {
+    private final MongoClient client;
+    private final String database;
+    private final String collection;
+    
+    public BookRepository(MongoClient client, String database, String collection) {
+        this.client = client;
+        this.database = database;
+        this.collection = collection;
+    }
+    
+    public User findBookById(ObjectId id) {
+        return this.getCollection().find(eq("_id", id)).first();
+    }
+    
+    private MongoCollection<Book> getCollection() {
+        return client.getDatabase("simple").getCollection("books");
+    }
+}
+        """,
+    )
+    fun `extracts from a basic repository with dependency injection and a factory method`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
+        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        assertEquals("simple", namespace.database)
+        assertEquals("books", namespace.collection)
+    }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public final class BookRepository {
+    private final MongoClient client;
+    private final String database;
+    private final String collection;
+    
+    public BookRepository(MongoClient client, String database, String collection) {
+        this.client = client;
+        this.database = database;
+        this.collection = collection;
+    }
+    
+    public User findBookById(ObjectId id) {
+        return client.getDatabase("simple").getCollection("books").find(eq("_id", id)).first();
+    }
+}
+        """,
+    )
+    fun `extracts from a basic repository with dependency injection only`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
+        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        assertEquals("simple", namespace.database)
+        assertEquals("books", namespace.collection)
+    }
 }

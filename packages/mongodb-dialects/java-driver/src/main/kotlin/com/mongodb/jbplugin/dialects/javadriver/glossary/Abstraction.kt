@@ -35,7 +35,7 @@ fun PsiElement.findContainingClass(): PsiClass =
  * @param project
  * @return
  */
-fun PsiType.isMongoDbCollectionClass(project: Project): Boolean {
+fun PsiClass.isMongoDbCollectionClass(project: Project): Boolean {
     val javaFacade = JavaPsiFacade.getInstance(project)
 
     val mdbCollectionClass =
@@ -44,8 +44,35 @@ fun PsiType.isMongoDbCollectionClass(project: Project): Boolean {
             GlobalSearchScope.everythingScope(project),
         )
 
-    val typeClass = PsiTypesUtil.getPsiClass(this)
-    return typeClass == mdbCollectionClass
+    return this == mdbCollectionClass
+}
+
+/**
+ * Helper function to check if a type is a MongoDB Collection
+ *
+ * @param project
+ */
+fun PsiType.isMongoDbCollectionClass(project: Project): Boolean {
+    val thisClass = PsiTypesUtil.getPsiClass(this)
+    return thisClass?.isMongoDbCollectionClass(project) == true
+}
+
+/**
+ * Helper function to check if a type is a MongoDB Database
+ *
+ * @param project
+ * @return
+ */
+fun PsiClass.isMongoDbDatabaseClass(project: Project): Boolean {
+    val javaFacade = JavaPsiFacade.getInstance(project)
+
+    val mdbDatabaseClass =
+        javaFacade.findClass(
+            "com.mongodb.client.MongoDatabase",
+            GlobalSearchScope.everythingScope(project),
+        )
+
+    return this == mdbDatabaseClass
 }
 
 /**
@@ -55,25 +82,17 @@ fun PsiType.isMongoDbCollectionClass(project: Project): Boolean {
  * @return
  */
 fun PsiType.isMongoDbDatabaseClass(project: Project): Boolean {
-    val javaFacade = JavaPsiFacade.getInstance(project)
-
-    val mdbDatabaseClass =
-        javaFacade.findClass(
-            "com.mongodb.client.MongoDatabase",
-            GlobalSearchScope.everythingScope(project),
-        )
-
-    val typeClass = PsiTypesUtil.getPsiClass(this)
-    return typeClass == mdbDatabaseClass
+    val thisClass = PsiTypesUtil.getPsiClass(this)
+    return thisClass?.isMongoDbDatabaseClass(project) == true
 }
 
 /**
- * Helper function to check if a type is a MongoDB Database
+ * Helper function to check if a type is a MongoDB Client
  *
  * @param project
  * @return
  */
-fun PsiType.isMongoDbClientClass(project: Project): Boolean {
+fun PsiClass.isMongoDbClientClass(project: Project): Boolean {
     val javaFacade = JavaPsiFacade.getInstance(project)
 
     val mdbClientClass =
@@ -82,8 +101,18 @@ fun PsiType.isMongoDbClientClass(project: Project): Boolean {
             GlobalSearchScope.everythingScope(project),
         )
 
-    val typeClass = PsiTypesUtil.getPsiClass(this)
-    return typeClass == mdbClientClass
+    return this == mdbClientClass
+}
+
+/**
+ * Helper function to check if a type is a MongoDB Client
+ *
+ * @param project
+ * @return
+ */
+fun PsiType.isMongoDbClientClass(project: Project): Boolean {
+    val thisClass = PsiTypesUtil.getPsiClass(this)
+    return thisClass?.isMongoDbClientClass(project) == true
 }
 
 /**
@@ -92,11 +121,29 @@ fun PsiType.isMongoDbClientClass(project: Project): Boolean {
  * @param project
  * @return
  */
-fun PsiType.isMongoDbClass(project: Project): Boolean =
+fun PsiType?.isMongoDbClass(project: Project): Boolean =
+    PsiTypesUtil.getPsiClass(this)?.run {
+        isMongoDbCollectionClass(project) ||
+            isMongoDbDatabaseClass(project) ||
+            isMongoDbClientClass(project)
+    } == true
+
+/**
+ * Checks if a class is a MongoDB class
+ *
+ * @param project
+ * @return
+ */
+fun PsiClass.isMongoDbClass(project: Project): Boolean =
     isMongoDbCollectionClass(project) ||
         isMongoDbDatabaseClass(project) ||
         isMongoDbClientClass(project)
 
+/**
+ * Checks if a method is calling a MongoDB driver method.
+ *
+ * @return
+ */
 fun PsiMethod.isUsingMongoDbClasses(): Boolean =
     PsiTreeUtil.findChildrenOfType(this, PsiMethodCallExpression::class.java).any {
         it.methodExpression.qualifierExpression
@@ -104,6 +151,11 @@ fun PsiMethod.isUsingMongoDbClasses(): Boolean =
             ?.isMongoDbClass(this.project) == true
     }
 
+/**
+ * Finds all references to the MongoDB driver in a method.
+ *
+ * @return
+ */
 fun PsiMethod.findAllReferencesToMongoDbObjects(): List<PsiReference> =
     PsiTreeUtil
         .findChildrenOfType(this, PsiExpression::class.java)
@@ -112,10 +164,14 @@ fun PsiMethod.findAllReferencesToMongoDbObjects(): List<PsiReference> =
                 ?.isMongoDbClass(this.project) == true
         }.mapNotNull { it.reference }
 
+/**
+ * Find, from a method call, the current MongoDB driver method is getting called.
+ */
 fun PsiMethodCallExpression.findCurrentReferenceToMongoDbObject(): PsiReference? {
     if (methodExpression.type?.isMongoDbClass(project) == true) {
         return methodExpression.reference
-    } else if (methodExpression.qualifierExpression is PsiSuperExpression || methodExpression.qualifierExpression is PsiThisExpression) {
+    } else if (methodExpression.qualifierExpression is PsiSuperExpression ||
+ methodExpression.qualifierExpression is PsiThisExpression) {
         val resolution = methodExpression.resolve()
         if (resolution is PsiField) {
             return if (resolution.type.isMongoDbClass(project)) resolution.reference else null
@@ -124,13 +180,20 @@ fun PsiMethodCallExpression.findCurrentReferenceToMongoDbObject(): PsiReference?
         }
     } else {
         if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
-            return (methodExpression.qualifierExpression as PsiMethodCallExpression).findCurrentReferenceToMongoDbObject()
+            return (methodExpression.qualifierExpression as PsiMethodCallExpression)
+.findCurrentReferenceToMongoDbObject()
         }
     }
 
     return null
 }
 
+/**
+ * Collects all elements of type T upwards until a type S is found.
+ *
+ * @param type
+ * @param stopWord
+ */
 fun <T : PsiElement, S : PsiElement> PsiElement.collectTypeUntil(
     type: Class<T>,
     stopWord: Class<S>,
@@ -144,4 +207,21 @@ fun <T : PsiElement, S : PsiElement> PsiElement.collectTypeUntil(
     }
 
     return emptyList()
+}
+
+/**
+ * Returns the reference to a MongoDB driver call.
+ *
+ * @param project
+ */
+fun PsiMethodCallExpression.findMongoDbClassReference(project: Project): PsiExpression? {
+    if (methodExpression.type?.isMongoDbClass(project) == true) {
+        return methodExpression
+    } else if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
+        return (methodExpression.qualifierExpression as PsiMethodCallExpression).findMongoDbClassReference(project)
+    } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
+        return methodExpression.qualifierExpression
+    } else {
+        return null
+    }
 }
