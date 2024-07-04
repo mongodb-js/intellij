@@ -8,11 +8,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.javadriver.glossary.abstractions.*
+import com.mongodb.jbplugin.mql.Namespace
 
 private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField>>
 
+@Suppress("ktlint") // it seems the class is too complex for ktlint to understand it
 object NamespaceExtractor {
-    @Suppress("ktlint") // it seems the function is too complex for ktlint to understand it
     fun extractNamespace(query: PsiElement): Namespace? {
         val currentClass = query.findContainingClass()
         val customQueryDsl = CustomQueryDslAbstraction.isIn(query)
@@ -39,9 +40,13 @@ object NamespaceExtractor {
                                 resolution.findContainingClass(),
                                 Pair(null, resolution),
                             )
-                        } is PsiMethod -> {
-                            val innerMethodCalls = PsiTreeUtil.findChildrenOfType(resolution,
- PsiMethodCallExpression::class.java)
+                        }
+
+                        is PsiMethod -> {
+                            val innerMethodCalls = PsiTreeUtil.findChildrenOfType(
+                                resolution,
+                                PsiMethodCallExpression::class.java
+                            )
                             val resolutions =
                                 innerMethodCalls
                                     .filter {
@@ -57,7 +62,9 @@ object NamespaceExtractor {
                             return@firstNotNullOf resolutions.flatMap {
                                 resolveConstructorArgumentReferencesForField(containingClass, it)
                             }
-                        } else ->
+                        }
+
+                        else ->
                             return@firstNotNullOf listOf()
                     }
                 }
@@ -67,7 +74,7 @@ object NamespaceExtractor {
                     .mapNotNull {
                         if (it is PsiMethodCallExpression) {
                             val maybeNamespace = runCatching { extractNamespaceFromDriverConfigurationMethodChain(it) }
-.getOrNull()
+                                .getOrNull()
                             if (maybeNamespace != null) {
                                 return maybeNamespace
                             }
@@ -81,19 +88,22 @@ object NamespaceExtractor {
                                     currentClass,
                                     Pair(null, it.reference?.resolve() as PsiField),
                                 )
+
                             is PsiMethod -> {
                                 val method = it.reference?.resolve() as PsiMethod
                                 if (method.containingClass?.isMongoDbClass(method.project) == true) {
                                     return extractNamespaceFromDriverConfigurationMethodChain(
-it as PsiMethodCallExpression
-)
+                                        it as PsiMethodCallExpression
+                                    )
                                 }
                                 return PsiTreeUtil
                                     .findChildrenOfType(method, PsiMethodCallExpression::class.java)
-                                    .mapNotNull {
+                                    .firstNotNullOfOrNull {
                                         extractNamespaceFromDriverConfigurationMethodChain(it)
-                                    }.firstOrNull()
-                            } else -> emptyList()
+                                    }
+                            }
+
+                            else -> emptyList()
                         }
                     }
             }
@@ -134,7 +144,7 @@ it as PsiMethodCallExpression
                     val callToSuperConstructor =
                         PsiTreeUtil.findChildrenOfType(it, PsiMethodCallExpression::class.java).first {
                             it.methodExpression.text == "super" &&
-                                it.methodExpression.resolve() == constructorAssignments.first().constructor
+                                    it.methodExpression.resolve() == constructorAssignments.first().constructor
                         }
 
                     val indexOfParameter =
@@ -164,41 +174,41 @@ it as PsiMethodCallExpression
                     assignment.lExpression.reference?.resolve() == field.second
                 }
             fieldAssignment?.let {
-val assignmentConcept =
-field.first
-?: fieldAssignment.type.guessAssignmentConcept(fieldAssignment.project)
-?: return emptyList()
-val asParameter = fieldAssignment.rExpression?.reference?.resolve() as? PsiParameter
-asParameter?.let {
-listOf(
-FieldAndConstructorAssignment(
-assignmentConcept,
-field.second,
-constructor,
-asParameter,
-null,
-),
-)
-} ?: run {
+                val assignmentConcept =
+                    field.first
+                        ?: fieldAssignment.type.guessAssignmentConcept(fieldAssignment.project)
+                        ?: return emptyList()
+                val asParameter = fieldAssignment.rExpression?.reference?.resolve() as? PsiParameter
+                asParameter?.let {
+                    listOf(
+                        FieldAndConstructorAssignment(
+                            assignmentConcept,
+                            field.second,
+                            constructor,
+                            asParameter,
+                            null,
+                        ),
+                    )
+                } ?: run {
 // extract from chain
-val foundAssignments =
-extractRelevantAssignments(
-constructor,
-fieldAssignment.rExpression as PsiMethodCallExpression,
-)
-foundAssignments.ifEmpty {
-listOf(
-FieldAndConstructorAssignment(
-assignmentConcept,
-field.second,
-constructor,
-null,
-fieldAssignment.rExpression,
-),
-)
-}
-}
-} ?: emptyList()
+                    val foundAssignments =
+                        extractRelevantAssignments(
+                            constructor,
+                            fieldAssignment.rExpression as PsiMethodCallExpression,
+                        )
+                    foundAssignments.ifEmpty {
+                        listOf(
+                            FieldAndConstructorAssignment(
+                                assignmentConcept,
+                                field.second,
+                                constructor,
+                                null,
+                                fieldAssignment.rExpression,
+                            ),
+                        )
+                    }
+                }
+            } ?: emptyList()
         }
     }
 
@@ -243,8 +253,8 @@ fieldAssignment.rExpression,
 
         val database: String? =
             dbExpression?.let {
-resolveConstant(dbExpression.argumentList.expressions[0])
-}
+                resolveConstant(dbExpression.argumentList.expressions[0])
+            }
 
         if (collection == null && database == null) {
             return null
@@ -265,9 +275,16 @@ resolveConstant(dbExpression.argumentList.expressions[0])
                     .reference
                     ?.resolve() as? PsiParameter
             parameter?.let {
-result.add(FieldAndConstructorAssignment(AssignmentConcept.COLLECTION, null, constructor, parameter,
-null))
-}
+                result.add(
+                    FieldAndConstructorAssignment(
+                        AssignmentConcept.COLLECTION,
+                        null,
+                        constructor,
+                        parameter,
+                        null,
+                    ),
+                )
+            }
         }
 
         val dbExpression =
@@ -283,14 +300,22 @@ null))
             }
 
         dbExpression?.let {
-val parameter =
-dbExpression.argumentList.expressions[0]
-.reference
-?.resolve() as? PsiParameter
-parameter?.let {
-result.add(FieldAndConstructorAssignment(AssignmentConcept.DATABASE, null, constructor, parameter, null))
-}
-}
+            val parameter =
+                dbExpression.argumentList.expressions[0]
+                    .reference
+                    ?.resolve() as? PsiParameter
+            parameter?.let {
+                result.add(
+                    FieldAndConstructorAssignment(
+                        AssignmentConcept.DATABASE,
+                        null,
+                        constructor,
+                        parameter,
+                        null,
+                    ),
+                )
+            }
+        }
 
         return result
     }
@@ -304,8 +329,8 @@ result.add(FieldAndConstructorAssignment(AssignmentConcept.DATABASE, null, const
                     .reference
                     ?.resolve() as? PsiField
             field?.let {
-result.add(Pair(AssignmentConcept.COLLECTION, field))
-}
+                result.add(Pair(AssignmentConcept.COLLECTION, field))
+            }
         }
 
         val dbExpression =
@@ -321,26 +346,17 @@ result.add(Pair(AssignmentConcept.COLLECTION, field))
             }
 
         dbExpression?.let {
-val field =
-dbExpression.argumentList.expressions[0]
-.reference
-?.resolve() as? PsiField
-field?.let {
-result.add(Pair(AssignmentConcept.DATABASE, field))
-}
-}
+            val field =
+                dbExpression.argumentList.expressions[0]
+                    .reference
+                    ?.resolve() as? PsiField
+            field?.let {
+                result.add(Pair(AssignmentConcept.DATABASE, field))
+            }
+        }
 
         return result
     }
-
-/**
- * @property database
- * @property collection
- */
-data class Namespace(
-        val database: String,
-        val collection: String,
-    )
 }
 
 private enum class AssignmentConcept {
