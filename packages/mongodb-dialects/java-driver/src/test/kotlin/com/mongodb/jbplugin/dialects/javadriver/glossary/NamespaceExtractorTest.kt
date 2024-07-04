@@ -225,4 +225,36 @@ public final class BookRepository {
         assertEquals("simple", namespace.database)
         assertEquals("books", namespace.collection)
     }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public class JavaDriverRepository {
+    private final MongoClient client;
+
+    public JavaDriverRepository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> exampleFind() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find();
+    }
+}
+        """,
+    )
+    fun `extracts from a hardcoded example`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("JavaDriverRepository", "exampleFind")
+        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        assertEquals("myDatabase", namespace.database)
+        assertEquals("myCollection", namespace.collection)
+    }
 }

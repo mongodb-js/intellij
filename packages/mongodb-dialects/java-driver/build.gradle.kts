@@ -39,6 +39,7 @@ intellij {
 
 dependencies {
     implementation(project(":packages:mongodb-mql-model"))
+    implementation(project(":packages:mongodb-dialects"))
 
     testImplementation("com.jetbrains.intellij.platform:test-framework-junit5:241.15989.155") {
         exclude("ai.grazie.spell")

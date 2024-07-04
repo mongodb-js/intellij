@@ -22,6 +22,15 @@
                            bundle="messages.TelemetryBundle"
                            key="notification.group.name"
                            />
+        <localInspection language="JAVA"
+                         bundle="messages.InspectionsBundle"
+                         key="inspection.type.checking"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.mongodb.jbplugin.inspections.JavaDriverNamespaceCheckInspectionBridge"/>
     </extensions>
     <applicationListeners>
     </applicationListeners>
