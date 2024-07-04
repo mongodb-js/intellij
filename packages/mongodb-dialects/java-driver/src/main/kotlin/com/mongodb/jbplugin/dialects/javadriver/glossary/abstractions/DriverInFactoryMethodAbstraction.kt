@@ -21,8 +21,8 @@ object DriverInFactoryMethodAbstraction : Abstraction {
 
         val callsReturningMongoDbObjects =
             allMethodCallExpressions.filter {
-                it.methodExpression.qualifierExpression
-                    ?.type
+                it
+                    .type
                     ?.isMongoDbClass(psiElement.project) == true
             }
 
