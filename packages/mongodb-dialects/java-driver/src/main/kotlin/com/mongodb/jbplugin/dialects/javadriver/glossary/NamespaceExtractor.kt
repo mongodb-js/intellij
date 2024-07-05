@@ -7,7 +7,7 @@ package com.mongodb.jbplugin.dialects.javadriver.glossary
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
-import com.mongodb.jbplugin.dialects.javadriver.glossary.abstractions.*
+import com.mongodb.jbplugin.dialects.javadriver.glossary.abstractions.CustomQueryDslAbstraction
 import com.mongodb.jbplugin.mql.Namespace
 
 private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField>>
@@ -142,7 +142,9 @@ object NamespaceExtractor {
         } else if (collection != null && database != null) {
             // if we have a parameter for a collection and database, try to resolve them either
             // from the parent constructor or the actual constructor
-            return Namespace(resolveConstant(database.second)!!, resolveConstant(collection.second)!!)
+            val databaseString = database.second.tryToResolveAsConstantString()!!
+            val collectionString = collection.second.tryToResolveAsConstantString()!!
+            return Namespace(databaseString, collectionString)
         } else if (client != null || resolvedScopes.size == 1) {
             // if it's not a client and there is only one resolved variable
             // guess from the actual constructor
@@ -231,17 +233,11 @@ object NamespaceExtractor {
         return callToSuperConstructor
     }
 
-    private fun resolveConstant(expression: PsiExpression): String? {
-        val javaFacade = JavaPsiFacade.getInstance(expression.project)
-        val constant = javaFacade.constantEvaluationHelper.computeConstantExpression(expression)
-        return constant as? String
-    }
-
     private fun extractNamespaceFromDriverConfigurationMethodChain(callExpr: PsiMethodCallExpression): Namespace? {
         val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
         val collection: String? =
             if (returnsCollection) {
-                resolveConstant(callExpr.argumentList.expressions[0])
+                callExpr.argumentList.expressions[0].tryToResolveAsConstantString()
             } else {
                 null
             }
@@ -260,7 +256,7 @@ object NamespaceExtractor {
 
         val database: String? =
             dbExpression?.let {
-                resolveConstant(dbExpression.argumentList.expressions[0])
+                dbExpression.argumentList.expressions[0].tryToResolveAsConstantString()
             }
 
         if (collection == null && database == null) {

@@ -5,6 +5,7 @@
 
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
+import com.intellij.lang.jvm.JvmModifier
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
@@ -171,7 +172,8 @@ fun PsiMethodCallExpression.findCurrentReferenceToMongoDbObject(): PsiReference?
     if (methodExpression.type?.isMongoDbClass(project) == true) {
         return methodExpression.reference
     } else if (methodExpression.qualifierExpression is PsiSuperExpression ||
- methodExpression.qualifierExpression is PsiThisExpression) {
+        methodExpression.qualifierExpression is PsiThisExpression
+    ) {
         val resolution = methodExpression.resolve()
         if (resolution is PsiField) {
             return if (resolution.type.isMongoDbClass(project)) resolution.reference else null
@@ -181,7 +183,7 @@ fun PsiMethodCallExpression.findCurrentReferenceToMongoDbObject(): PsiReference?
     } else {
         if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
             return (methodExpression.qualifierExpression as PsiMethodCallExpression)
-.findCurrentReferenceToMongoDbObject()
+                .findCurrentReferenceToMongoDbObject()
         }
     }
 
@@ -224,4 +226,24 @@ fun PsiMethodCallExpression.findMongoDbClassReference(project: Project): PsiExpr
     } else {
         return null
     }
+}
+
+/**
+ * Resolves to the value of the expression if it can be known at compile time
+ * or null if it can only be known at runtime.
+ */
+fun PsiElement.tryToResolveAsConstantString(): String? {
+    if (this is PsiReferenceExpression) {
+        val varRef = this.resolve()!!
+        return varRef.tryToResolveAsConstantString()
+    } else if (this is PsiLocalVariable) {
+        return this.initializer?.tryToResolveAsConstantString()
+    } else if (this is PsiLiteralValue) {
+        val facade = JavaPsiFacade.getInstance(this.project)
+        return facade.constantEvaluationHelper.computeConstantExpression(this) as? String
+    } else if (this is PsiField && this.hasModifier(JvmModifier.FINAL)) {
+        return this.initializer?.tryToResolveAsConstantString()
+    }
+
+    return null
 }
