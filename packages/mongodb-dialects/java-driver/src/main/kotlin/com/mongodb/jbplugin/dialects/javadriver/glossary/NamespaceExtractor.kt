@@ -32,16 +32,17 @@ object NamespaceExtractor {
                 referencesToMongoDbClasses.firstNotNullOf { ref ->
                     val resolution = ref.resolve() ?: return@firstNotNullOf null
 
-                    // we assume constructor injection
-                    // find in the constructor how it's defined
                     when (resolution) {
+                        // we assume constructor injection
+                        // find in the constructor how it's defined
                         is PsiField -> {
                             return@firstNotNullOf resolveConstructorArgumentReferencesForField(
                                 resolution.findContainingClass(),
                                 Pair(null, resolution),
                             )
                         }
-
+                        // this can be either a chain call of methods, like getDatabase(..).getCollection()
+                        // with constant values or references to fields
                         is PsiMethod -> {
                             val innerMethodCalls = PsiTreeUtil.findChildrenOfType(
                                 resolution,
@@ -72,14 +73,13 @@ object NamespaceExtractor {
                 val innerMethodCalls = PsiTreeUtil.findChildrenOfType(query, PsiMethodCallExpression::class.java)
                 innerMethodCalls
                     .mapNotNull {
-                        if (it is PsiMethodCallExpression) {
-                            val maybeNamespace = runCatching { extractNamespaceFromDriverConfigurationMethodChain(it) }
-                                .getOrNull()
-                            if (maybeNamespace != null) {
-                                return maybeNamespace
-                            }
+                        // if we can remove the namespace from this call, return directly
+                        // we don't need to traverse the tree anymore
+                        val maybeNamespace = runCatching { extractNamespaceFromDriverConfigurationMethodChain(it) }
+                            .getOrNull()
+                        if (maybeNamespace != null) {
+                            return maybeNamespace
                         }
-
                         it.findMongoDbClassReference(it.project)
                     }.flatMap {
                         when (it.reference?.resolve()) {
@@ -108,6 +108,8 @@ object NamespaceExtractor {
                     }
             }
 
+        // at this point, we need to resolve fields or parameters that are not known yet
+        // but might be resolvable through the actual class or the abstract class
         val resolvedScopes =
             constructorAssignments.map { assignment ->
                 currentClass.constructors.firstNotNullOf {
@@ -133,12 +135,17 @@ object NamespaceExtractor {
         val database = resolvedScopes.find { it.first == AssignmentConcept.DATABASE }
         val client = resolvedScopes.find { it.first == AssignmentConcept.CLIENT }
 
-        // it's a collection = expression set up
         if (collection != null && database == null) {
+            // if we have a parameter for the collection, but we don't have the database
+            // assume it's a call to getDatabase().getCollection()
             return extractNamespaceFromDriverConfigurationMethodChain(collection.second as PsiMethodCallExpression)
         } else if (collection != null && database != null) {
+            // if we have a parameter for a collection and database, try to resolve them either
+            // from the parent constructor or the actual constructor
             return Namespace(resolveConstant(database.second)!!, resolveConstant(collection.second)!!)
         } else if (client != null || resolvedScopes.size == 1) {
+            // if it's not a client and there is only one resolved variable
+            // guess from the actual constructor
             val mongodbNamespaceDriverExpression =
                 currentClass.constructors.firstNotNullOfOrNull {
                     val callToSuperConstructor =
@@ -219,7 +226,7 @@ object NamespaceExtractor {
         val callToSuperConstructor =
             PsiTreeUtil.findChildrenOfType(it, PsiMethodCallExpression::class.java).first {
                 it.methodExpression.text == "super" &&
-                    it.methodExpression.resolve() == constructorAssignments.first().constructor
+                        it.methodExpression.resolve() == constructorAssignments.first().constructor
             }
         return callToSuperConstructor
     }
