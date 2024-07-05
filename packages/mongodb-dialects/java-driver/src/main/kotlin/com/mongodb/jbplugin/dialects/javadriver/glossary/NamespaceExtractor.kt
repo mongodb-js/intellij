@@ -7,7 +7,6 @@ package com.mongodb.jbplugin.dialects.javadriver.glossary
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
-import com.mongodb.jbplugin.dialects.javadriver.glossary.abstractions.CustomQueryDslAbstraction
 import com.mongodb.jbplugin.mql.Namespace
 
 private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField>>
@@ -16,98 +15,111 @@ private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField
 object NamespaceExtractor {
     fun extractNamespace(query: PsiElement): Namespace? {
         val currentClass = query.findContainingClass()
-        val customQueryDsl = CustomQueryDslAbstraction.isIn(query)
 
-        val constructorAssignments: List<FieldAndConstructorAssignment> =
-            if (customQueryDsl) {
-                // we need to traverse to the parent method that contains a reference to the mongodb class
-                // as we don't know who is actually calling the mongodb class, we will need to traverse upwards until
-                // we find the beginning of the method
-                val methodCalls = query.collectTypeUntil(PsiMethodCallExpression::class.java, PsiMethod::class.java)
-                val referencesToMongoDbClasses =
-                    methodCalls.mapNotNull {
-                        it.findCurrentReferenceToMongoDbObject()
-                    }
+        val outerMethodCalls = query.collectTypeUntil(
+            PsiMethodCallExpression::class.java,
+            PsiMethod::class.java
+        ) + PsiTreeUtil.findChildrenOfType(query, PsiMethodCallExpression::class.java)
+        val innerMethodCalls = outerMethodCalls
 
-                referencesToMongoDbClasses.firstNotNullOf { ref ->
-                    val resolution = ref.resolve() ?: return@firstNotNullOf null
-
-                    when (resolution) {
-                        // we assume constructor injection
-                        // find in the constructor how it's defined
-                        is PsiField -> {
-                            return@firstNotNullOf resolveConstructorArgumentReferencesForField(
-                                resolution.findContainingClass(),
-                                Pair(null, resolution),
-                            )
-                        }
-                        // this can be either a chain call of methods, like getDatabase(..).getCollection()
-                        // with constant values or references to fields
-                        is PsiMethod -> {
-                            val innerMethodCalls = PsiTreeUtil.findChildrenOfType(
-                                resolution,
-                                PsiMethodCallExpression::class.java
-                            )
-                            val resolutions =
-                                innerMethodCalls
-                                    .filter {
-                                        it.type?.isMongoDbClass(it.project) == true
-                                    }.mapNotNull {
-                                        runCatching {
-                                            extractRelevantFieldsFromChain(it)
-                                        }.getOrNull()
-                                    }.flatten()
-                                    .distinctBy { it.first }
-
-                            val containingClass = resolution.findContainingClass()
-                            return@firstNotNullOf resolutions.flatMap {
-                                resolveConstructorArgumentReferencesForField(containingClass, it)
-                            }
-                        }
-
-                        else ->
-                            return@firstNotNullOf listOf()
-                    }
-                }
-            } else {
-                val innerMethodCalls = PsiTreeUtil.findChildrenOfType(query, PsiMethodCallExpression::class.java)
-                innerMethodCalls
-                    .mapNotNull {
-                        // if we can remove the namespace from this call, return directly
-                        // we don't need to traverse the tree anymore
-                        val maybeNamespace = runCatching { extractNamespaceFromDriverConfigurationMethodChain(it) }
-                            .getOrNull()
-                        if (maybeNamespace != null) {
-                            return maybeNamespace
-                        }
-                        it.findMongoDbClassReference(it.project)
-                    }.flatMap {
-                        when (it.reference?.resolve()) {
-                            is PsiField ->
-                                resolveConstructorArgumentReferencesForField(
-                                    currentClass,
-                                    Pair(null, it.reference?.resolve() as PsiField),
-                                )
-
-                            is PsiMethod -> {
-                                val method = it.reference?.resolve() as PsiMethod
-                                if (method.containingClass?.isMongoDbClass(method.project) == true) {
-                                    return extractNamespaceFromDriverConfigurationMethodChain(
-                                        it as PsiMethodCallExpression
-                                    )
-                                }
-                                return PsiTreeUtil
-                                    .findChildrenOfType(method, PsiMethodCallExpression::class.java)
-                                    .firstNotNullOfOrNull {
-                                        extractNamespaceFromDriverConfigurationMethodChain(it)
-                                    }
-                            }
-
-                            else -> emptyList()
-                        }
-                    }
+        val referencesToMongoDbClasses =
+            outerMethodCalls.mapNotNull {
+                it.findCurrentReferenceToMongoDbObject()
             }
 
+        val constructorAssignmentFromConstructorRefs: List<FieldAndConstructorAssignment> =
+            referencesToMongoDbClasses.flatMap { ref ->
+                val resolution = ref.resolve() ?: return@flatMap emptyList()
+
+                when (resolution) {
+                    // we assume constructor injection
+                    // find in the constructor how it's defined
+                    is PsiField -> {
+                        return@flatMap resolveConstructorArgumentReferencesForField(
+                            resolution.findContainingClass(),
+                            Pair(null, resolution),
+                        )
+                    }
+                    // this can be either a chain call of methods, like getDatabase(..).getCollection()
+                    // with constant values or references to fields
+                    is PsiMethod -> {
+                        val innerMethodCalls = PsiTreeUtil.findChildrenOfType(
+                            resolution,
+                            PsiMethodCallExpression::class.java
+                        )
+                        val resolutions =
+                            innerMethodCalls
+                                .filter {
+                                    it.type?.isMongoDbClass(it.project) == true
+                                }.mapNotNull {
+                                    runCatching {
+                                        extractRelevantFieldsFromChain(it)
+                                    }.getOrNull()
+                                }.flatten()
+                                .distinctBy { it.first }
+
+                        val containingClass = resolution.findContainingClass()
+                        return@flatMap resolutions.flatMap {
+                            resolveConstructorArgumentReferencesForField(containingClass, it)
+                        }
+                    }
+
+                    else ->
+                        return@flatMap emptyList()
+                }
+            }
+
+        val constructorAssignmentFromMethodsRefs: List<FieldAndConstructorAssignment> = innerMethodCalls
+            .mapNotNull {
+                // if we can remove the namespace from this call, return directly
+                // we don't need to traverse the tree anymore
+                val maybeNamespace = runCatching { extractNamespaceFromDriverConfigurationMethodChain(it) }
+                    .getOrNull()
+                if (maybeNamespace != null) {
+                    return maybeNamespace
+                }
+                it.findMongoDbClassReference(it.project)
+            }.flatMap {
+                when (it.reference?.resolve()) {
+                    is PsiField ->
+                        resolveConstructorArgumentReferencesForField(
+                            currentClass,
+                            Pair(null, it.reference?.resolve() as PsiField),
+                        )
+
+                    is PsiMethod -> {
+                        val method = it.reference?.resolve() as PsiMethod
+                        if (method.containingClass?.isMongoDbClass(method.project) == true
+                            && it is PsiMethodCallExpression
+                        ) {
+                            return extractNamespaceFromDriverConfigurationMethodChain(
+                                it
+                            )
+                        }
+                        val allInnerExpressions = PsiTreeUtil.findChildrenOfAnyType(
+                            method,
+                            PsiMethodCallExpression::class.java,
+                            PsiExpression::class.java
+                        )
+
+                        val foundNamespace = allInnerExpressions
+                            .filterIsInstance<PsiMethodCallExpression>()
+                            .firstNotNullOfOrNull {
+                                extractNamespaceFromDriverConfigurationMethodChain(it)
+                            }
+
+                        if (foundNamespace != null) {
+                            return foundNamespace
+                        }
+
+                        emptyList()
+                    }
+
+                    else -> emptyList()
+                }
+            }
+
+        val constructorAssignments = constructorAssignmentFromConstructorRefs + constructorAssignmentFromMethodsRefs
         // at this point, we need to resolve fields or parameters that are not known yet
         // but might be resolvable through the actual class or the abstract class
         val resolvedScopes =
@@ -225,12 +237,10 @@ object NamespaceExtractor {
         it: PsiMethod?,
         constructorAssignments: List<FieldAndConstructorAssignment>,
     ): PsiMethodCallExpression? {
-        val callToSuperConstructor =
-            PsiTreeUtil.findChildrenOfType(it, PsiMethodCallExpression::class.java).first {
-                it.methodExpression.text == "super" &&
-                        it.methodExpression.resolve() == constructorAssignments.first().constructor
-            }
-        return callToSuperConstructor
+        return PsiTreeUtil.findChildrenOfType(it, PsiMethodCallExpression::class.java).firstOrNull {
+            it.methodExpression.text == "super" &&
+                    it.methodExpression.resolve() == constructorAssignments.first().constructor
+        }
     }
 
     private fun extractNamespaceFromDriverConfigurationMethodChain(callExpr: PsiMethodCallExpression): Namespace? {
@@ -259,11 +269,11 @@ object NamespaceExtractor {
                 dbExpression.argumentList.expressions[0].tryToResolveAsConstantString()
             }
 
-        if (collection == null && database == null) {
+        if (database == null || collection == null) {
             return null
         }
 
-        return Namespace(database ?: "unk", collection ?: "unk")
+        return Namespace(database, collection)
     }
 
     private fun extractRelevantAssignments(

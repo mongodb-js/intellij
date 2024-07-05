@@ -172,7 +172,8 @@ fun PsiMethodCallExpression.findCurrentReferenceToMongoDbObject(): PsiReference?
     if (methodExpression.type?.isMongoDbClass(project) == true) {
         return methodExpression.reference
     } else if (methodExpression.qualifierExpression is PsiSuperExpression ||
-        methodExpression.qualifierExpression is PsiThisExpression
+        methodExpression.qualifierExpression is PsiThisExpression ||
+        methodExpression.qualifierExpression == null
     ) {
         val resolution = methodExpression.resolve()
         if (resolution is PsiField) {
