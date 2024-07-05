@@ -168,13 +168,9 @@ import static com.mongodb.client.model.Filters.*;
 
 public final class BookRepository {
     private final MongoClient client;
-    private final String database;
-    private final String collection;
     
-    public BookRepository(MongoClient client, String database, String collection) {
+    public BookRepository(MongoClient client) {
         this.client = client;
-        this.database = database;
-        this.collection = collection;
     }
     
     public User findBookById(ObjectId id) {
@@ -204,13 +200,9 @@ import static com.mongodb.client.model.Filters.*;
 
 public final class BookRepository {
     private final MongoClient client;
-    private final String database;
-    private final String collection;
     
-    public BookRepository(MongoClient client, String database, String collection) {
+    public BookRepository(MongoClient client) {
         this.client = client;
-        this.database = database;
-        this.collection = collection;
     }
     
     public User findBookById(ObjectId id) {
