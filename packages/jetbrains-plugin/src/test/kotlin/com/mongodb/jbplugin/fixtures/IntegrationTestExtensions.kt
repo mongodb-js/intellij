@@ -30,7 +30,7 @@ import org.mockito.kotlin.any
  *
  * @see com.mongodb.jbplugin.observability.LogMessageTest
  */
-@ExtendWith(CodeInsightTestExtension::class)
+@ExtendWith(IntegrationTestExtension::class)
 annotation class IntegrationTest
 
 /**
