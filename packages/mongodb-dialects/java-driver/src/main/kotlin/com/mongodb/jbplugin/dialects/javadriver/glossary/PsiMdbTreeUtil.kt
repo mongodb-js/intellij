@@ -205,7 +205,7 @@ fun <T : PsiElement, S : PsiElement> PsiElement.collectTypeUntil(
 }
 
 /**
- * Returns the reference to a MongoDB driver call.
+ * Returns the reference to any MongoDB driver call.
  *
  * @param project
  */
@@ -214,6 +214,23 @@ fun PsiMethodCallExpression.findMongoDbClassReference(project: Project): PsiExpr
         return methodExpression
     } else if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
         return (methodExpression.qualifierExpression as PsiMethodCallExpression).findMongoDbClassReference(project)
+    } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
+        return methodExpression.qualifierExpression
+    } else {
+        return null
+    }
+}
+
+/**
+ * Returns the reference to a MongoDB driver collection.
+ *
+ * @param project
+ */
+fun PsiMethodCallExpression.findMongoDbCollectionReference(project: Project): PsiExpression? {
+    if (methodExpression.type?.isMongoDbCollectionClass(project) == true) {
+        return methodExpression
+    } else if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
+        return (methodExpression.qualifierExpression as PsiMethodCallExpression).findMongoDbCollectionReference(project)
     } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
         return methodExpression.qualifierExpression
     } else {

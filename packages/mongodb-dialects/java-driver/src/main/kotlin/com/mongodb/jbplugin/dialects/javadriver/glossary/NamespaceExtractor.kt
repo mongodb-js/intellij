@@ -6,7 +6,7 @@ package com.mongodb.jbplugin.dialects.javadriver.glossary
 
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.PsiTreeUtil.*
 import com.mongodb.jbplugin.mql.Namespace
 
 private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField>>
@@ -16,14 +16,13 @@ object NamespaceExtractor {
     fun extractNamespace(query: PsiElement): Namespace? {
         val currentClass = query.findContainingClass()
 
-        val outerMethodCalls = query.collectTypeUntil(
+        val allMethodCallsInMethod = query.collectTypeUntil(
             PsiMethodCallExpression::class.java,
             PsiMethod::class.java
-        ) + PsiTreeUtil.findChildrenOfType(query, PsiMethodCallExpression::class.java)
-        val innerMethodCalls = outerMethodCalls
+        ) + findChildrenOfType(query, PsiMethodCallExpression::class.java)
 
         val referencesToMongoDbClasses =
-            outerMethodCalls.mapNotNull {
+            allMethodCallsInMethod.mapNotNull {
                 it.findCurrentReferenceToMongoDbObject()
             }
 
@@ -43,7 +42,7 @@ object NamespaceExtractor {
                     // this can be either a chain call of methods, like getDatabase(..).getCollection()
                     // with constant values or references to fields
                     is PsiMethod -> {
-                        val innerMethodCalls = PsiTreeUtil.findChildrenOfType(
+                        val innerMethodCalls = findChildrenOfType(
                             resolution,
                             PsiMethodCallExpression::class.java
                         )
@@ -69,7 +68,7 @@ object NamespaceExtractor {
                 }
             }
 
-        val constructorAssignmentFromMethodsRefs: List<FieldAndConstructorAssignment> = innerMethodCalls
+        val constructorAssignmentFromMethodsRefs: List<FieldAndConstructorAssignment> = allMethodCallsInMethod
             .mapNotNull {
                 // if we can remove the namespace from this call, return directly
                 // we don't need to traverse the tree anymore
@@ -96,7 +95,7 @@ object NamespaceExtractor {
                                 it
                             )
                         }
-                        val allInnerExpressions = PsiTreeUtil.findChildrenOfAnyType(
+                        val allInnerExpressions = findChildrenOfAnyType(
                             method,
                             PsiMethodCallExpression::class.java,
                             PsiExpression::class.java
@@ -123,8 +122,8 @@ object NamespaceExtractor {
         // at this point, we need to resolve fields or parameters that are not known yet
         // but might be resolvable through the actual class or the abstract class
         val resolvedScopes =
-            constructorAssignments.map { assignment ->
-                currentClass.constructors.firstNotNullOf {
+            constructorAssignments.mapNotNull { assignment ->
+                currentClass.constructors.firstNotNullOfOrNull {
                     if (assignment.parameter != null) {
                         val callToSuperConstructor = getCallToSuperConstructor(it, constructorAssignments)
 
@@ -133,10 +132,12 @@ object NamespaceExtractor {
                                 assignment.parameter,
                             )
 
-                        Pair(
-                            assignment.concept,
-                            callToSuperConstructor!!.argumentList.expressions[indexOfParameter],
-                        )
+                        runCatching {
+                            Pair(
+                                assignment.concept,
+                                callToSuperConstructor!!.argumentList.expressions[indexOfParameter],
+                            )
+                        }.getOrNull()
                     } else {
                         Pair(assignment.concept, assignment.resolutionExpression)
                     }
@@ -163,7 +164,7 @@ object NamespaceExtractor {
             val mongodbNamespaceDriverExpression =
                 currentClass.constructors.firstNotNullOfOrNull {
                     val callToSuperConstructor =
-                        PsiTreeUtil.findChildrenOfType(it, PsiMethodCallExpression::class.java).first {
+                        findChildrenOfType(it, PsiMethodCallExpression::class.java).first {
                             it.methodExpression.text == "super" &&
                                     it.methodExpression.resolve() == constructorAssignments.first().constructor
                         }
@@ -189,7 +190,7 @@ object NamespaceExtractor {
     ): List<FieldAndConstructorAssignment> {
         return containingClass.constructors.flatMap { constructor ->
             val assignments =
-                PsiTreeUtil.findChildrenOfType(constructor, PsiAssignmentExpression::class.java)
+                findChildrenOfType(constructor, PsiAssignmentExpression::class.java)
             val fieldAssignment =
                 assignments.find { assignment ->
                     assignment.lExpression.reference?.resolve() == field.second
@@ -237,7 +238,7 @@ object NamespaceExtractor {
         it: PsiMethod?,
         constructorAssignments: List<FieldAndConstructorAssignment>,
     ): PsiMethodCallExpression? {
-        return PsiTreeUtil.findChildrenOfType(it, PsiMethodCallExpression::class.java).firstOrNull {
+        return findChildrenOfType(it, PsiMethodCallExpression::class.java).firstOrNull {
             it.methodExpression.text == "super" &&
                     it.methodExpression.resolve() == constructorAssignments.first().constructor
         }

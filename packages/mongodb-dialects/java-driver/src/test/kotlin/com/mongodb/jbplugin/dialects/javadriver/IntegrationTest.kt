@@ -29,8 +29,6 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
 
-private const val MONGO_CLIENT = "com.mongodb.client.MongoClient"
-
 @Retention(AnnotationRetention.RUNTIME)
 @Test
 annotation class ParsingTest(
@@ -75,17 +73,19 @@ internal class IntegrationTestExtension :
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
 
-        ApplicationManager.getApplication().invokeLater {
+        ApplicationManager.getApplication().invokeAndWait {
             if (!JavaLibraryUtil.hasLibraryJar(testFixture.module, "org.mongodb:mongodb-driver-sync:5.1.1")) {
-                PsiTestUtil.addProjectLibrary(
-                    testFixture.module,
-                    "mongodb-driver-sync",
-                    listOf(
-                        Path(
-                            "src/test/resources/mongodb-driver-sync-5.1.1.jar",
-                        ).toAbsolutePath().toString(),
-                    ),
-                )
+                runCatching {
+                    PsiTestUtil.addProjectLibrary(
+                        testFixture.module,
+                        "mongodb-driver-sync",
+                        listOf(
+                            Path(
+                                "src/test/resources/mongodb-driver-sync-5.1.1.jar",
+                            ).toAbsolutePath().toString(),
+                        ),
+                    )
+                }
             }
         }
 
@@ -135,7 +135,11 @@ internal class IntegrationTestExtension :
             Thread.sleep(1)
         }
 
-        throwable.get()?.let { throw it }
+        throwable.get()?.let {
+            System.err.println(it.message)
+            it.printStackTrace(System.err)
+            throw it
+        }
     }
 
     override fun afterAll(context: ExtensionContext) {

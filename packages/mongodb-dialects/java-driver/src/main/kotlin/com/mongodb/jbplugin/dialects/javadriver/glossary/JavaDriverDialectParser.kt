@@ -10,10 +10,10 @@ import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun canParse(source: PsiElement): Boolean =
-        (source as? PsiMethodCallExpression)?.findMongoDbClassReference(source.project) != null
+        (source as? PsiMethodCallExpression)?.findMongoDbCollectionReference(source.project) != null
 
     override fun attachment(source: PsiElement): PsiElement =
-        (source as PsiMethodCallExpression).findMongoDbClassReference(source.project)!!
+        (source as PsiMethodCallExpression).findMongoDbCollectionReference(source.project)!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
         val owningMethod =
