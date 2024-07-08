@@ -39,3 +39,4 @@ FAKE_BROWSER_OUTPUT
 
 # We need the driver for tests
 !packages/mongodb-dialects/java-driver/src/test/resources/mongodb-driver-sync-5.1.1.jar
+!packages/jetbrains-plugin/src/test/resources/mongodb-driver-sync-5.1.1.jar
