@@ -16,16 +16,17 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         (source as PsiMethodCallExpression).findMongoDbClassReference(source.project)!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
-        val owningMethod = PsiTreeUtil.getParentOfType(source, PsiMethod::class.java)
- ?: return Node(source, emptyList())
+        val owningMethod =
+            PsiTreeUtil.getParentOfType(source, PsiMethod::class.java)
+                ?: return Node(source, emptyList())
         val namespace = NamespaceExtractor.extractNamespace(owningMethod)
 
         return Node(
             source,
             listOf(
                 namespace?.let {
-HasCollectionReference(HasCollectionReference.Known(namespace))
-} ?: HasCollectionReference(HasCollectionReference.Unknown),
+                    HasCollectionReference(HasCollectionReference.Known(namespace))
+                } ?: HasCollectionReference(HasCollectionReference.Unknown),
             ),
         )
     }

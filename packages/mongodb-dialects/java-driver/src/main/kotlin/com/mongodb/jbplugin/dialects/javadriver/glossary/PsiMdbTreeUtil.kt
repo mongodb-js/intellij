@@ -1,6 +1,5 @@
 /**
- * Defines an interface for all abstractions that will be analysed for the Java
- * driver.
+ * Defines an a set of extension methods to extract metadata from a Psi tree.
  */
 
 package com.mongodb.jbplugin.dialects.javadriver.glossary
@@ -13,13 +12,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.psi.util.parentOfType
-
-/**
- * Represents an abstraction defined in the glossary document.
- */
-interface Abstraction {
-    fun isIn(psiElement: PsiElement): Boolean
-}
 
 /**
  * Helper extension function to get the containing class of any element.
