@@ -15,7 +15,7 @@ import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
-import com.mongodb.jbplugin.accessadapter.Namespace
+import com.mongodb.jbplugin.mql.Namespace
 import org.bson.codecs.configuration.CodecRegistries.fromRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
@@ -212,7 +212,7 @@ internal class DataGripMongoDbDriver(
     }
 
     @VisibleForTesting
-    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit) {
+    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit): Unit {
         runBlocking {
             val connectionsManager = DatabaseConnectionManager.getInstance()
             val myConnectionsField =
