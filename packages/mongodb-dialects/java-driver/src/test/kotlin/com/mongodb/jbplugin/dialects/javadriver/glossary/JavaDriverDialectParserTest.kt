@@ -35,7 +35,7 @@ public final class Repository {
     )
     fun `can parse a mongodb query using the driver`(psiFile: PsiFile) {
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
-        assertTrue(JavaDriverDialectParser.canParse(query))
+        assertTrue(JavaDriverDialectParser.isCandidateForQuery(query))
     }
 
     @ParsingTest(
@@ -66,7 +66,7 @@ public final class Repository {
                 .findChildrenOfType(query, PsiReferenceExpression::class.java)
                 .first { it.text.endsWith("collection") }
 
-        assertTrue(JavaDriverDialectParser.canParse(query))
+        assertTrue(JavaDriverDialectParser.isCandidateForQuery(query))
         assertEquals(collectionReference, JavaDriverDialectParser.attachment(query))
     }
 
@@ -128,7 +128,7 @@ public final class Repository {
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
         val unknownReference =
- parsedQuery.component<HasCollectionReference>()?.reference as HasCollectionReference.Unknown
+            parsedQuery.component<HasCollectionReference>()?.reference as HasCollectionReference.Unknown
 
         assertEquals(HasCollectionReference.Unknown, unknownReference)
     }

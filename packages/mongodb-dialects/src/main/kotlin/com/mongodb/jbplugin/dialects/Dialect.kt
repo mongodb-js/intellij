@@ -25,7 +25,7 @@ interface Dialect<S> {
  * @param S
  */
 interface DialectParser<S> {
-    fun canParse(source: S): Boolean
+    fun isCandidateForQuery(source: S): Boolean
 
     fun attachment(source: S): S
 

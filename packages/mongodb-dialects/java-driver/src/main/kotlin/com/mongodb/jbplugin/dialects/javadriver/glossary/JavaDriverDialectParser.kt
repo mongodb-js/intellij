@@ -9,7 +9,7 @@ import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
-    override fun canParse(source: PsiElement): Boolean =
+    override fun isCandidateForQuery(source: PsiElement): Boolean =
         (source as? PsiMethodCallExpression)?.findMongoDbCollectionReference(source.project) != null
 
     override fun attachment(source: PsiElement): PsiElement =
