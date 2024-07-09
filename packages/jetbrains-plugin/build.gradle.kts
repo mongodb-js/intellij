@@ -41,6 +41,7 @@ dependencies {
     testCompileOnly(libs.testing.intellij.ideImpl)
     testCompileOnly(libs.testing.intellij.coreUi)
 
+    testImplementation(libs.mongodb.driver)
     testImplementation(libs.testing.jsoup)
     testImplementation(libs.testing.video.recorder)
     testImplementation(libs.testing.remoteRobot)

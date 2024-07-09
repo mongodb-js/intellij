@@ -20,10 +20,14 @@ import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
+import com.mongodb.client.MongoClient
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
 import java.lang.reflect.Method
+import java.net.URI
+import java.net.URL
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
@@ -81,7 +85,7 @@ internal class IntegrationTestExtension :
                         "mongodb-driver-sync",
                         listOf(
                             Path(
-                                "src/test/resources/mongodb-driver-sync-5.1.1.jar",
+                                pathToJavaDriver(),
                             ).toAbsolutePath().toString(),
                         ),
                     )
@@ -172,6 +176,23 @@ internal class IntegrationTestExtension :
             JavaPsiFacade::class.java -> JavaPsiFacade.getInstance(fixture.project)
             else -> TODO("Parameter of type ${parameterContext.parameter.type.canonicalName} is not supported.")
         }
+    }
+
+    private fun pathToJavaDriver(): String {
+        val classResource: URL =
+            MongoClient::class.java.getResource(MongoClient::class.java.getSimpleName() + ".class")
+                ?: throw RuntimeException("class resource is null")
+        val url: String = classResource.toString()
+        if (url.startsWith("jar:file:")) {
+            // extract 'file:......jarName.jar' part from the url string
+            val path = url.replace("^jar:(file:.*[.]jar)!/.*".toRegex(), "$1")
+            try {
+                return Paths.get(URI(path)).toString()
+            } catch (e: Exception) {
+                throw RuntimeException("Invalid Jar File URL String")
+            }
+        }
+        throw RuntimeException("Invalid Jar File URL String")
     }
 }
 
