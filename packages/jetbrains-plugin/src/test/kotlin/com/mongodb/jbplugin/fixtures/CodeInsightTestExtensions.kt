@@ -57,6 +57,8 @@ internal class CodeInsightTestExtension :
     private val testPathKey = "TESTPATH"
 
     override fun beforeAll(context: ExtensionContext) {
+        ApplicationManager.setApplication(null)
+
         val projectFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
@@ -71,8 +73,8 @@ internal class CodeInsightTestExtension :
                     projectFixture,
                     tempDirTestFixtureImpl,
                 ).apply {
-        testDataPath = tempDirTestFixtureImpl.tempDirPath
-}
+                    testDataPath = tempDirTestFixtureImpl.tempDirPath
+                }
 
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
