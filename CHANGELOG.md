@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-29](https://jira.mongodb.org/browse/INTELLIJ-29): Shows an inlay hint near a Java query that shows in which collection the query is
+going to be run in case it could be inferred.
 * [INTELLIJ-17](https://jira.mongodb.org/browse/INTELLIJ-17): Added a toolbar that allows to attach a MongoDB data source to the current editor.
 This data source is used for autocompletion and type checking.
 * [INTELLIJ-14](https://jira.mongodb.org/browse/INTELLIJ-14): Send telemetry when a connection to a MongoDB Cluster fails.
