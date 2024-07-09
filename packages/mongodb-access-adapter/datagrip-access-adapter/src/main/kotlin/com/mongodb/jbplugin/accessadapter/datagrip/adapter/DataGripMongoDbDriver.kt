@@ -31,6 +31,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
+private const val TIMEOUT = 5
+
 /**
  * The driver itself. Shouldn't be used directly, but through the
  * DataGripBasedReadModelProvider.
@@ -64,8 +66,11 @@ internal class DataGripMongoDbDriver(
 
     private fun String.encodeForJs(): String = Encode.forJavaScript(this)
 
-    private fun Bson.toJson(): String = this.toBsonDocument(Bson::class.java, codecRegistry).toJson(jsonWriterSettings)
-.encodeForJs()
+    private fun Bson.toJson(): String =
+        this
+            .toBsonDocument(Bson::class.java, codecRegistry)
+            .toJson(jsonWriterSettings)
+            .encodeForJs()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
@@ -243,6 +248,6 @@ fun LocalDataSource.isConnected(): Boolean =
         .any { connection ->
             connection.connectionPoint.dataSource == dataSource &&
                 runCatching {
-                    !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(5)
+                    !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(TIMEOUT)
                 }.getOrDefault(false)
         }
