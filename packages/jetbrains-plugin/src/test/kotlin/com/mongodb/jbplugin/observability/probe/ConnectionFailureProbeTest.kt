@@ -39,9 +39,9 @@ class ConnectionFailureProbeTest {
         application.withMockedService(logMessage)
 
         project.withMockedUnconnectedMongoDbConnection(MongoDbServerUrl("mongodb://localhost"))
+        project.withMockedService<Project, CachedValuesManager>(CachedValuesManagerImpl(project))
         val probe = ConnectionFailureProbe()
 
-        project.withMockedService<Project, CachedValuesManager>(CachedValuesManagerImpl(project))
         probe.connectionFailed(project, connectionPoint, Throwable())
 
         verify(telemetryService).sendEvent(
@@ -77,9 +77,10 @@ class ConnectionFailureProbeTest {
 
         project.withMockedService<Project, CachedValuesManager>(CachedValuesManagerImpl(project))
 
-        val innerException = Exception(
-"com.mongodb.MongoCommandException: Command failed with error 18 (AuthenticationFailed):"
-)
+        val innerException =
+            Exception(
+                "com.mongodb.MongoCommandException: Command failed with error 18 (AuthenticationFailed):",
+            )
         val remoteWrapper =
             com.intellij.execution.rmi.RemoteObject.ForeignException(
                 "Error in the driver",

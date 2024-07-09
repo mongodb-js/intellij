@@ -10,12 +10,11 @@ import com.intellij.remoterobot.fixtures.Fixture
 import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.search.locators.Locator
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.waitFor
-import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.mongodb.jbplugin.fixtures.components.idea.maybeIdeaFrame
 import org.owasp.encoder.Encode
 import java.time.Duration
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
 
 /**
@@ -151,7 +150,9 @@ fun RemoteRobot.openProject(absolutePath: String) {
         """,
     )
 
-    ideaFrame().closeAllFiles()
+    maybeTerminateButton()
+    maybeIdeaFrame()?.closeAllFiles()
+    maybeTerminateButton()
 }
 
 /**
@@ -159,10 +160,16 @@ fun RemoteRobot.openProject(absolutePath: String) {
  */
 fun RemoteRobot.closeProject() {
     invokeAction("CloseProject")
-    CommonSteps(this).waitMs(500)
+    maybeTerminateButton()
+}
+
+private fun RemoteRobot.maybeTerminateButton() {
     runCatching {
-        val terminateButton = find<JButtonFixture>(byXpath("//div[@text='Terminate']"),
- timeout = 1.seconds.toJavaDuration())
+        val terminateButton =
+            find<JButtonFixture>(
+                byXpath("//div[@text='Terminate']"),
+                timeout = 50.milliseconds.toJavaDuration(),
+            )
         terminateButton.click()
     }.getOrDefault(Unit)
 }

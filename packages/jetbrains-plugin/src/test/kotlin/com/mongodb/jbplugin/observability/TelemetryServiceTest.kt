@@ -22,6 +22,7 @@ internal class TelemetryServiceTest {
                 analytics = mock<Analytics>()
             }
 
+        application.withMockedService(service)
         service.sendEvent(TelemetryEvent.PluginActivated)
         verify(service.analytics).enqueue(
             argThat {
@@ -42,6 +43,7 @@ internal class TelemetryServiceTest {
                 analytics = mock<Analytics>()
             }
 
+        application.withMockedService(service)
         service.sendEvent(
             TelemetryEvent.NewConnection(
                 isAtlas = true,
@@ -75,15 +77,20 @@ internal class TelemetryServiceTest {
                 analytics = mock<Analytics>()
             }
 
+        application.withMockedService(service)
+
         val publisher = application.messageBus.syncPublisher(AppLifecycleListener.TOPIC)
-        publisher.appWillBeClosed(true)
+        publisher.appWillBeClosed(false)
 
         verify(service.analytics).flush()
         verify(service.analytics).shutdown()
     }
 
     @Test
-    fun `does not send telemetry events when telemetry is disabled`(settings: PluginSettings) {
+    fun `does not send telemetry events when telemetry is disabled`(
+        application: Application,
+        settings: PluginSettings,
+    ) {
         settings.isTelemetryEnabled = false
 
         val service =
@@ -91,6 +98,7 @@ internal class TelemetryServiceTest {
                 analytics = mock<Analytics>()
             }
 
+        application.withMockedService(service)
         service.sendEvent(TelemetryEvent.PluginActivated)
 
         verify(service.analytics, never()).enqueue(any())
@@ -109,6 +117,7 @@ internal class TelemetryServiceTest {
                 analytics = mock<Analytics>()
             }
 
+        application.withMockedService(service)
         val publisher = application.messageBus.syncPublisher(AppLifecycleListener.TOPIC)
         publisher.appWillBeClosed(true)
 

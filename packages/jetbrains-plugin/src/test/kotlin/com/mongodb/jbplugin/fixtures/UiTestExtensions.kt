@@ -46,8 +46,9 @@ annotation class RequiresProject(
  */
 private class UiTestExtension :
     BeforeAllCallback,
-    BeforeTestExecutionCallback,
+    BeforeEachCallback,
     AfterTestExecutionCallback,
+    AfterEachCallback,
     ParameterResolver {
     private val remoteRobotUrl: String = "http://localhost:8082"
     private lateinit var remoteRobot: RemoteRobot
@@ -84,11 +85,25 @@ private class UiTestExtension :
             global.put('loadPluginService', function (className) {
                 return ApplicationManager.getApplication().getService(global.get("loadPluginClass")(className));
             });
+            
+            global.put('loadDataGripPlugin', function () {
+                const pluginManager = PluginManager.getInstance();
+                const pluginID = PluginId.findId("com.intellij.database");
+                return pluginManager.findEnabledPlugin(pluginID);
+            });
+            
+            global.put('loadDataGripPluginClass', function (className) {
+                return global.get('loadDataGripPlugin')().getPluginClassLoader().loadClass(className);
+            });
+            
+            global.put('loadDataGripPluginService', function (className) {
+                return ApplicationManager.getApplication().getService(global.get("loadPluginClass")(className));
+            });
             """.trimIndent(),
         )
     }
 
-    override fun beforeTestExecution(context: ExtensionContext?) {
+    override fun beforeEach(context: ExtensionContext?) {
         val requiresProject =
             context
                 ?.requiredTestMethod
@@ -114,7 +129,9 @@ private class UiTestExtension :
             saveIdeaFrames(testMethodName)
             saveHierarchy(testMethodName)
         }
+    }
 
+    override fun afterEach(context: ExtensionContext?) {
         remoteRobot.closeProject()
     }
 
