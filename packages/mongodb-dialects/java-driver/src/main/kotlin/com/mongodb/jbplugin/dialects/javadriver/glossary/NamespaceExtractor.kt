@@ -184,6 +184,26 @@ object NamespaceExtractor {
         return null
     }
 
+    /**
+     * Returns all the relevant assignments and fields that are target of the received
+     * field
+     *
+     * Example input:
+     *
+     * containingClass = PsiClass:MyRepository
+     * field = Pair(AssignmentConcept.COLLECTION, PsiField:myCollection)
+     *
+     * Example output:
+     * listOf(
+     *  FieldAndConstructorAssignment(
+     *      concept = AssignmentCollection.COLLECTION,
+     *      field = PsiField: myCollection,
+     *      constructor = PsiMethod: MyRepository(MongoCollection),
+     *      parameter = PsiParameter:MongoCollection@index 0,
+     *      resolutionExpression = null, // because it's an assignment without any additional logic
+     * ))
+     *
+     */
     private fun resolveConstructorArgumentReferencesForField(
         containingClass: PsiClass,
         field: Pair<AssignmentConcept?, PsiField>,
@@ -212,7 +232,7 @@ object NamespaceExtractor {
                         ),
                     )
                 } ?: run {
-// extract from chain
+                    // extract from chain
                     val foundAssignments =
                         extractRelevantAssignments(
                             constructor,
@@ -234,16 +254,27 @@ object NamespaceExtractor {
         }
     }
 
+    /**
+     * Gets the relevant call to the super constructor within the current
+     * constructor, if it's compatible with the current constructor signature,
+     * based on the field assignments.
+     */
     private fun getCallToSuperConstructor(
-        it: PsiMethod?,
+        currentConstructor: PsiMethod?,
         constructorAssignments: List<FieldAndConstructorAssignment>,
     ): PsiMethodCallExpression? {
-        return findChildrenOfType(it, PsiMethodCallExpression::class.java).firstOrNull {
+        return findChildrenOfType(currentConstructor, PsiMethodCallExpression::class.java).firstOrNull {
             it.methodExpression.text == "super" &&
                     it.methodExpression.resolve() == constructorAssignments.first().constructor
         }
     }
 
+    /**
+     * Extracts the namespace from a chain of calls like:
+     * ```kotlin
+     * client.getDatabase(...).getCollection(...)
+     * ```
+     */
     private fun extractNamespaceFromDriverConfigurationMethodChain(callExpr: PsiMethodCallExpression): Namespace? {
         val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
         val collection: String? =
@@ -277,6 +308,17 @@ object NamespaceExtractor {
         return Namespace(database, collection)
     }
 
+    /**
+     * Extract all the field assignments from a constructor that are relevant
+     * for the current method call expression. For example, if we have the following
+     * callExpr:
+     *
+     * ```kotlin
+     * client.getDatabase(...).getCollection(...)
+     * ```
+     *
+     * The only relevant field to extract is client from the constructor.
+     */
     private fun extractRelevantAssignments(
         constructor: PsiMethod,
         callExpr: PsiMethodCallExpression,
