@@ -51,7 +51,7 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepositoryExample.java")
+        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
@@ -63,7 +63,7 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepositoryExample.java")
+        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
