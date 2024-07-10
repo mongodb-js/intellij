@@ -7,27 +7,35 @@ package com.mongodb.jbplugin.fixtures
 
 import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.util.Disposer
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.intellij.testFramework.fixtures.impl.TempDirTestFixtureImpl
 import com.mongodb.client.MongoClient
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
+
 import java.lang.reflect.Method
 import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
 /**
  * Annotation to add to the test function.
@@ -51,34 +59,26 @@ annotation class CodeInsightTest
  * Extension implementation. Must not be used directly.
  */
 internal class CodeInsightTestExtension :
-    BeforeAllCallback,
-    AfterAllCallback,
     BeforeEachCallback,
+    AfterEachCallback,
     InvocationInterceptor,
     ParameterResolver {
     private val namespace = ExtensionContext.Namespace.create(CodeInsightTestExtension::class.java)
     private val testFixtureKey = "TESTFIXTURE"
-    private val testPathKey = "TESTPATH"
 
-    override fun beforeAll(context: ExtensionContext) {
-        ApplicationManager.setApplication(null)
-
+    override fun beforeEach(context: ExtensionContext) {
         val projectFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
                 .createLightFixtureBuilder(context.requiredTestClass.simpleName)
                 .fixture
 
-        val tempDirTestFixtureImpl = TempDirTestFixtureImpl()
         val testFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
                 .createCodeInsightFixture(
                     projectFixture,
-                    tempDirTestFixtureImpl,
-                ).apply {
-                    testDataPath = tempDirTestFixtureImpl.tempDirPath
-                }
+                )
 
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
@@ -99,21 +99,17 @@ internal class CodeInsightTestExtension :
             }
         }
 
-        PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
-        PsiTestUtil.addSourceRoot(testFixture.module, tmpRootDir)
-        context.getStore(namespace).put(testPathKey, tmpRootDir.path)
-    }
 
-    override fun beforeEach(context: ExtensionContext) {
-        val fixture = context.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
-        val modulePath = context.getStore(namespace).get(testPathKey).toString()
+        PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
+        PsiTestUtil.addSourceRoot(testFixture.module, tmpRootDir)
+
+        val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
 
         ApplicationManager.getApplication().invokeAndWait {
-            val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
-            val fileName = Path(modulePath, "src", "main", "java", parsingTest.fileName).absolutePathString()
+            val fileName = Path(tmpRootDir.path, "src", "main", "java", parsingTest.fileName).absolutePathString()
 
-            fixture.configureByText(
+            testFixture.configureByText(
                 fileName,
                 parsingTest.value,
             )
@@ -131,22 +127,29 @@ internal class CodeInsightTestExtension :
         val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
         val dumbService = fixture.project.getService(DumbService::class.java)
         dumbService.runWhenSmart {
-            val result =
-                runCatching {
-                    invocation.proceed()
-                }
-            result.onSuccess {
-                finished.set(true)
-            }
+            ApplicationManager.getApplication().invokeAndWait {
+                val result =
+                    runCatching {
+                        invocation.proceed()
+                    }
 
-            result.onFailure {
-                finished.set(true)
-                throwable.set(it)
+                result.onSuccess {
+                    finished.set(true)
+                }
+
+                result.onFailure {
+                    throwable.set(it)
+                    finished.set(true)
+                }
             }
         }
 
-        while (!finished.get()) {
-            Thread.sleep(1)
+        runBlocking {
+            withTimeout(10.seconds) {
+                while (!finished.get()) {
+                    delay(50.milliseconds)
+                }
+            }
         }
 
         throwable.get()?.let {
@@ -156,11 +159,21 @@ internal class CodeInsightTestExtension :
         }
     }
 
-    override fun afterAll(context: ExtensionContext) {
+    override fun afterEach(context: ExtensionContext) {
         val testFixture = context.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
 
         ApplicationManager.getApplication().invokeAndWait {
-            testFixture.tearDown()
+            runCatching {
+                val fileEditorManager = FileEditorManager.getInstance(testFixture.project)
+                fileEditorManager.openFiles.forEach {
+                    fileEditorManager.closeFile(it)
+                }
+                fileEditorManager.allEditors.forEach {
+                    Disposer.dispose(it)
+                }
+
+                testFixture.tearDown()
+            }
         }
     }
 

@@ -18,8 +18,9 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.common.cleanApplicationState
+import com.intellij.testFramework.common.initTestApplication
 import com.intellij.testFramework.junit5.RunInEdt
-import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.ui.EDT
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriver
@@ -50,7 +51,6 @@ enum class MongoDbVersion(
  *
  * @see com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriverTest
  */
-@TestApplication
 @RunInEdt(allMethods = true, writeIntent = true)
 @ExtendWith(IntegrationTestExtension::class)
 @Testcontainers(parallel = false)
@@ -76,6 +76,8 @@ internal class IntegrationTestExtension :
     private val versionKey = "VERSION"
 
     override fun beforeAll(context: ExtensionContext?) {
+        initTestApplication()
+
         val annotation = context!!.requiredTestClass.getAnnotation(IntegrationTest::class.java)
         val container =
             MongoDBContainer("mongo:${annotation.mongodb.versionString}-jammy")
@@ -162,6 +164,8 @@ internal class IntegrationTestExtension :
         runBlocking {
             driver.runCommand("test", Document(mapOf("dropDatabase" to 1)), Unit::class)
         }
+
+        ApplicationManager.getApplication().cleanApplicationState()
     }
 
     override fun afterAll(context: ExtensionContext?) {
