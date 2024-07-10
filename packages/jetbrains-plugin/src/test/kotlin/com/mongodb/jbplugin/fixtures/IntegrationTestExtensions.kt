@@ -15,7 +15,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.impl.ProjectImpl
 import com.intellij.serviceContainer.ComponentManagerImpl
-import com.intellij.testFramework.junit5.TestApplication
+import com.intellij.testFramework.common.cleanApplicationState
+import com.intellij.testFramework.common.initTestApplication
 import com.intellij.testFramework.replaceService
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.LogMessageBuilder
@@ -39,7 +40,6 @@ import kotlinx.coroutines.test.TestScope
  *
  * @see com.mongodb.jbplugin.observability.LogMessageTest
  */
-@TestApplication
 @ExtendWith(IntegrationTestExtension::class)
 annotation class IntegrationTest
 
@@ -56,6 +56,8 @@ private class IntegrationTestExtension :
     private lateinit var testScope: TestScope
 
     override fun beforeTestExecution(context: ExtensionContext?) {
+        initTestApplication()
+
         application = ApplicationManager.getApplication() as ApplicationEx
         project =
             ProjectImpl(
@@ -73,6 +75,8 @@ private class IntegrationTestExtension :
         application.invokeAndWait({
             ProjectManager.getInstance().closeAndDispose(project)
         }, ModalityState.defaultModalityState())
+
+        ApplicationManager.getApplication().cleanApplicationState()
     }
 
     override fun supportsParameter(

@@ -128,7 +128,14 @@ class EditorToolbarDecorator(
 
     private fun isEditingJavaFileWithMongoDbRelatedCode(): Boolean {
         val project = editor.project ?: return false
-        val psiFile = PsiManager.getInstance(project).findFile(editor.virtualFile) ?: return false
+        val psiFileResult = runCatching { PsiManager.getInstance(project).findFile(editor.virtualFile) }
+
+        if (psiFileResult.isFailure) {
+            return false
+        }
+
+        val psiFile = psiFileResult.getOrThrow()!!
+
         if (psiFile.language != JavaLanguage.INSTANCE) {
             return false
         }

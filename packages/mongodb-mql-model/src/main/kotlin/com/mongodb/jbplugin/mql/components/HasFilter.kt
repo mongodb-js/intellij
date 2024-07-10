@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.mql.components
 
+import com.mongodb.jbplugin.mql.Component
 import com.mongodb.jbplugin.mql.Node
 
 /**
@@ -8,4 +9,4 @@ import com.mongodb.jbplugin.mql.Node
  */
 data class HasFilter<S>(
     val filter: Node<S>,
-)
+) : Component

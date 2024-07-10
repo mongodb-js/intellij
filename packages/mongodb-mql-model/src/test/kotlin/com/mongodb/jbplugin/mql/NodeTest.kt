@@ -1,9 +1,10 @@
 package com.mongodb.jbplugin.mql
 
-import com.mongodb.jbplugin.mql.components.HasFieldReference
-import com.mongodb.jbplugin.mql.components.Named
+import com.mongodb.jbplugin.mql.components.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 
 class NodeTest {
     @Test
@@ -27,9 +28,14 @@ class NodeTest {
         val node =
             Node<Unit?>(
                 null,
-                listOf(HasFieldReference(HasFieldReference.Known("field1")), HasFieldReference(HasFieldReference.Known(
-"field2"
-))),
+                listOf(
+                    HasFieldReference(HasFieldReference.Known("field1")),
+                    HasFieldReference(
+                        HasFieldReference.Known(
+                            "field2",
+                        ),
+                    ),
+                ),
             )
         val fieldReferences = node.components<HasFieldReference>()
 
@@ -59,5 +65,43 @@ class NodeTest {
         val hasNamedComponent = node.hasComponent<Named>()
 
         assertFalse(hasNamedComponent)
+    }
+
+    @MethodSource("validComponents")
+    @ParameterizedTest
+    fun `does support the following component`(
+        component: Component,
+        componentClass: Class<Component>,
+    ) {
+        val node =
+            Node<Unit?>(
+                null,
+                listOf(
+                    component,
+                ),
+            )
+
+        assertNotNull(node.component(componentClass))
+    }
+
+    companion object {
+        @JvmStatic
+        fun validComponents(): Array<Array<Any>> =
+            arrayOf(
+                arrayOf(HasChildren<Unit?>(emptyList()), HasChildren::class.java),
+                arrayOf(HasCollectionReference(HasCollectionReference.Unknown), HasCollectionReference::class.java),
+                arrayOf(HasCollectionReference(HasCollectionReference.Known(Namespace("db", "coll"))),
+ HasCollectionReference::class.java),
+                arrayOf(HasCollectionReference(HasCollectionReference.OnlyCollection("coll")),
+ HasCollectionReference::class.java),
+                arrayOf(HasFieldReference(HasFieldReference.Unknown), HasFieldReference::class.java),
+                arrayOf(HasFieldReference(HasFieldReference.Known("abc")), HasFieldReference::class.java),
+                arrayOf(HasFilter<Unit?>(Node(null, emptyList())), HasFilter::class.java),
+                arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
+                arrayOf(HasValueReference(HasValueReference.Constant(123, "int")), HasValueReference::class.java),
+                arrayOf(HasValueReference(HasValueReference.Runtime("int")), HasValueReference::class.java),
+                arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
+                arrayOf(Named("abc"), Named::class.java),
+            )
     }
 }

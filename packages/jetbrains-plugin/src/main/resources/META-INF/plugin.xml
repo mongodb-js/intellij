@@ -22,6 +22,14 @@
                            bundle="messages.TelemetryBundle"
                            key="notification.group.name"
                            />
+        <codeInsight.declarativeInlayProvider
+                group="com.mongodb.jbplugin"
+                implementationClass="com.mongodb.jbplugin.inlays.JavaDriverQueryNamespaceInlay"
+                isEnabledByDefault="true"
+                language="JAVA"
+                nameKey="inlay.namespace.name"
+                bundle="messages.InspectionsAndInlaysBundle"
+                providerId="com.mongodb.jbplugin#JAVA" />
     </extensions>
     <applicationListeners>
     </applicationListeners>

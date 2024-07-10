@@ -37,6 +37,8 @@ data class Node<S>(
 ) {
     inline fun <reified C : Component> component(): C? = components.firstOrNull { it is C } as C?
 
+    fun <C : Component> component(withClass: Class<C>): C? = components.firstOrNull { withClass.isInstance(it) } as C?
+
     inline fun <reified C : Component> components(): List<C> = components.filterIsInstance<C>()
 
     inline fun <reified C : Component> hasComponent(): Boolean = component<C>() != null
