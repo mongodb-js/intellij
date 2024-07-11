@@ -314,6 +314,14 @@ fun PsiType.toBsonType(): BsonType {
         return BsonInt32
     } else if (this.equalsToText("long") || this.equalsToText("Long")) {
         return BsonInt64
+    } else if (this.equalsToText("float") || this.equalsToText("Float")) {
+        return BsonDouble
+    } else if (this.equalsToText("double") || this.equalsToText("Double")) {
+        return BsonDouble
+    } else if (this.equalsToText("CharSequence") || this.equalsToText("String")) {
+        return BsonAnyOf(BsonString, BsonNull)
+    } else if (this.equalsToText("Date") || this.equalsToText("LocalDate") || this.equalsToText("LocalDateTime")) {
+        return BsonAnyOf(BsonDate, BsonNull)
     } else if (this.equalsToText("BigInteger")) {
         return BsonAnyOf(BsonInt64, BsonNull)
     } else if (this.equalsToText("BigDecimal")) {
