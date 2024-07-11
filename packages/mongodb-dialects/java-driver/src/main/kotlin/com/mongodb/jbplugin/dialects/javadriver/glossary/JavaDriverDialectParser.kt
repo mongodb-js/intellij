@@ -23,7 +23,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         }
 
         if ( // if it's any driver class, check inner calls
-            sourceMethod.containingClass?.isMongoDbClass(source.project) == true
+            sourceMethod.containingClass?.isMongoDbClass(source.project) == true ||
+            sourceMethod.containingClass?.isMongoDbCursorClass(source.project) == true
         ) {
             val allChildrenCandidates = PsiTreeUtil.findChildrenOfType(source, PsiMethodCallExpression::class.java)
             return allChildrenCandidates.any { isCandidateForQuery(it) }
@@ -72,20 +73,20 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         } else {
             calledMethod?.let {
 // if it's another class, try to resolve the query from the method body
-val allReturns = PsiTreeUtil.findChildrenOfType(calledMethod.body, PsiReturnStatement::class.java)
-return allReturns
-.mapNotNull { it.returnValue }
-.flatMap {
-it.collectTypeUntil(PsiMethodCallExpression::class.java, PsiReturnStatement::class.java)
-}.firstNotNullOfOrNull {
-val innerQuery = parse(it)
-if (!innerQuery.hasComponent<HasChildren<PsiElement>>()) {
-null
-} else {
-innerQuery
-}
-} ?: Node(source, listOf(collectionReference))
-} ?: return Node(source, listOf(collectionReference))
+                val allReturns = PsiTreeUtil.findChildrenOfType(calledMethod.body, PsiReturnStatement::class.java)
+                return allReturns
+                    .mapNotNull { it.returnValue }
+                    .flatMap {
+                        it.collectTypeUntil(PsiMethodCallExpression::class.java, PsiReturnStatement::class.java)
+                    }.firstNotNullOfOrNull {
+                        val innerQuery = parse(it)
+                        if (!innerQuery.hasComponent<HasChildren<PsiElement>>()) {
+                            null
+                        } else {
+                            innerQuery
+                        }
+                    } ?: Node(source, listOf(collectionReference))
+            } ?: return Node(source, listOf(collectionReference))
         }
     }
 
@@ -173,6 +174,6 @@ innerQuery
 
     private fun namespaceComponent(namespace: Namespace?): HasCollectionReference =
         namespace?.let {
-HasCollectionReference(HasCollectionReference.Known(namespace))
-} ?: HasCollectionReference(HasCollectionReference.Unknown)
+            HasCollectionReference(HasCollectionReference.Known(namespace))
+        } ?: HasCollectionReference(HasCollectionReference.Unknown)
 }

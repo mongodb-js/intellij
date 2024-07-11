@@ -15,7 +15,7 @@ private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField
 object NamespaceExtractor {
     fun extractNamespace(query: PsiElement): Namespace? {
         val currentClass = query.findContainingClass()
-        val queryCollectionRef = query.findMongoDbCollectionReference() ?: return null
+        val queryCollectionRef = query.findMongoDbCollectionReference() ?: query
 
         val allMethodCallsInMethod = queryCollectionRef.collectTypeUntil(
             PsiMethodCallExpression::class.java,

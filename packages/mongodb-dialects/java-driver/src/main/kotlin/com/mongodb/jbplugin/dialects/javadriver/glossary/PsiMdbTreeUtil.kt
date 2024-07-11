@@ -151,8 +151,7 @@ fun PsiType?.isMongoDbClass(project: Project): Boolean =
     PsiTypesUtil.getPsiClass(this)?.run {
         isMongoDbCollectionClass(project) ||
             isMongoDbDatabaseClass(project) ||
-            isMongoDbClientClass(project) ||
-            isMongoDbCursorClass(project)
+            isMongoDbClientClass(project)
     } == true
 
 /**
@@ -164,20 +163,7 @@ fun PsiType?.isMongoDbClass(project: Project): Boolean =
 fun PsiClass.isMongoDbClass(project: Project): Boolean =
     isMongoDbCollectionClass(project) ||
         isMongoDbDatabaseClass(project) ||
-        isMongoDbClientClass(project) ||
-        isMongoDbCursorClass(project)
-
-/**
- * Checks if a method is calling a MongoDB driver method.
- *
- * @return
- */
-fun PsiMethod.isUsingMongoDbClasses(): Boolean =
-    PsiTreeUtil.findChildrenOfType(this, PsiMethodCallExpression::class.java).any {
-        it.methodExpression.qualifierExpression
-            ?.type
-            ?.isMongoDbClass(this.project) == true
-    }
+        isMongoDbClientClass(project)
 
 /**
  * Finds all references to the MongoDB driver in a method.
@@ -252,7 +238,10 @@ fun PsiMethodCallExpression.findMongoDbClassReference(project: Project): PsiExpr
     } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
         return methodExpression.qualifierExpression
     } else {
-        return null
+        val method = resolveMethod() ?: return null
+        return method.body
+            ?.collectTypeUntil(PsiMethodCallExpression::class.java, PsiMethod::class.java)
+            ?.firstNotNullOfOrNull { it.findMongoDbClassReference(it.project) }
     }
 }
 
@@ -273,9 +262,9 @@ fun PsiElement.findMongoDbCollectionReference(): PsiExpression? {
     } else if (this is PsiExpression) {
         if (this.type?.isMongoDbCollectionClass(project) == true) {
             return this
-        } else {
-            return parent?.findMongoDbCollectionReference()
         }
+
+        return null
     } else {
         return children.firstNotNullOfOrNull { it.findMongoDbCollectionReference() }
     }
