@@ -1,11 +1,9 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiMethodCallExpression
-import com.intellij.psi.PsiReferenceExpression
-import com.intellij.psi.PsiVariable
+import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.DialectParser
+import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
@@ -38,37 +36,57 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     override fun parse(source: PsiElement): Node<PsiElement> {
         val namespace = NamespaceExtractor.extractNamespace(source)
-        val currentCall = source as PsiMethodCallExpression? ?: return Node(source, emptyList())
+        val collectionReference = namespaceComponent(namespace)
 
-        val hasChildren =
-            if (currentCall.argumentList.expressionCount > 0) {
+        val currentCall = source as PsiMethodCallExpression? ?: return Node(source, listOf(collectionReference))
+
+        val calledMethod = currentCall.resolveMethod()
+        if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
+            val hasChildren =
+                if (currentCall.argumentList.expressionCount > 0) {
 // we have at least 1 argument in the current method call
-                val argumentAsFilters = resolveToFiltersCall(currentCall.argumentList.expressions[0])
-                argumentAsFilters?.let {
-                    val parsedQuery = parseFilterExpression(argumentAsFilters) // assume it's a Filters call
-                    parsedQuery?.let {
-                        HasChildren(
-                            listOf(
-                                parseFilterExpression(
-                                    argumentAsFilters,
-                                )!!,
-                            ),
-                        )
+                    val argumentAsFilters = resolveToFiltersCall(currentCall.argumentList.expressions[0])
+                    argumentAsFilters?.let {
+                        val parsedQuery = parseFilterExpression(argumentAsFilters) // assume it's a Filters call
+                        parsedQuery?.let {
+                            HasChildren(
+                                listOf(
+                                    parseFilterExpression(
+                                        argumentAsFilters,
+                                    )!!,
+                                ),
+                            )
+                        } ?: HasChildren(emptyList())
                     } ?: HasChildren(emptyList())
-                } ?: HasChildren(emptyList())
-            } else {
-                HasChildren(emptyList())
-            }
+                } else {
+                    HasChildren(emptyList())
+                }
 
-        return Node(
-            source,
-            listOf(
-                namespace?.let {
-                    HasCollectionReference(HasCollectionReference.Known(namespace))
-                } ?: HasCollectionReference(HasCollectionReference.Unknown),
-                hasChildren,
-            ),
-        )
+            return Node(
+                source,
+                listOf(
+                    collectionReference,
+                    hasChildren,
+                ),
+            )
+        } else {
+            calledMethod?.let {
+// if it's another class, try to resolve the query from the method body
+val allReturns = PsiTreeUtil.findChildrenOfType(calledMethod.body, PsiReturnStatement::class.java)
+return allReturns
+.mapNotNull { it.returnValue }
+.flatMap {
+it.collectTypeUntil(PsiMethodCallExpression::class.java, PsiReturnStatement::class.java)
+}.firstNotNullOfOrNull {
+val innerQuery = parse(it)
+if (!innerQuery.hasComponent<HasChildren<PsiElement>>()) {
+null
+} else {
+innerQuery
+}
+} ?: Node(source, listOf(collectionReference))
+} ?: return Node(source, listOf(collectionReference))
+        }
     }
 
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
@@ -123,22 +141,38 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         }
-
+// here we really don't know much, so just don't attempt to parse the query
         return null
     }
 
     private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
         when (element) {
-            is PsiMethodCallExpression -> return element
+            is PsiMethodCallExpression -> {
+                val method = element.resolveMethod() ?: return null
+                if (method.containingClass?.qualifiedName == "com.mongodb.client.model.Filters") {
+                    return element
+                }
+                val allReturns = PsiTreeUtil.findChildrenOfType(method.body, PsiReturnStatement::class.java)
+                return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
+                    resolveToFiltersCall(it)
+                }
+            }
             is PsiVariable -> {
                 element.initializer ?: return null
                 return resolveToFiltersCall(element.initializer!!)
             }
+
             is PsiReferenceExpression -> {
                 val referredValue = element.resolve() ?: return null
                 return resolveToFiltersCall(referredValue)
             }
+
             else -> return null
         }
     }
+
+    private fun namespaceComponent(namespace: Namespace?): HasCollectionReference =
+        namespace?.let {
+HasCollectionReference(HasCollectionReference.Known(namespace))
+} ?: HasCollectionReference(HasCollectionReference.Unknown)
 }

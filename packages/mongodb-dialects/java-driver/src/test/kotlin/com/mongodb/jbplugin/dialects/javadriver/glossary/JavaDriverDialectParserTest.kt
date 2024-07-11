@@ -340,4 +340,97 @@ public class Repository {
         )
         assertEquals(true, (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
     }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(isReleased());
+    }
+    
+    private Document isReleased() {
+        return eq("released", true);
+    }
+}
+        """,
+    )
+    fun `supports to methods in a query expression`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(
+            "released",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonAnyOf(BsonNull, BsonBoolean),
+            (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(true, (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
+        return findAllByReleaseFlag(true);
+    }
+    
+    private Document findAllByReleaseFlag(boolean released) {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(eq("released", released));
+    }
+}
+        """,
+    )
+    fun `supports to methods in a custom dsl as in mms`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(
+            "released",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonBoolean,
+            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+        )
+    }
 }
