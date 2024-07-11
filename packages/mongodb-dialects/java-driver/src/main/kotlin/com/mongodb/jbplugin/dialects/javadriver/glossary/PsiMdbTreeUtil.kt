@@ -1,5 +1,5 @@
 /**
- * Defines an a set of extension methods to extract metadata from a Psi tree.
+ * Defines a set of extension methods to extract metadata from a Psi tree.
  */
 
 package com.mongodb.jbplugin.dialects.javadriver.glossary
@@ -12,6 +12,10 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.psi.util.parentOfType
+import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonBoolean
+import com.mongodb.jbplugin.mql.BsonObjectId
+import com.mongodb.jbplugin.mql.BsonType
 
 /**
  * Helper extension function to get the containing class of any element.
@@ -109,6 +113,35 @@ fun PsiType.isMongoDbClientClass(project: Project): Boolean {
 }
 
 /**
+ * Helper function to check if a type is a MongoDB Cursor
+ *
+ * @param project
+ * @return
+ */
+fun PsiClass.isMongoDbCursorClass(project: Project): Boolean {
+    val javaFacade = JavaPsiFacade.getInstance(project)
+
+    val mdbCursorClass =
+        javaFacade.findClass(
+            "com.mongodb.client.MongoIterable",
+            GlobalSearchScope.everythingScope(project),
+        )
+
+    return this.isInheritor(mdbCursorClass!!, false) || this == mdbCursorClass
+}
+
+/**
+ * Helper function to check if a type is a MongoDB Cursor
+ *
+ * @param project
+ * @return
+ */
+fun PsiType.isMongoDbCursorClass(project: Project): Boolean {
+    val thisClass = PsiTypesUtil.getPsiClass(this)
+    return thisClass?.isMongoDbCursorClass(project) == true
+}
+
+/**
  * Helper function to check if a type is a MongoDB Class
  *
  * @param project
@@ -118,7 +151,8 @@ fun PsiType?.isMongoDbClass(project: Project): Boolean =
     PsiTypesUtil.getPsiClass(this)?.run {
         isMongoDbCollectionClass(project) ||
             isMongoDbDatabaseClass(project) ||
-            isMongoDbClientClass(project)
+            isMongoDbClientClass(project) ||
+            isMongoDbCursorClass(project)
     } == true
 
 /**
@@ -130,7 +164,8 @@ fun PsiType?.isMongoDbClass(project: Project): Boolean =
 fun PsiClass.isMongoDbClass(project: Project): Boolean =
     isMongoDbCollectionClass(project) ||
         isMongoDbDatabaseClass(project) ||
-        isMongoDbClientClass(project)
+        isMongoDbClientClass(project) ||
+        isMongoDbCursorClass(project)
 
 /**
  * Checks if a method is calling a MongoDB driver method.
@@ -171,7 +206,7 @@ fun PsiMethodCallExpression.findCurrentReferenceToMongoDbObject(): PsiReference?
         if (resolution is PsiField) {
             return if (resolution.type.isMongoDbClass(project)) resolution.reference else null
         } else {
-            return (methodExpression.resolve() as PsiMethod?)?.findAllReferencesToMongoDbObjects()?.first()
+            return (methodExpression.resolve() as PsiMethod?)?.findAllReferencesToMongoDbObjects()?.firstOrNull()
         }
     } else {
         if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
@@ -223,18 +258,26 @@ fun PsiMethodCallExpression.findMongoDbClassReference(project: Project): PsiExpr
 
 /**
  * Returns the reference to a MongoDB driver collection.
- *
- * @param project
  */
-fun PsiMethodCallExpression.findMongoDbCollectionReference(project: Project): PsiExpression? {
-    if (methodExpression.type?.isMongoDbCollectionClass(project) == true) {
-        return methodExpression
-    } else if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
-        return (methodExpression.qualifierExpression as PsiMethodCallExpression).findMongoDbCollectionReference(project)
-    } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
-        return methodExpression.qualifierExpression
+fun PsiElement.findMongoDbCollectionReference(): PsiExpression? {
+    if (this is PsiMethodCallExpression) {
+        if (methodExpression.type?.isMongoDbCollectionClass(project) == true) {
+            return methodExpression
+        } else if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
+            return (methodExpression.qualifierExpression as PsiMethodCallExpression).findMongoDbCollectionReference()
+        } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
+            return methodExpression.qualifierExpression
+        } else {
+            return methodExpression.children.firstNotNullOfOrNull { it.findMongoDbCollectionReference() }
+        }
+    } else if (this is PsiExpression) {
+        if (this.type?.isMongoDbCollectionClass(project) == true) {
+            return this
+        } else {
+            return parent?.findMongoDbCollectionReference()
+        }
     } else {
-        return null
+        return children.firstNotNullOfOrNull { it.findMongoDbCollectionReference() }
     }
 }
 
@@ -242,18 +285,44 @@ fun PsiMethodCallExpression.findMongoDbCollectionReference(project: Project): Ps
  * Resolves to the value of the expression if it can be known at compile time
  * or null if it can only be known at runtime.
  */
-fun PsiElement.tryToResolveAsConstantString(): String? {
+fun PsiElement.tryToResolveAsConstant(): Any? {
     if (this is PsiReferenceExpression) {
         val varRef = this.resolve()!!
-        return varRef.tryToResolveAsConstantString()
+        return varRef.tryToResolveAsConstant()
     } else if (this is PsiLocalVariable) {
-        return this.initializer?.tryToResolveAsConstantString()
+        return this.initializer?.tryToResolveAsConstant()
     } else if (this is PsiLiteralValue) {
         val facade = JavaPsiFacade.getInstance(this.project)
-        return facade.constantEvaluationHelper.computeConstantExpression(this) as? String
+        return facade.constantEvaluationHelper.computeConstantExpression(this)
+    } else if (this is PsiLiteralExpression) {
+        val facade = JavaPsiFacade.getInstance(this.project)
+        return facade.constantEvaluationHelper.computeConstantExpression(this)
     } else if (this is PsiField && this.hasModifier(JvmModifier.FINAL)) {
-        return this.initializer?.tryToResolveAsConstantString()
+        return this.initializer?.tryToResolveAsConstant()
     }
 
     return null
+}
+
+/**
+ * Resolves to the value of the expression to a string
+ * if it's known at compile time.
+ *
+ * @return
+ */
+fun PsiElement.tryToResolveAsConstantString(): String? = tryToResolveAsConstant()?.toString()
+
+/**
+ * Maps a PsiType to its BSON counterpart.
+ *
+ * @return
+ */
+fun PsiType.toBsonType(): BsonType {
+    if (this.equalsToText("org.bson.types.ObjectId")) {
+        return BsonObjectId
+    } else if (this.equalsToText("boolean") || this.equalsToText("Boolean")) {
+        return BsonBoolean
+    }
+
+    return BsonAny
 }

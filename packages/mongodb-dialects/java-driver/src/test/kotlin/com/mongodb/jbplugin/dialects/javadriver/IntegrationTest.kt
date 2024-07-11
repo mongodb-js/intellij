@@ -7,7 +7,6 @@ package com.mongodb.jbplugin.dialects.javadriver
 
 import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -21,6 +20,8 @@ import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.mongodb.client.MongoClient
+import com.mongodb.client.model.Filters
+import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
@@ -59,6 +60,7 @@ internal class IntegrationTestExtension :
     ParameterResolver {
     private val namespace = ExtensionContext.Namespace.create(IntegrationTestExtension::class.java)
     private val testFixtureKey = "TESTFIXTURE"
+    private val testPathKey = "TESTPATH"
 
     override fun beforeAll(context: ExtensionContext) {
         val projectFixture =
@@ -78,31 +80,45 @@ internal class IntegrationTestExtension :
         testFixture.setUp()
 
         ApplicationManager.getApplication().invokeAndWait {
-            if (!JavaLibraryUtil.hasLibraryJar(testFixture.module, "org.mongodb:mongodb-driver-sync:5.1.1")) {
+            val module = testFixture.module
+
+            if (!JavaLibraryUtil.hasLibraryJar(module, "org.mongodb:mongodb-driver-sync:5.1.0")) {
                 runCatching {
                     PsiTestUtil.addProjectLibrary(
-                        testFixture.module,
-                        "mongodb-driver-sync",
-                        listOf(
-                            Path(
-                                pathToJavaDriver(),
-                            ).toAbsolutePath().toString(),
-                        ),
+                        module,
+                        "org.mongodb:mongodb-driver-sync:5.1.0",
+                        listOf(pathToClassJarFile(MongoClient::class.java)),
+                    )
+
+                    PsiTestUtil.addProjectLibrary(
+                        module,
+                        "org.mongodb:mongodb-driver-core:5.1.0",
+                        listOf(pathToClassJarFile(Filters::class.java)),
+                    )
+
+                    PsiTestUtil.addProjectLibrary(
+                        module,
+                        "org.mongodb:bson:5.1.0",
+                        listOf(pathToClassJarFile(ObjectId::class.java)),
                     )
                 }
             }
         }
 
         PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
+        val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
+        PsiTestUtil.addSourceRoot(testFixture.module, tmpRootDir)
+        context.getStore(namespace).put(testPathKey, tmpRootDir.path)
     }
 
     override fun beforeEach(context: ExtensionContext) {
         val fixture = context.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
+        val modulePath = context.getStore(namespace).get(testPathKey).toString()
 
         ApplicationManager.getApplication().invokeAndWait {
             val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
-            val path = ModuleUtilCore.getModuleDirPath(fixture.module)
-            val fileName = Path(path, "src", "main", "java", parsingTest.fileName).absolutePathString()
+            val fileName = Path(modulePath, "src", "main", "java", parsingTest.fileName).absolutePathString()
+
             fixture.configureByText(
                 fileName,
                 parsingTest.value,
@@ -119,7 +135,8 @@ internal class IntegrationTestExtension :
         val finished = AtomicBoolean(false)
 
         val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
-        val dumbService = fixture.project.getService(DumbService::class.java)
+        val dumbService = DumbService.getInstance(fixture.project)
+
         dumbService.runWhenSmart {
             val result =
                 runCatching {
@@ -140,7 +157,6 @@ internal class IntegrationTestExtension :
         }
 
         throwable.get()?.let {
-            System.err.println(it.message)
             it.printStackTrace(System.err)
             throw it
         }
@@ -178,9 +194,9 @@ internal class IntegrationTestExtension :
         }
     }
 
-    private fun pathToJavaDriver(): String {
+    private fun pathToClassJarFile(javaClass: Class<*>): String {
         val classResource: URL =
-            MongoClient::class.java.getResource(MongoClient::class.java.getSimpleName() + ".class")
+            javaClass.getResource(javaClass.getSimpleName() + ".class")
                 ?: throw RuntimeException("class resource is null")
         val url: String = classResource.toString()
         if (url.startsWith("jar:file:")) {
