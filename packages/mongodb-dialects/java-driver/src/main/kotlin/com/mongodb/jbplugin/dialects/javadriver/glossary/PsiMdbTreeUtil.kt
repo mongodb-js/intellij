@@ -12,10 +12,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.psi.util.parentOfType
-import com.mongodb.jbplugin.mql.BsonAny
-import com.mongodb.jbplugin.mql.BsonBoolean
-import com.mongodb.jbplugin.mql.BsonObjectId
-import com.mongodb.jbplugin.mql.BsonType
+import com.mongodb.jbplugin.mql.*
 
 /**
  * Helper extension function to get the containing class of any element.
@@ -308,9 +305,19 @@ fun PsiElement.tryToResolveAsConstantString(): String? = tryToResolveAsConstant(
  */
 fun PsiType.toBsonType(): BsonType {
     if (this.equalsToText("org.bson.types.ObjectId")) {
-        return BsonObjectId
+        return BsonAnyOf(BsonObjectId, BsonNull)
     } else if (this.equalsToText("boolean") || this.equalsToText("Boolean")) {
         return BsonBoolean
+    } else if (this.equalsToText("short") || this.equalsToText("Short")) {
+        return BsonInt32
+    } else if (this.equalsToText("int") || this.equalsToText("Integer")) {
+        return BsonInt32
+    } else if (this.equalsToText("long") || this.equalsToText("Long")) {
+        return BsonInt64
+    } else if (this.equalsToText("BigInteger")) {
+        return BsonAnyOf(BsonInt64, BsonNull)
+    } else if (this.equalsToText("BigDecimal")) {
+        return BsonAnyOf(BsonDecimal128, BsonNull)
     }
 
     return BsonAny
