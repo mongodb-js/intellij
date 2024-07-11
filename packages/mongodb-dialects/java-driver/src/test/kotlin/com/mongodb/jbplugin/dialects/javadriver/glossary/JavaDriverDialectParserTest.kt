@@ -194,7 +194,8 @@ public final class Repository {
         val eq = hasChildren.children[0]
         assertEquals("eq", eq.component<Named>()!!.name)
         assertEquals("_id", (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName)
-        assertEquals(BsonObjectId, (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type)
+        assertEquals(BsonAnyOf(BsonObjectId, BsonNull),
+ (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type)
     }
 
     @ParsingTest(
