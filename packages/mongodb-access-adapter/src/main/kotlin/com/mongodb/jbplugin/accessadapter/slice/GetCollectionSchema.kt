@@ -59,6 +59,7 @@ data class GetCollectionSchema(
                                 }
                             },
                     )
+
                 else -> value.javaClass.toBsonType()
             }
 
@@ -68,16 +69,17 @@ data class GetCollectionSchema(
         ): BsonType {
             if (first is BsonObject && second is BsonObject) {
                 val mergedMap =
-                    first.schema.entries.union(second.schema.entries)
-.fold(mutableMapOf<String, BsonType>()) { acc, entry ->
-                        acc.compute(entry.key) { _, current ->
-                            current?.let {
-mergeSchemaTogether(current, entry.value)
-} ?: entry.value
-                        }
+                    first.schema.entries
+                        .union(second.schema.entries)
+                        .fold(mutableMapOf<String, BsonType>()) { acc, entry ->
+                            acc.compute(entry.key) { _, current ->
+                                current?.let {
+                                    mergeSchemaTogether(current, entry.value)
+                                } ?: entry.value
+                            }
 
-                        acc
-                    }
+                            acc
+                        }
 
                 return BsonObject(mergedMap)
             }
@@ -109,7 +111,15 @@ mergeSchemaTogether(current, entry.value)
             when (schema) {
                 is BsonArray -> return BsonArray(flattenAnyOfReferences(schema.schema))
                 is BsonObject ->
- return BsonObject(schema.schema.entries.associate { Pair(it.key, flattenAnyOfReferences(it.value)) })
+                    return BsonObject(
+                        schema.schema.entries.associate {
+                            Pair(
+                                it.key,
+                                flattenAnyOfReferences(it.value),
+                            )
+                        },
+                    )
+
                 is BsonAnyOf -> {
                     val flattenAnyOf =
                         schema.types.flatMap {
@@ -123,10 +133,11 @@ mergeSchemaTogether(current, entry.value)
 
                     return BsonAnyOf(flattenAnyOf.toSet())
                 }
-            else -> {
+
+                else -> {
 // this is a generated else block
-}
-}
+                }
+            }
             return schema
         }
     }
