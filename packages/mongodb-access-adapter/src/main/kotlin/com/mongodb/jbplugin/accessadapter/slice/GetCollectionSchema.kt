@@ -107,11 +107,11 @@ data class GetCollectionSchema(
             return BsonAnyOf(setOf(first, second))
         }
 
-        private fun flattenAnyOfReferences(schema: BsonType): BsonType {
+        private fun flattenAnyOfReferences(schema: BsonType): BsonType =
             when (schema) {
-                is BsonArray -> return BsonArray(flattenAnyOfReferences(schema.schema))
+                is BsonArray -> BsonArray(flattenAnyOfReferences(schema.schema))
                 is BsonObject ->
-                    return BsonObject(
+                    BsonObject(
                         schema.schema.entries.associate {
                             Pair(
                                 it.key,
@@ -131,14 +131,10 @@ data class GetCollectionSchema(
                             }
                         }
 
-                    return BsonAnyOf(flattenAnyOf.toSet())
+                    BsonAnyOf(flattenAnyOf.toSet())
                 }
 
-                else -> {
-// this is a generated else block
-                }
+                else -> schema
             }
-            return schema
-        }
     }
 }
