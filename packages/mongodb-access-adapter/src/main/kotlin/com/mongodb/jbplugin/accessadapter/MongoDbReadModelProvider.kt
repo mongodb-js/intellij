@@ -13,6 +13,9 @@ package com.mongodb.jbplugin.accessadapter
  * @param S
  */
 interface Slice<S : Any> {
+    val id: String
+        get() = this.javaClass.simpleName
+
     suspend fun queryUsingDriver(from: MongoDbDriver): S
 }
 
@@ -24,5 +27,8 @@ interface Slice<S : Any> {
  * @param D
  */
 interface MongoDbReadModelProvider<D> {
-    fun <T : Any> slice(dataSource: D, slice: Slice<T>): T
+    fun <T : Any> slice(
+        dataSource: D,
+        slice: Slice<T>,
+    ): T
 }

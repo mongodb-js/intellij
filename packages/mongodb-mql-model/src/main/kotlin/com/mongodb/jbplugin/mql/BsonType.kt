@@ -96,29 +96,36 @@ data object BsonAny : BsonType
  * @property types
  */
 data class BsonAnyOf(
-    val types: List<BsonType>,
+    val types: Set<BsonType>,
 ) : BsonType {
-    constructor(vararg types: BsonType) : this(types.toList())
+    constructor(vararg types: BsonType) : this(types.toSet())
 }
 
 /**
  * Returns the inferred BSON type of the current Java class, considering it's nullability.
  */
-fun Class<*>.toBsonType(): BsonType {
+fun Class<*>?.toBsonType(): BsonType {
     return when (this) {
+        null -> BsonNull
+        Float::class.javaPrimitiveType -> BsonDouble
+        Float::class.javaObjectType -> BsonAnyOf(BsonNull, BsonDouble)
         Double::class.javaPrimitiveType -> BsonDouble
         Double::class.javaObjectType -> BsonAnyOf(BsonNull, BsonDouble)
         Boolean::class.javaPrimitiveType -> BsonBoolean
         Boolean::class.javaObjectType -> BsonAnyOf(BsonNull, BsonBoolean)
+        Short::class.javaPrimitiveType -> BsonInt32
+        Short::class.javaObjectType -> BsonAnyOf(BsonNull, BsonInt32)
         Int::class.javaPrimitiveType -> BsonInt32
         Int::class.javaObjectType -> BsonAnyOf(BsonNull, BsonInt32)
+        Long::class.javaPrimitiveType -> BsonInt64
+        Long::class.javaObjectType -> BsonAnyOf(BsonNull, BsonInt64)
         CharSequence::class.java, String::class.java -> BsonAnyOf(BsonNull, BsonString)
         Date::class.java, Instant::class.java, LocalDate::class.java, LocalDateTime::class.java ->
             BsonAnyOf(BsonNull, BsonDate)
         BigInteger::class.java -> BsonAnyOf(BsonNull, BsonInt64)
         BigDecimal::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
         else ->
-            if (Collection::class.java.isAssignableFrom(this)) {
+            if (Collection::class.java.isAssignableFrom(this) || Array::class.java.isAssignableFrom(this)) {
                 return BsonAnyOf(BsonNull, BsonArray(BsonAny)) // types are lost at runtime
             } else {
                 val fields =
