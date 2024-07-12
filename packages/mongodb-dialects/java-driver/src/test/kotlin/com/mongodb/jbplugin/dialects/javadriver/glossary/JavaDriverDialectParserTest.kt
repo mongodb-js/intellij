@@ -194,8 +194,10 @@ public final class Repository {
         val eq = hasChildren.children[0]
         assertEquals("eq", eq.component<Named>()!!.name)
         assertEquals("_id", (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName)
-        assertEquals(BsonAnyOf(BsonObjectId, BsonNull),
- (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type)
+        assertEquals(
+            BsonAnyOf(BsonObjectId, BsonNull),
+            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+        )
     }
 
     @ParsingTest(
@@ -433,5 +435,69 @@ public class Repository {
             BsonBoolean,
             (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
         )
+    }
+
+    @Suppress("TOO_LONG_FUNCTION")
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private static final String RELEASED = "released";
+    private static final String HIDDEN = "hidden";
+    
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
+        var isReleased = eq(RELEASED, true);
+        var isNotHidden = eq(HIDDEN, false);
+        
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(and(isReleased, isNotHidden));
+    }
+}
+        """,
+    )
+    fun `supports vararg operators with references to fields in variables`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val and = hasChildren.children[0]
+        assertEquals("and", and.component<Named>()!!.name)
+        val andChildren = and.component<HasChildren<Unit?>>()!!
+
+        val firstEq = andChildren.children[0]
+        assertEquals(
+            "released",
+            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonAnyOf(BsonNull, BsonBoolean),
+            (firstEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(true, (firstEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+
+        val secondEq = andChildren.children[1]
+        assertEquals(
+            "hidden",
+            (secondEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonAnyOf(BsonNull, BsonBoolean),
+            (secondEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(false, (secondEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
     }
 }

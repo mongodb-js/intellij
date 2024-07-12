@@ -100,7 +100,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     Named(method.name),
                     HasChildren(
                         filter.argumentList.expressions
-                            .filterIsInstance<PsiMethodCallExpression>()
+                            .mapNotNull { resolveToFiltersCall(it) }
                             .mapNotNull { parseFilterExpression(it) },
                     ),
                 ),
