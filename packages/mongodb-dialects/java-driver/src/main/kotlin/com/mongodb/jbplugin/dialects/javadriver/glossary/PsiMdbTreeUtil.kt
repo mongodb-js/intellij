@@ -306,25 +306,28 @@ fun PsiElement.tryToResolveAsConstantString(): String? = tryToResolveAsConstant(
 fun PsiType.toBsonType(): BsonType {
     if (this.equalsToText("org.bson.types.ObjectId")) {
         return BsonAnyOf(BsonObjectId, BsonNull)
-    } else if (this.equalsToText("boolean") || this.equalsToText("Boolean")) {
+    } else if (this.equalsToText("boolean") || this.equalsToText("java.lang.Boolean")) {
         return BsonBoolean
-    } else if (this.equalsToText("short") || this.equalsToText("Short")) {
+    } else if (this.equalsToText("short") || this.equalsToText("java.lang.Short")) {
         return BsonInt32
-    } else if (this.equalsToText("int") || this.equalsToText("Integer")) {
+    } else if (this.equalsToText("int") || this.equalsToText("java.lang.Integer")) {
         return BsonInt32
-    } else if (this.equalsToText("long") || this.equalsToText("Long")) {
+    } else if (this.equalsToText("long") || this.equalsToText("java.lang.Long")) {
         return BsonInt64
-    } else if (this.equalsToText("float") || this.equalsToText("Float")) {
+    } else if (this.equalsToText("float") || this.equalsToText("java.lang.Float")) {
         return BsonDouble
-    } else if (this.equalsToText("double") || this.equalsToText("Double")) {
+    } else if (this.equalsToText("double") || this.equalsToText("java.lang.Double")) {
         return BsonDouble
-    } else if (this.equalsToText("CharSequence") || this.equalsToText("String")) {
+    } else if (this.equalsToText("java.lang.CharSequence") || this.equalsToText("java.lang.String")) {
         return BsonAnyOf(BsonString, BsonNull)
-    } else if (this.equalsToText("Date") || this.equalsToText("LocalDate") || this.equalsToText("LocalDateTime")) {
+    } else if (this.equalsToText("java.util.Date") ||
+        this.equalsToText("java.time.LocalDate") ||
+        this.equalsToText("java.time.LocalDateTime")
+    ) {
         return BsonAnyOf(BsonDate, BsonNull)
-    } else if (this.equalsToText("BigInteger")) {
+    } else if (this.equalsToText("java.math.BigInteger")) {
         return BsonAnyOf(BsonInt64, BsonNull)
-    } else if (this.equalsToText("BigDecimal")) {
+    } else if (this.equalsToText("java.math.BigDecimal")) {
         return BsonAnyOf(BsonDecimal128, BsonNull)
     }
 

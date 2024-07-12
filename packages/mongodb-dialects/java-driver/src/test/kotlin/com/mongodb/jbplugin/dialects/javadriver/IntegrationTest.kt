@@ -116,7 +116,8 @@ internal class IntegrationTestExtension :
         val modulePath = context.getStore(namespace).get(testPathKey).toString()
 
         ApplicationManager.getApplication().invokeAndWait {
-            val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
+            val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java) ?: return@invokeAndWait
+
             val fileName = Path(modulePath, "src", "main", "java", parsingTest.fileName).absolutePathString()
 
             fixture.configureByText(
