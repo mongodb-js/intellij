@@ -27,6 +27,7 @@ class PsiMdbTreeUtilTest {
             assertEquals(expected, psiType.toBsonType())
         }
     }
+
     companion object {
         @JvmStatic
         fun psiTypeToBsonType(): Array<Array<Any>> =
@@ -77,6 +78,7 @@ class PsiMdbTreeUtilTest {
     }
 }
 
-private fun Project.findClass(name: String): PsiType = JavaPsiFacade.getElementFactory(this).createTypeByFQClassName(
-name
-)
+private fun Project.findClass(name: String): PsiType =
+    JavaPsiFacade.getElementFactory(this).createTypeByFQClassName(
+        name,
+    )
