@@ -41,15 +41,17 @@ data class GetCollectionSchema(
             )
         }
 
-        private fun recursivelyBuildSchema(value: Any): BsonType =
+        private fun recursivelyBuildSchema(value: Any?): BsonType =
             when (value) {
+                null -> BsonNull
                 is Document -> BsonObject(value.map { it.key to recursivelyBuildSchema(it.value) }.toMap())
+                is Map<*, *> -> BsonObject(value.map { it.key.toString() to recursivelyBuildSchema(it.value) }.toMap())
                 is Collection<*> -> recursivelyBuildSchema(value.toTypedArray())
                 is Array<*> ->
                     BsonArray(
                         value
                             .map {
-                                it?.javaClass?.toBsonType() ?: BsonNull
+                                it?.javaClass?.toBsonType(it) ?: BsonNull
                             }.toSet()
                             .let {
                                 if (it.size == 1) {

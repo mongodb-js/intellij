@@ -103,8 +103,10 @@ data class BsonAnyOf(
 
 /**
  * Returns the inferred BSON type of the current Java class, considering it's nullability.
+ *
+ * @param value
  */
-fun Class<*>?.toBsonType(): BsonType {
+fun <T> Class<T>?.toBsonType(value: T? = null): BsonType {
     return when (this) {
         null -> BsonNull
         Float::class.javaPrimitiveType -> BsonDouble
@@ -127,6 +129,14 @@ fun Class<*>?.toBsonType(): BsonType {
         else ->
             if (Collection::class.java.isAssignableFrom(this) || Array::class.java.isAssignableFrom(this)) {
                 return BsonAnyOf(BsonNull, BsonArray(BsonAny)) // types are lost at runtime
+            } else if (Map::class.java.isAssignableFrom(this)) {
+                value?.let {
+                    val fields =
+                      Map::class.java.cast(value).entries.associate {
+                        it.key.toString() to it.value?.javaClass.toBsonType(it.value)
+                      }
+return BsonAnyOf(BsonNull, BsonObject(fields))
+} ?: return BsonAnyOf(BsonNull, BsonAny)
             } else {
                 val fields =
                     this.declaredFields.associate {
