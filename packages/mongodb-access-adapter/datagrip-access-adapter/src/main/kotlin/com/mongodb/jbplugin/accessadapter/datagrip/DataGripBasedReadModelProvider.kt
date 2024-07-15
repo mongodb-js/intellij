@@ -49,7 +49,7 @@ class DataGripBasedReadModelProvider(
         slice: Slice<T>,
     ): T =
         cachedValues
-            .computeIfAbsent(slice.javaClass.canonicalName, fromSlice(dataSource, slice))
+            .computeIfAbsent(slice.id, fromSlice(dataSource, slice))
             .value as T
 
     private fun <T : Any> fromSlice(

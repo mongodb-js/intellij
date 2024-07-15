@@ -7,7 +7,7 @@ import java.lang.Integer.parseInt
  * @property namespace
  * @property schema
  */
-class CollectionSchema(
+data class CollectionSchema(
     val namespace: Namespace,
     val schema: BsonObject,
 ) {
@@ -32,7 +32,8 @@ class CollectionSchema(
         val listOfOptions = mutableListOf<BsonType>()
 
         when (root) {
-            is BsonArray -> if (isCurrentNumber) {
+            is BsonArray ->
+                if (isCurrentNumber) {
                     val childType = recursivelyGetType(jsonPath.subList(1, jsonPath.size), root.schema)
                     listOfOptions.add(childType)
                 } else {
@@ -42,11 +43,12 @@ class CollectionSchema(
                 val objectType = root.schema[jsonPath[0]]
                 listOfOptions.add(
                     objectType?.let {
-recursivelyGetType(jsonPath.subList(1, jsonPath.size), objectType)
-} ?: BsonNull,
+                        recursivelyGetType(jsonPath.subList(1, jsonPath.size), objectType)
+                    } ?: BsonNull,
                 )
             }
-            is BsonAnyOf -> listOfOptions.addAll(
+            is BsonAnyOf ->
+                listOfOptions.addAll(
                     root.types.map { recursivelyGetType(jsonPath, it) },
                 )
             else -> listOfOptions.add(BsonNull)
@@ -55,7 +57,7 @@ recursivelyGetType(jsonPath.subList(1, jsonPath.size), objectType)
         return if (listOfOptions.size == 1) {
             listOfOptions.first()
         } else {
-            BsonAnyOf(listOfOptions)
+            BsonAnyOf(listOfOptions.toSet())
         }
     }
 }
