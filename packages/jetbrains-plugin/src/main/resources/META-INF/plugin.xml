@@ -30,6 +30,17 @@
                 nameKey="inlay.namespace.name"
                 bundle="messages.InspectionsAndInlaysBundle"
                 providerId="com.mongodb.jbplugin#JAVA" />
+        <localInspection language="JAVA"
+                         bundle="messages.InspectionsAndInlaysBundle"
+                         key="inspection.field.checking"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsAndInlaysBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.mongodb.jbplugin.inspections.bridge.FieldExistenceCheckInspectionBridge"/>
+        <database.virtualFileDataSourceProvider
+            implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
     </extensions>
     <applicationListeners>
     </applicationListeners>

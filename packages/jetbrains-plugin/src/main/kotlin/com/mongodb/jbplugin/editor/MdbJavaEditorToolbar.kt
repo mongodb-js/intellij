@@ -1,19 +1,29 @@
 package com.mongodb.jbplugin.editor
 
 import com.intellij.database.dataSource.LocalDataSource
+import com.intellij.database.psi.DataSourceManager
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.asSequence
 import com.intellij.sql.indexOf
 import com.intellij.ui.AnimatedIcon.ANIMATION_IN_RENDERER_ALLOWED
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
+import com.jetbrains.rd.util.AtomicReference
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
+import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.i18n.Icons.scaledToText
 import com.mongodb.jbplugin.i18n.MdbToolbarMessages
 import java.awt.BorderLayout
 import java.awt.event.ItemEvent.DESELECTED
 import javax.swing.DefaultComboBoxModel
+import javax.swing.JComponent
+import javax.swing.JDialog
+import javax.swing.JPanel
 import javax.swing.SwingConstants
 
 typealias DataSourceSelectedListener = (LocalDataSource) -> Unit
@@ -124,4 +134,52 @@ class MdbJavaEditorToolbar(
             connectionComboBox.selectedItem = null
         }
     }
+
+    companion object {
+        fun showModalForSelection(editor: Editor) {
+            val project = editor.project ?: return
+
+            ApplicationManager.getApplication().invokeLater {
+                val selectedDataSource = AtomicReference<LocalDataSource?>(null)
+
+                val toolbar =
+                    MdbJavaEditorToolbar({
+                        selectedDataSource.getAndSet(it)
+                    }, {
+                        selectedDataSource.getAndSet(null)
+                    })
+
+                val localDataSourceManager =
+                    DataSourceManager.byDataSource(project, LocalDataSource::class.java)
+                        ?: return@invokeLater
+                toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+
+                val dialog = SelectConnectionDialogWrapper(project, toolbar)
+                if (dialog.showAndGet()) {
+                    EditorToolbarDecorator
+                        .getToolbarFromEditor(editor)
+                        ?.selectedDataSource = selectedDataSource.get()
+                }
+            }
+        }
+
+/**
+ * @param project
+ * @param toolbar
+ */
+internal class SelectConnectionDialogWrapper(
+            project: Project,
+            private val toolbar: MdbJavaEditorToolbar,
+        ) : DialogWrapper(project, false) {
+            init {
+                init()
+            }
+
+            override fun createCenterPanel(): JComponent =
+                JPanel(BorderLayout()).apply {
+                    add(toolbar)
+                    (peer.window as? JDialog)?.isUndecorated = true
+                }
+        }
+}
 }

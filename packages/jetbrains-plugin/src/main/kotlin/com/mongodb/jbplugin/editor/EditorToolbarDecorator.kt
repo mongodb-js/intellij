@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.editor
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.database.console.JdbcDriverManager
 import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
@@ -14,14 +15,14 @@ import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.rd.util.launchChildBackground
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.messages.MessageBusConnection
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
-import kotlinx.coroutines.*
+import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.*
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * This decorator listens to an IntelliJ Editor lifecycle
@@ -34,12 +35,6 @@ class EditorToolbarDecorator(
 ) : EditorFactoryListener,
     DataSourceManager.Listener,
     JdbcDriverManager.Listener {
-    /**
-     * This needs to be synchronised with the MongoDbVirtualFileDataSourceProvider field with the same name.
-     *
-     * @see MongoDbVirtualFileDataSourceProvider
-     */
-    internal val attachedDataSource: Key<LocalDataSource> = Key.create("com.mongodb.jbplugin.AttachedDataSource")
     internal val toolbar =
         MdbJavaEditorToolbar(
             onDataSourceSelected = this::onDataSourceSelected,
@@ -82,15 +77,23 @@ class EditorToolbarDecorator(
                     return@launchChildBackground
                 }
 
-                editor.virtualFile?.putUserData(attachedDataSource, dataSource)
+                editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
+                val psiFile =
+                    PsiManager.getInstance(project).findFile(editor.virtualFile)
+                        ?: return@launchChildBackground
+                DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
             }
         } else {
-            editor.virtualFile?.putUserData(attachedDataSource, dataSource)
+            editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
+            val psiFile = PsiManager.getInstance(project).findFile(editor.virtualFile) ?: return
+            DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
         }
     }
 
     fun onDataSourceUnselected() {
-        editor.virtualFile?.removeUserData(attachedDataSource)
+        editor.virtualFile?.removeUserData(Keys.attachedDataSource) ?: return
+        val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
+        DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
     }
 
     override fun editorCreated(event: EditorFactoryEvent) {
@@ -199,5 +202,9 @@ class EditorToolbarDecorator(
         ) {
             toolbar.selectedDataSource = null
         }
+    }
+
+    companion object {
+        fun getToolbarFromEditor(editor: Editor) = editor.headerComponent as? MdbJavaEditorToolbar
     }
 }

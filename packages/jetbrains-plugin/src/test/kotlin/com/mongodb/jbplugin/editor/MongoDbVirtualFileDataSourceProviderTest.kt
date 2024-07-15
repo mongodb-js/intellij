@@ -30,7 +30,7 @@ class MongoDbVirtualFileDataSourceProviderTest {
         val dataSourceManager = mock<BasicDataSourceManager<RawDataSource>>()
         val file = mock<VirtualFile>()
 
-        `when`(file.getUserData(provider.attachedDataSource)).thenReturn(dataSource)
+        `when`(file.getUserData(MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource)).thenReturn(dataSource)
         `when`(facade.findDataSource(dataSource.uniqueId)).thenReturn(
             DbDataSourceImpl(project, dataSource, dataSourceManager),
         )
@@ -45,7 +45,7 @@ class MongoDbVirtualFileDataSourceProviderTest {
         project.withMockedService(facade)
         val file = mock<VirtualFile>()
 
-        `when`(file.getUserData(provider.attachedDataSource)).thenReturn(null)
+        `when`(file.getUserData(MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource)).thenReturn(null)
 
         assertNull(provider.getDataSource(project, file))
         verify(facade, never()).findDataSource(any())

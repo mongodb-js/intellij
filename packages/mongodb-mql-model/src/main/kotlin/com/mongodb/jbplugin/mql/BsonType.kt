@@ -131,10 +131,10 @@ fun <T> Class<T>?.toBsonType(value: T? = null): BsonType {
                 return BsonAnyOf(BsonNull, BsonArray(BsonAny)) // types are lost at runtime
             } else if (Map::class.java.isAssignableFrom(this)) {
                 value?.let {
-                    val fields =
-                      Map::class.java.cast(value).entries.associate {
-                        it.key.toString() to it.value?.javaClass.toBsonType(it.value)
-                      }
+val fields =
+Map::class.java.cast(value).entries.associate {
+it.key.toString() to it.value?.javaClass.toBsonType(it.value)
+}
 return BsonAnyOf(BsonNull, BsonObject(fields))
 } ?: return BsonAnyOf(BsonNull, BsonAny)
             } else {

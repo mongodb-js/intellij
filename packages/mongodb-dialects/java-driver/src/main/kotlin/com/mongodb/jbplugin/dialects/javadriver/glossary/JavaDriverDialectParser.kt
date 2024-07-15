@@ -114,7 +114,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 } ?: HasFieldReference.Unknown
 
             val constantValue = filter.argumentList.expressions[1].tryToResolveAsConstant()
-            val typeOfConstantValue = constantValue?.javaClass?.toBsonType()
+            val typeOfConstantValue = constantValue?.javaClass?.toBsonType(constantValue)
 
             val valueReference =
                 if (constantValue != null && typeOfConstantValue != null) {
