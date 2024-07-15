@@ -74,10 +74,12 @@ object FieldCheckLinterInspection : MongoDbInspection {
         )
     }
 
-/**
- * @param message
- */
-private class OpenConnectionChooserQuickFix(
+    /**
+     * This quickfix opens a modal with the connection chooser.
+     *
+     * @param message
+     */
+    private class OpenConnectionChooserQuickFix(
         private val message: String,
     ) : LocalQuickFix {
         override fun getFamilyName(): String = message
