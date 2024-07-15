@@ -17,8 +17,7 @@ public class JavaDriverRepository {
     }
 
     public FindIterable<Document> exampleFind() {
-        return getCollection()
-                .find(eq(AWARDS_WINS, 123));
+        return getCollection().find(eq(AWARDS_WINS, 123));
     }
 
     public FindIterable<Document> exampleFindUsingCustomDSL() {
