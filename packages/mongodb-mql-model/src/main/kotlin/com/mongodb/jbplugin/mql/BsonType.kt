@@ -46,6 +46,11 @@ data class BsonArray(
 ) : BsonType
 
 /**
+ * ObjectId
+ */
+data object BsonObjectId : BsonType
+
+/**
  * Boolean
  */
 data object BsonBoolean : BsonType
@@ -109,10 +114,11 @@ fun Class<*>.toBsonType(): BsonType {
         Int::class.javaObjectType -> BsonAnyOf(BsonNull, BsonInt32)
         CharSequence::class.java, String::class.java -> BsonAnyOf(BsonNull, BsonString)
         Date::class.java, Instant::class.java, LocalDate::class.java, LocalDateTime::class.java ->
- BsonAnyOf(BsonNull, BsonDate)
+            BsonAnyOf(BsonNull, BsonDate)
         BigInteger::class.java -> BsonAnyOf(BsonNull, BsonInt64)
         BigDecimal::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
-        else -> if (Collection::class.java.isAssignableFrom(this)) {
+        else ->
+            if (Collection::class.java.isAssignableFrom(this)) {
                 return BsonAnyOf(BsonNull, BsonArray(BsonAny)) // types are lost at runtime
             } else {
                 val fields =

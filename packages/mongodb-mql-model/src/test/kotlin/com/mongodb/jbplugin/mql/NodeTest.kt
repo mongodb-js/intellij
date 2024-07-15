@@ -18,7 +18,7 @@ class NodeTest {
     @Test
     fun `returns null if a component does not exist`() {
         val node = Node<Unit?>(null, listOf(Named("myName")))
-        val named = node.component<HasFieldReference>()
+        val named = node.component<HasFieldReference<Unit?>>()
 
         assertNull(named)
     }
@@ -29,15 +29,16 @@ class NodeTest {
             Node<Unit?>(
                 null,
                 listOf(
-                    HasFieldReference(HasFieldReference.Known("field1")),
+                    HasFieldReference(HasFieldReference.Known(null, "field1")),
                     HasFieldReference(
                         HasFieldReference.Known(
+                            null,
                             "field2",
                         ),
                     ),
                 ),
             )
-        val fieldReferences = node.components<HasFieldReference>()
+        val fieldReferences = node.components<HasFieldReference<Unit?>>()
 
         assertEquals("field1", (fieldReferences[0].reference as HasFieldReference.Known).fieldName)
         assertEquals("field2", (fieldReferences[1].reference as HasFieldReference.Known).fieldName)
@@ -48,9 +49,9 @@ class NodeTest {
         val node =
             Node<Unit?>(
                 null,
-                listOf(HasFieldReference(HasFieldReference.Known("field1"))),
+                listOf(HasFieldReference(HasFieldReference.Known(null, "field1"))),
             )
-        val hasFieldReferences = node.hasComponent<HasFieldReference>()
+        val hasFieldReferences = node.hasComponent<HasFieldReference<Unit?>>()
 
         assertTrue(hasFieldReferences)
     }
@@ -60,7 +61,7 @@ class NodeTest {
         val node =
             Node<Unit?>(
                 null,
-                listOf(HasFieldReference(HasFieldReference.Known("field1"))),
+                listOf(HasFieldReference(HasFieldReference.Known(null, "field1"))),
             )
         val hasNamedComponent = node.hasComponent<Named>()
 
@@ -90,16 +91,20 @@ class NodeTest {
             arrayOf(
                 arrayOf(HasChildren<Unit?>(emptyList()), HasChildren::class.java),
                 arrayOf(HasCollectionReference(HasCollectionReference.Unknown), HasCollectionReference::class.java),
-                arrayOf(HasCollectionReference(HasCollectionReference.Known(Namespace("db", "coll"))),
- HasCollectionReference::class.java),
-                arrayOf(HasCollectionReference(HasCollectionReference.OnlyCollection("coll")),
- HasCollectionReference::class.java),
+                arrayOf(
+                    HasCollectionReference(HasCollectionReference.Known(Namespace("db", "coll"))),
+                    HasCollectionReference::class.java,
+                ),
+                arrayOf(
+                    HasCollectionReference(HasCollectionReference.OnlyCollection("coll")),
+                    HasCollectionReference::class.java,
+                ),
                 arrayOf(HasFieldReference(HasFieldReference.Unknown), HasFieldReference::class.java),
-                arrayOf(HasFieldReference(HasFieldReference.Known("abc")), HasFieldReference::class.java),
+                arrayOf(HasFieldReference(HasFieldReference.Known(null, "abc")), HasFieldReference::class.java),
                 arrayOf(HasFilter<Unit?>(Node(null, emptyList())), HasFilter::class.java),
                 arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
-                arrayOf(HasValueReference(HasValueReference.Constant(123, "int")), HasValueReference::class.java),
-                arrayOf(HasValueReference(HasValueReference.Runtime("int")), HasValueReference::class.java),
+                arrayOf(HasValueReference(HasValueReference.Constant(123, BsonInt32)), HasValueReference::class.java),
+                arrayOf(HasValueReference(HasValueReference.Runtime(BsonInt32)), HasValueReference::class.java),
                 arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
                 arrayOf(Named("abc"), Named::class.java),
             )
