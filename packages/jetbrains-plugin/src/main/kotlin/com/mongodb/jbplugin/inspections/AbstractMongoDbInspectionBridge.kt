@@ -48,28 +48,31 @@ abstract class AbstractMongoDbInspectionBridge(
                     if (dialect.parser.isCandidateForQuery(expression)) {
                         val attachment = dialect.parser.attachment(expression)
                         attachment.getUserData(queryKey)?.let {
-cachedValue = attachment.getUserData(queryKey)!!
-} ?: run {
-val parsedAst =
-CachedValuesManager.getManager(attachment.project).createCachedValue {
-val parsedAst = dialect.parser.parse(expression)
-CachedValueProvider.Result.create(parsedAst, attachment)
-}
-attachment.putUserData(queryKey, parsedAst)
-cachedValue = parsedAst
-}
+                            cachedValue = attachment.getUserData(queryKey)!!
+                        } ?: run {
+                            val parsedAst =
+                                CachedValuesManager.getManager(attachment.project).createCachedValue {
+                                    val parsedAst = dialect.parser.parse(expression)
+                                    CachedValueProvider.Result.create(parsedAst, attachment)
+                                }
+                            attachment.putUserData(queryKey, parsedAst)
+                            cachedValue = parsedAst
+                        }
                     }
 
                     cachedValue?.let {
-val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java)
-if (fileInExpression == null || fileInExpression.virtualFile == null) {
-inspection.visitMongoDbQuery(null, holder, cachedValue.value)
-} else {
-val dataSource = VirtualFileDataSourceProvider.findDataSource(expression.project,
-fileInExpression.virtualFile)
-inspection.visitMongoDbQuery(dataSource?.localDataSource, holder, cachedValue.value)
-}
-}
+                        val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java)
+                        if (fileInExpression == null || fileInExpression.virtualFile == null) {
+                            inspection.visitMongoDbQuery(null, holder, cachedValue!!.value)
+                        } else {
+                            val dataSource =
+                                VirtualFileDataSourceProvider.findDataSource(
+                                    expression.project,
+                                    fileInExpression.virtualFile,
+                                )
+                            inspection.visitMongoDbQuery(dataSource?.localDataSource, holder, cachedValue!!.value)
+                        }
+                    }
                 }
             }
         }
