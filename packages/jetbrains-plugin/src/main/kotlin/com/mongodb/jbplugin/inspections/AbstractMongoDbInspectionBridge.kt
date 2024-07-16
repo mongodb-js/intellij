@@ -4,7 +4,6 @@ import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.database.dataSource.localDataSource
-import com.intellij.database.util.VirtualFileDataSourceProvider
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
 import com.intellij.psi.*
@@ -13,6 +12,7 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.Dialect
+import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.mql.Node
 
 /**
@@ -66,7 +66,7 @@ abstract class AbstractMongoDbInspectionBridge(
                             inspection.visitMongoDbQuery(null, holder, cachedValue!!.value)
                         } else {
                             val dataSource =
-                                VirtualFileDataSourceProvider.findDataSource(
+                                MongoDbVirtualFileDataSourceProvider().getDataSource(
                                     expression.project,
                                     fileInExpression.virtualFile,
                                 )
