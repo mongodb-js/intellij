@@ -232,11 +232,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             )
         } else if (method.parameters.size == 1) {
 // Updates.unset for example
-            val fieldNameAsString = filter.argumentList.expressions[0].tryToResolveAsConstantString()
-            val fieldReference =
-                fieldNameAsString?.let {
-                    HasFieldReference.Known(filter.argumentList.expressions[0], fieldNameAsString)
-                } ?: HasFieldReference.Unknown
+            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
 
             return Node(
                 filter,
@@ -250,6 +246,16 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         }
 // here we really don't know much, so just don't attempt to parse the query
         return null
+    }
+
+    private fun resolveFieldNameFromExpression(expression: PsiExpression): HasFieldReference.FieldReference<out Any> {
+        val fieldNameAsString = expression.tryToResolveAsConstantString()
+        val fieldReference =
+            fieldNameAsString?.let {
+                HasFieldReference.Known(expression, fieldNameAsString)
+            } ?: HasFieldReference.Unknown
+
+        return fieldReference
     }
 
     private fun resolveValueFromExpression(expression: PsiExpression): HasValueReference.ValueReference {
@@ -269,16 +275,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 } ?: HasValueReference.Unknown
             }
         return valueReference
-    }
-
-    private fun resolveFieldNameFromExpression(expression: PsiExpression): HasFieldReference.FieldReference<out Any> {
-        val fieldNameAsString = expression.tryToResolveAsConstantString()
-        val fieldReference =
-            fieldNameAsString?.let {
-                HasFieldReference.Known(expression, fieldNameAsString)
-            } ?: HasFieldReference.Unknown
-
-        return fieldReference
     }
 
     private fun namespaceComponent(namespace: Namespace?): HasCollectionReference =
