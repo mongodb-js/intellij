@@ -44,24 +44,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val calledMethod = currentCall.resolveMethod()
         if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
             val hasChildren =
-                if (currentCall.argumentList.expressionCount > 0) {
-// we have at least 1 argument in the current method call
-                    val argumentAsFilters = resolveToFiltersCall(currentCall.argumentList.expressions[0])
-                    argumentAsFilters?.let {
-                        val parsedQuery = parseFilterExpression(argumentAsFilters) // assume it's a Filters call
-                        parsedQuery?.let {
-                            HasChildren(
-                                listOf(
-                                    parseFilterExpression(
-                                        argumentAsFilters,
-                                    )!!,
-                                ),
-                            )
-                        } ?: HasChildren(emptyList())
-                    } ?: HasChildren(emptyList())
-                } else {
-                    HasChildren(emptyList())
-                }
+                HasChildren(
+                    parseAllFiltersFromCurrentCall(currentCall) +
+                        parseAllUpdatesFromCurrentCall(currentCall),
+                )
 
             return Node(
                 source,
@@ -90,6 +76,37 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         }
     }
 
+    private fun parseAllFiltersFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> =
+        if (currentCall.argumentList.expressionCount > 0) {
+            // we have at least 1 argument in the current method call
+            val argumentAsFilters = resolveToFiltersCall(currentCall.argumentList.expressions[0])
+            argumentAsFilters?.let {
+                val parsedQuery = parseFilterExpression(argumentAsFilters) // assume it's a Filters call
+                parsedQuery?.let {
+                    listOf(
+                        parsedQuery,
+                    )
+                } ?: emptyList()
+            } ?: emptyList()
+        } else {
+            emptyList()
+        }
+
+    private fun parseAllUpdatesFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> =
+        if (currentCall.argumentList.expressionCount > 1) {
+            val argumentAsUpdates = resolveToUpdatesCall(currentCall.argumentList.expressions[1])
+            argumentAsUpdates?.let {
+                val parsedQuery = parseUpdatesExpression(argumentAsUpdates) // assume it's a Filters call
+                parsedQuery?.let {
+                    listOf(
+                        parsedQuery,
+                    )
+                } ?: emptyList()
+            } ?: emptyList()
+        } else {
+            emptyList()
+        }
+
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
         val method = filter.resolveMethod() ?: return null
         if (method.isVarArgs) {
@@ -107,27 +124,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             )
         } else if (method.parameters.size == 2) {
 // If it has two parameters, it's field/value.
-            val fieldNameAsString = filter.argumentList.expressions[0].tryToResolveAsConstantString()
-            val fieldReference =
-                fieldNameAsString?.let {
-                    HasFieldReference.Known(filter.argumentList.expressions[0], fieldNameAsString)
-                } ?: HasFieldReference.Unknown
-
-            val constantValue = filter.argumentList.expressions[1].tryToResolveAsConstant()
-            val typeOfConstantValue = constantValue?.javaClass?.toBsonType()
-
-            val valueReference =
-                if (constantValue != null && typeOfConstantValue != null) {
-                    HasValueReference.Constant(constantValue, typeOfConstantValue)
-                } else {
-                    val psiTypeOfValue =
-                        filter.argumentList.expressions[1]
-                            .type
-                            ?.toBsonType()
-                    psiTypeOfValue?.let {
-                        HasValueReference.Runtime(psiTypeOfValue)
-                    } ?: HasValueReference.Unknown
-                }
+            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
+            val valueReference = resolveValueFromExpression(filter.argumentList.expressions[1])
 
             return Node(
                 filter,
@@ -158,6 +156,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     resolveToFiltersCall(it)
                 }
             }
+
             is PsiVariable -> {
                 element.initializer ?: return null
                 return resolveToFiltersCall(element.initializer!!)
@@ -170,6 +169,116 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
             else -> return null
         }
+    }
+
+    private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
+        when (element) {
+            is PsiMethodCallExpression -> {
+                val method = element.resolveMethod() ?: return null
+                if (method.containingClass?.qualifiedName == "com.mongodb.client.model.Updates") {
+                    return element
+                }
+                val allReturns = PsiTreeUtil.findChildrenOfType(method.body, PsiReturnStatement::class.java)
+                return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
+                    resolveToUpdatesCall(it)
+                }
+            }
+
+            is PsiVariable -> {
+                element.initializer ?: return null
+                return resolveToUpdatesCall(element.initializer!!)
+            }
+
+            is PsiReferenceExpression -> {
+                val referredValue = element.resolve() ?: return null
+                return resolveToUpdatesCall(referredValue)
+            }
+
+            else -> return null
+        }
+    }
+
+    private fun parseUpdatesExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
+        val method = filter.resolveMethod() ?: return null
+        if (method.isVarArgs) {
+// Updates.combine
+            return Node(
+                filter,
+                listOf(
+                    Named(method.name),
+                    HasChildren(
+                        filter.argumentList.expressions
+                            .mapNotNull { resolveToUpdatesCall(it) }
+                            .mapNotNull { parseUpdatesExpression(it) },
+                    ),
+                ),
+            )
+        } else if (method.parameters.size == 2) {
+// If it has two parameters, it's field/value.
+            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
+            val valueReference = resolveValueFromExpression(filter.argumentList.expressions[1])
+
+            return Node(
+                filter,
+                listOf(
+                    Named(method.name),
+                    HasFieldReference(
+                        fieldReference,
+                    ),
+                    HasValueReference(
+                        valueReference,
+                    ),
+                ),
+            )
+        } else if (method.parameters.size == 1) {
+// Updates.unset for example
+            val fieldNameAsString = filter.argumentList.expressions[0].tryToResolveAsConstantString()
+            val fieldReference =
+                fieldNameAsString?.let {
+                    HasFieldReference.Known(filter.argumentList.expressions[0], fieldNameAsString)
+                } ?: HasFieldReference.Unknown
+
+            return Node(
+                filter,
+                listOf(
+                    Named(method.name),
+                    HasFieldReference(
+                        fieldReference,
+                    ),
+                ),
+            )
+        }
+// here we really don't know much, so just don't attempt to parse the query
+        return null
+    }
+
+    private fun resolveValueFromExpression(expression: PsiExpression): HasValueReference.ValueReference {
+        val constantValue = expression.tryToResolveAsConstant()
+        val typeOfConstantValue = constantValue?.javaClass?.toBsonType()
+
+        val valueReference =
+            if (constantValue != null && typeOfConstantValue != null) {
+                HasValueReference.Constant(constantValue, typeOfConstantValue)
+            } else {
+                val psiTypeOfValue =
+                    expression
+                        .type
+                        ?.toBsonType()
+                psiTypeOfValue?.let {
+                    HasValueReference.Runtime(psiTypeOfValue)
+                } ?: HasValueReference.Unknown
+            }
+        return valueReference
+    }
+
+    private fun resolveFieldNameFromExpression(expression: PsiExpression): HasFieldReference.FieldReference<out Any> {
+        val fieldNameAsString = expression.tryToResolveAsConstantString()
+        val fieldReference =
+            fieldNameAsString?.let {
+                HasFieldReference.Known(expression, fieldNameAsString)
+            } ?: HasFieldReference.Unknown
+
+        return fieldReference
     }
 
     private fun namespaceComponent(namespace: Namespace?): HasCollectionReference =
