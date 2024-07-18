@@ -8,6 +8,9 @@ import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
 
+private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
+private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
+
 object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun isCandidateForQuery(source: PsiElement): Boolean {
         if (source !is PsiMethodCallExpression) {
@@ -79,9 +82,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     private fun parseAllFiltersFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> =
         if (currentCall.argumentList.expressionCount > 0) {
             // we have at least 1 argument in the current method call
+            // try to get the relevant filter calls, or avoid parsing the query at all
             val argumentAsFilters = resolveToFiltersCall(currentCall.argumentList.expressions[0])
             argumentAsFilters?.let {
-                val parsedQuery = parseFilterExpression(argumentAsFilters) // assume it's a Filters call
+                val parsedQuery = parseFilterExpression(argumentAsFilters)
                 parsedQuery?.let {
                     listOf(
                         parsedQuery,
@@ -95,12 +99,11 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     private fun parseAllUpdatesFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> =
         if (currentCall.argumentList.expressionCount > 1) {
             val argumentAsUpdates = resolveToUpdatesCall(currentCall.argumentList.expressions[1])
+            // parse only if it's a call to `updates` methods
             argumentAsUpdates?.let {
-                val parsedQuery = parseUpdatesExpression(argumentAsUpdates) // assume it's a Filters call
+                val parsedQuery = parseUpdatesExpression(argumentAsUpdates)
                 parsedQuery?.let {
-                    listOf(
-                        parsedQuery,
-                    )
+                    listOf(parsedQuery)
                 } ?: emptyList()
             } ?: emptyList()
         } else {
@@ -148,7 +151,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         when (element) {
             is PsiMethodCallExpression -> {
                 val method = element.resolveMethod() ?: return null
-                if (method.containingClass?.qualifiedName == "com.mongodb.client.model.Filters") {
+                if (method.containingClass?.qualifiedName == FILTERS_FQN) {
                     return element
                 }
                 val allReturns = PsiTreeUtil.findChildrenOfType(method.body, PsiReturnStatement::class.java)
@@ -175,7 +178,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         when (element) {
             is PsiMethodCallExpression -> {
                 val method = element.resolveMethod() ?: return null
-                if (method.containingClass?.qualifiedName == "com.mongodb.client.model.Updates") {
+                if (method.containingClass?.qualifiedName == UPDATES_FQN) {
                     return element
                 }
                 val allReturns = PsiTreeUtil.findChildrenOfType(method.body, PsiReturnStatement::class.java)
@@ -252,7 +255,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val fieldNameAsString = expression.tryToResolveAsConstantString()
         val fieldReference =
             fieldNameAsString?.let {
-                HasFieldReference.Known(expression, fieldNameAsString)
+                HasFieldReference.Known(expression, it)
             } ?: HasFieldReference.Unknown
 
         return fieldReference
@@ -271,7 +274,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         .type
                         ?.toBsonType()
                 psiTypeOfValue?.let {
-                    HasValueReference.Runtime(psiTypeOfValue)
+                    HasValueReference.Runtime(it)
                 } ?: HasValueReference.Unknown
             }
         return valueReference
@@ -279,6 +282,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     private fun namespaceComponent(namespace: Namespace?): HasCollectionReference =
         namespace?.let {
-            HasCollectionReference(HasCollectionReference.Known(namespace))
+            HasCollectionReference(HasCollectionReference.Known(it))
         } ?: HasCollectionReference(HasCollectionReference.Unknown)
 }
