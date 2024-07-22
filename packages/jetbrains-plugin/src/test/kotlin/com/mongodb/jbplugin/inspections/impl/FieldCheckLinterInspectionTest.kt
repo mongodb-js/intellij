@@ -84,7 +84,7 @@ public class Repository {
 }
         """,
     )
-    fun `shows an intention when the field does not exist in the current namespace`(
+    fun `shows an inspection when the field does not exist in the current namespace`(
         project: Project,
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
