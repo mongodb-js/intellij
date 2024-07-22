@@ -18,6 +18,8 @@ import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.mongodb.client.MongoClient
+import com.mongodb.client.model.Filters
+import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
@@ -85,15 +87,25 @@ internal class CodeInsightTestExtension :
 
         ApplicationManager.getApplication().invokeAndWait {
             if (!JavaLibraryUtil.hasLibraryJar(testFixture.module, "org.mongodb:mongodb-driver-sync:5.1.1")) {
+                val module = testFixture.module
+
                 runCatching {
                     PsiTestUtil.addProjectLibrary(
-                        testFixture.module,
-                        "mongodb-driver-sync",
-                        listOf(
-                            Path(
-                                pathToJavaDriver(),
-                            ).toAbsolutePath().toString(),
-                        ),
+                        module,
+                        "org.mongodb:mongodb-driver-sync:5.1.0",
+                        listOf(pathToClassJarFile(MongoClient::class.java)),
+                    )
+
+                    PsiTestUtil.addProjectLibrary(
+                        module,
+                        "org.mongodb:mongodb-driver-core:5.1.0",
+                        listOf(pathToClassJarFile(Filters::class.java)),
+                    )
+
+                    PsiTestUtil.addProjectLibrary(
+                        module,
+                        "org.mongodb:bson:5.1.0",
+                        listOf(pathToClassJarFile(ObjectId::class.java)),
                     )
                 }
             }
@@ -201,9 +213,9 @@ internal class CodeInsightTestExtension :
         }
     }
 
-    private fun pathToJavaDriver(): String {
+    private fun pathToClassJarFile(javaClass: Class<*>): String {
         val classResource: URL =
-            MongoClient::class.java.getResource(MongoClient::class.java.getSimpleName() + ".class")
+            javaClass.getResource(javaClass.getSimpleName() + ".class")
                 ?: throw RuntimeException("class resource is null")
         val url: String = classResource.toString()
         if (url.startsWith("jar:file:")) {

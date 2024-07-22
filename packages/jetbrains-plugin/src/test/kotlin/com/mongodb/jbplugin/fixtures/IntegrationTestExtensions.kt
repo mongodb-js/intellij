@@ -7,6 +7,7 @@ package com.mongodb.jbplugin.fixtures
 import com.google.gson.Gson
 import com.intellij.database.Dbms
 import com.intellij.database.dataSource.*
+import com.intellij.database.remote.jdbc.RemoteConnection
 import com.intellij.openapi.application.*
 import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.client.ClientSessionsManager
@@ -190,11 +191,13 @@ internal fun mockDataSource(url: MongoDbServerUrl = MongoDbServerUrl("http://loc
     mock<LocalDataSource>().also { dataSource ->
         val driver = mock<DatabaseDriver>()
         `when`(driver.id).thenReturn("mongo")
+        `when`(dataSource.dataSource).thenReturn(dataSource)
         `when`(dataSource.url).thenReturn(url.value)
         `when`(dataSource.databaseDriver).thenReturn(driver)
         `when`(dataSource.dbms).thenReturn(Dbms.MONGO)
         val testClass = Thread.currentThread().stackTrace[2].className
         `when`(dataSource.name).thenReturn(testClass + "_" + UUID.randomUUID().toString())
+        `when`(dataSource.uniqueId).thenReturn(testClass + "_" + UUID.randomUUID().toString())
     }
 
 /**
@@ -206,6 +209,11 @@ internal fun mockDataSource(url: MongoDbServerUrl = MongoDbServerUrl("http://loc
 internal fun mockDatabaseConnection(dataSource: LocalDataSource) =
     mock<DatabaseConnection>().also { connection ->
         val connectionPoint = mock<DatabaseConnectionPoint>()
+        val remoteConnection = mock<RemoteConnection>()
+
+        `when`(remoteConnection.isClosed).thenReturn(false)
+        `when`(remoteConnection.isValid(any())).thenReturn(true)
         `when`(connection.connectionPoint).thenReturn(connectionPoint)
         `when`(connectionPoint.dataSource).thenReturn(dataSource)
+        `when`(connection.remoteConnection).thenReturn(remoteConnection)
     }
