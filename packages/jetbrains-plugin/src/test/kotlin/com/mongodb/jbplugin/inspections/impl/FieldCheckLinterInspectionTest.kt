@@ -51,7 +51,7 @@ public class Repository {
 }
         """,
     )
-    fun `shows an intention when there is no connection attached to the current editor`(
+    fun `shows an inspection when there is no connection attached to the current editor`(
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
