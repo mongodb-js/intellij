@@ -263,7 +263,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     private fun resolveValueFromExpression(expression: PsiExpression): HasValueReference.ValueReference {
         val constantValue = expression.tryToResolveAsConstant()
-        val typeOfConstantValue = constantValue?.javaClass?.toBsonType()
+        val typeOfConstantValue = constantValue?.javaClass?.toBsonType(constantValue)
 
         val valueReference =
             if (constantValue != null && typeOfConstantValue != null) {
