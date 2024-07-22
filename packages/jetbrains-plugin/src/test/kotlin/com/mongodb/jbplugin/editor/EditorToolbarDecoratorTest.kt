@@ -88,6 +88,7 @@ class EditorToolbarDecoratorTest {
 
         runCurrent()
 
-        verify(virtualFile, never()).putUserData(decorator.attachedDataSource, dataSource)
+        verify(virtualFile, never()).putUserData(MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
+ dataSource)
     }
 }
