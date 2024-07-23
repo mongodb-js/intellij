@@ -9,6 +9,7 @@ import com.intellij.codeInsight.lookup.AutoCompletionPolicy
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.database.dataSource.localDataSource
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.ElementPatternCondition
 import com.intellij.patterns.InitialPatternCondition
@@ -19,6 +20,7 @@ import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.util.*
+import com.intellij.sql.dialects.mongo.js.completion.withInsertHandler
 import com.intellij.util.ProcessingContext
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
@@ -30,7 +32,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.*
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.i18n.Icons
-import com.mongodb.jbplugin.i18n.Icons.scaledToText
+import com.mongodb.jbplugin.observability.probe.AutocompleteSuggestionAcceptedProbe
 
 /**
  * This class connects our completion engine with IntelliJ's systems.
@@ -257,15 +259,37 @@ private fun AutocompletionEntry.toLookupElement(): LookupElement {
     val lookupElement =
         LookupElementBuilder
             .create(entry)
-            .withIcon(Icons.logo.scaledToText())
-            .withTypeText(
+            .withInsertHandler { _, _ ->
+                val application = ApplicationManager.getApplication()
+                val probe = application.getService(AutocompleteSuggestionAcceptedProbe::class.java)
+
+                when (this.type) {
+                    AutocompletionEntry.AutocompletionEntryType.DATABASE ->
+ probe.databaseCompletionAccepted(JavaDriverDialect)
+
+                    AutocompletionEntry.AutocompletionEntryType.COLLECTION ->
+ probe.collectionCompletionAccepted(JavaDriverDialect)
+
+                    AutocompletionEntry.AutocompletionEntryType.FIELD ->
+ probe.fieldCompletionAccepted(JavaDriverDialect)
+                }
+            }
+.withIcon(
+                when (type) {
+                    AutocompletionEntry.AutocompletionEntryType.DATABASE -> Icons.databaseAutocompleteEntry
+                    AutocompletionEntry.AutocompletionEntryType.COLLECTION -> Icons.collectionAutocompleteEntry
+                    AutocompletionEntry.AutocompletionEntryType.FIELD -> Icons.fieldAutocompleteEntry
+                },
+            )
+.withTypeText(
                 if (type == AutocompletionEntry.AutocompletionEntryType.FIELD) {
                     JavaDriverDialect.formatter.formatType(bsonType!!)
                 } else {
                     type.presentableName
                 },
                 true,
-            ).withCaseSensitivity(true)
+            )
+.withCaseSensitivity(true)
             .withAutoCompletionPolicy(AutoCompletionPolicy.GIVE_CHANCE_TO_OVERWRITE)
 
     return PrioritizedLookupElement.withPriority(lookupElement, Double.MAX_VALUE)

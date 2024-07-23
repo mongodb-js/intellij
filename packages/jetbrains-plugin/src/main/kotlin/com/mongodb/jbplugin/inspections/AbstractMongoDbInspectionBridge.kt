@@ -23,7 +23,7 @@ abstract class AbstractMongoDbInspectionBridge(
     private val dialect: Dialect<PsiElement>,
     private val inspection: MongoDbInspection,
 ) : AbstractBaseJavaLocalInspectionTool() {
-    val queryKey: Key<CachedValue<Node<PsiElement>>> =
+    private val queryKey: Key<CachedValue<Node<PsiElement>>> =
         Key.create(
             "QueryForDialect${dialect.javaClass.name}",
         )
