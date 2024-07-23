@@ -500,4 +500,171 @@ public class Repository {
         )
         assertEquals(false, (secondEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
     }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
+        return findAllByReleaseFlag(true);
+    }
+    
+    private Document findAllByReleaseFlag(boolean released) {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .updateOne(eq("released", released), unset("field"));
+    }
+}
+        """,
+    )
+    fun `supports updateOne calls with a filter and update expressions`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(
+            "released",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonBoolean,
+            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+        )
+
+        val unset = hasChildren.children[1]
+        assertEquals("unset", unset.component<Named>()!!.name)
+        assertEquals(
+            "field",
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> updateReleasedBooks() {
+        return updateManyByReleasedFlag(true);
+    }
+    
+    private Document updateManyByReleasedFlag(boolean released) {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .updateMany(eq("released", released), set("field", 1));
+    }
+}
+        """,
+    )
+    fun `supports updateMany calls with a filter and update expressions setting a value`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "updateReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(
+            "released",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonBoolean,
+            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+        )
+
+        val unset = hasChildren.children[1]
+        assertEquals("set", unset.component<Named>()!!.name)
+        assertEquals(
+            "field",
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            1,
+            (unset.component<HasValueReference>()!!.reference as HasValueReference.Constant).value,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> updateReleasedBooks() {
+        return updateManyByReleasedFlag(true);
+    }
+    
+    private Document updateManyByReleasedFlag(boolean released) {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .updateMany(eq("released", released), combine(set("field", 1), unset("anotherField")));
+    }
+}
+        """,
+    )
+    fun `supports updates combining update operations`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "updateReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(
+            "released",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonBoolean,
+            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+        )
+
+        val combine = hasChildren.children[1]
+        assertEquals("combine", combine.component<Named>()!!.name)
+        assertEquals(2, combine.component<HasChildren<Unit?>>()!!.children.size)
+
+        val children = combine.component<HasChildren<Unit?>>()!!.children
+        assertEquals("set", children[0].component<Named>()!!.name)
+        assertEquals("unset", children[1].component<Named>()!!.name)
+    }
 }
