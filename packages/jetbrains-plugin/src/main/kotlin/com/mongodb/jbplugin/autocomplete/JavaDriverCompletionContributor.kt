@@ -265,8 +265,7 @@ private fun AutocompletionEntry.toLookupElement(): LookupElement {
                     type.presentableName
                 },
                 true,
-            )
-.withCaseSensitivity(true)
+            ).withCaseSensitivity(true)
             .withAutoCompletionPolicy(AutoCompletionPolicy.GIVE_CHANCE_TO_OVERWRITE)
 
     return PrioritizedLookupElement.withPriority(lookupElement, Double.MAX_VALUE)
