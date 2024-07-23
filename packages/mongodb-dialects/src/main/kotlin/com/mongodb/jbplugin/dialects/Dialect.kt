@@ -5,6 +5,7 @@
 
 package com.mongodb.jbplugin.dialects
 
+import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
 
 /**
@@ -16,6 +17,7 @@ import com.mongodb.jbplugin.mql.Node
  */
 interface Dialect<S> {
     val parser: DialectParser<S>
+    val formatter: DialectFormatter
 }
 
 /**
@@ -30,4 +32,12 @@ interface DialectParser<S> {
     fun attachment(source: S): S
 
     fun parse(source: S): Node<S>
+}
+
+/**
+ * A formatter gets an MQL element and can render it in a way that is useful
+ * for a user given the Dialect.
+ */
+interface DialectFormatter {
+    fun formatType(type: BsonType): String
 }

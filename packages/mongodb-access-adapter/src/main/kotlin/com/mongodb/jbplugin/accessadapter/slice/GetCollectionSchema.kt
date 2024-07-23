@@ -62,7 +62,7 @@ data class GetCollectionSchema(
                             },
                     )
 
-                else -> value.javaClass.toBsonType()
+                else -> primitiveOrWrapper(value.javaClass).toBsonType()
             }
 
         private fun mergeSchemaTogether(
@@ -138,5 +138,10 @@ data class GetCollectionSchema(
 
                 else -> schema
             }
+
+        private fun primitiveOrWrapper(example: Class<*>): Class<*> {
+            val type = runCatching { example.getField("TYPE").get(null) as? Class<*> }.getOrNull()
+            return type ?: example
+        }
     }
 }

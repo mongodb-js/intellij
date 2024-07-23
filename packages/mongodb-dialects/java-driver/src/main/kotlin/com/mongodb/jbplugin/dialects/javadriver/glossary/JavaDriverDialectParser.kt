@@ -39,7 +39,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val namespace = NamespaceExtractor.extractNamespace(source)
         val collectionReference = namespaceComponent(namespace)
 
-        val currentCall = source as PsiMethodCallExpression? ?: return Node(source, listOf(collectionReference))
+        val currentCall = source as? PsiMethodCallExpression ?: return Node(source, listOf(collectionReference))
 
         val calledMethod = currentCall.resolveMethod()
         if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
