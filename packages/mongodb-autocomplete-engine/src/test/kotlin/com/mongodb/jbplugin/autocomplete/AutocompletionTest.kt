@@ -40,7 +40,7 @@ class AutocompletionTest {
 
         // the server returns an error if the database provided to
         // runCommand does not exist
-        `when`(readModelProvider.slice(null, slice)).thenThrow(Exception(""))
+        `when`(readModelProvider.slice(null, slice)).thenThrow(RuntimeException(""))
 
         val result = autocompleteCollections(null, readModelProvider, "myDb")
 
