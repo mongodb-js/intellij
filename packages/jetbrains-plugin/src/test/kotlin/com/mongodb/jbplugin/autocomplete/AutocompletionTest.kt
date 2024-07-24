@@ -5,6 +5,9 @@ import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
+import com.mongodb.jbplugin.autocomplete.Autocompletion.autocompleteCollections
+import com.mongodb.jbplugin.autocomplete.Autocompletion.autocompleteDatabases
+import com.mongodb.jbplugin.autocomplete.Autocompletion.autocompleteFields
 import com.mongodb.jbplugin.mql.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -20,7 +23,7 @@ class AutocompletionTest {
         )
 
         val result =
-            Autocompletion.autocompleteDatabases(
+            autocompleteDatabases(
                 null,
                 readModelProvider,
             ) as AutocompletionResult.Successful
@@ -40,7 +43,7 @@ class AutocompletionTest {
         // runCommand does not exist
         `when`(readModelProvider.slice(null, slice)).thenThrow(MongoException(""))
 
-        val result = Autocompletion.autocompleteCollections(null, readModelProvider, "myDb")
+        val result = autocompleteCollections(null, readModelProvider, "myDb")
 
         assertEquals(
             AutocompletionResult.DatabaseDoesNotExist("myDb"),
@@ -60,7 +63,7 @@ class AutocompletionTest {
         )
 
         val result =
- Autocompletion.autocompleteCollections(null, readModelProvider, "myDb") as AutocompletionResult.Successful
+            autocompleteCollections(null, readModelProvider, "myDb") as AutocompletionResult.Successful
 
         assertEquals(
             listOf(AutocompletionEntry("myColl", AutocompletionEntry.AutocompletionEntryType.COLLECTION, null)),
@@ -89,7 +92,7 @@ class AutocompletionTest {
         )
 
         val result =
- Autocompletion.autocompleteFields(null, readModelProvider, namespace) as AutocompletionResult.Successful
+            autocompleteFields(null, readModelProvider, namespace) as AutocompletionResult.Successful
 
         assertEquals(
             listOf(
