@@ -14,18 +14,18 @@ data class ListCollections(
     val collections: List<Collection>,
 ) {
     /**
- * @property name
- * @property type
- */
-data class Collection(
+     * @property name
+     * @property type
+     */
+    data class Collection(
         val name: String,
         val type: String,
     )
 
     /**
- * @param database
- */
-class Slice(
+     * @param database
+     */
+    data class Slice(
         private val database: String,
     ) : com.mongodb.jbplugin.accessadapter.Slice<ListCollections> {
         override val id: String

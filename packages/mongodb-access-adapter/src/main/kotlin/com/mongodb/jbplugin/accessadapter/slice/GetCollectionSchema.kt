@@ -16,7 +16,7 @@ data class GetCollectionSchema(
     /**
      * @param namespace
      */
-    class Slice(
+    data class Slice(
         private val namespace: Namespace,
     ) : com.mongodb.jbplugin.accessadapter.Slice<GetCollectionSchema> {
         override val id = "GetCollectionSchema::$namespace"
