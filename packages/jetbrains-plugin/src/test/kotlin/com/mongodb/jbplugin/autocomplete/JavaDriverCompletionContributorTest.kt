@@ -185,6 +185,116 @@ public class Repository {
         )
     }
 
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public void exampleFind() {
+        client.getDatabase("myDatabase").getCollection("myCollection")
+                .updateMany(eq("<caret>"), set("x", 1));
+    }
+}
+        """,
+    )
+    fun `should autocomplete fields from the current namespace in the filters of an update`(
+        project: Project,
+        psiFile: PsiFile,
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = setupConnection(fixture, project)
+        val namespace = Namespace("myDatabase", "myCollection")
+
+        `when`(readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    namespace,
+                    BsonObject(
+                        mapOf(
+                            "myField" to BsonString,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val elements = fixture.completeBasic()
+
+        assertTrue(
+            elements.containsElements {
+                it.lookupString == "myField"
+            },
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public void exampleFind() {
+        client.getDatabase("myDatabase").getCollection("myCollection")
+                .updateMany(eq("x", 1), set("<caret>", 2));
+    }
+}
+        """,
+    )
+    fun `should autocomplete fields from the current namespace in the updates of an update`(
+        project: Project,
+        psiFile: PsiFile,
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = setupConnection(fixture, project)
+        val namespace = Namespace("myDatabase", "myCollection")
+
+        `when`(readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    namespace,
+                    BsonObject(
+                        mapOf(
+                            "myField" to BsonString,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val elements = fixture.completeBasic()
+
+        assertTrue(
+            elements.containsElements {
+                it.lookupString == "myField"
+            },
+        )
+    }
+
     private fun setupConnection(
         fixture: CodeInsightTestFixture,
         project: Project,
