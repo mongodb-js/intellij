@@ -73,7 +73,7 @@ class AutocompleteSuggestionAcceptedProbe(
             }
         }
 
-    private fun sendEvents() {
+    internal fun sendEvents() {
         val listCopy = events.toList()
         events.clear()
 
@@ -87,6 +87,7 @@ class AutocompleteSuggestionAcceptedProbe(
             }
 .eachCount()
             .map { TelemetryEvent.AutocompleteGroupEvent(it.key.first, it.key.second.publicName, it.value) }
+            .sortedBy { it.name }
             .forEach {
                 telemetry.sendEvent(it)
 

@@ -6,6 +6,7 @@
 
 package com.mongodb.jbplugin.observability
 
+import com.google.common.base.Objects
 import com.mongodb.jbplugin.dialects.Dialect
 
 /**
@@ -54,6 +55,14 @@ internal sealed class TelemetryEvent(
         name = "plugin-activated",
         properties = emptyMap(),
     )
+    override fun equals(other: Any?): Boolean =
+        (other as? TelemetryEvent)?.let {
+            name == it.name && properties == it.properties
+        } ?: false
+
+    override fun hashCode(): Int = Objects.hashCode(name, properties)
+
+    override fun toString(): String = "$name($properties)"
 
     /**
      * Represents the event that is emitted when the plugin connects
@@ -139,10 +148,10 @@ internal sealed class TelemetryEvent(
      * Aggregated count of events of the same autocomplete type, sent to Segment
      * every hour if not empty.
      *
- * @param dialect
- * @param autocompleteType
- * @param count
- */
+     * @param dialect
+     * @param autocompleteType
+     * @param count
+     */
     class AutocompleteGroupEvent(
         dialect: Dialect<*>,
         autocompleteType: String,
