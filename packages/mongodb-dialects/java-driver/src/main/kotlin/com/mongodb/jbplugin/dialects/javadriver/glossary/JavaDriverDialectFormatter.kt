@@ -9,7 +9,7 @@ object JavaDriverDialectFormatter : DialectFormatter {
             is BsonDouble -> "double"
             is BsonString -> "String"
             is BsonObject -> "Object"
-            is BsonArray -> "List<${formatType(type.schema)}>"
+            is BsonArray -> "List<${formatTypeNullable(type.schema)}>"
             is BsonObjectId -> "ObjectId"
             is BsonBoolean -> "boolean"
             is BsonDate -> "Date"
@@ -19,8 +19,34 @@ object JavaDriverDialectFormatter : DialectFormatter {
             is BsonDecimal128 -> "BigDecimal"
             is BsonAny -> "any"
             is BsonAnyOf ->
+                if (type.types.contains(BsonNull)) {
+                    formatTypeNullable(BsonAnyOf(type.types - BsonNull))
+                } else {
+                    type.types
+                        .map { formatType(it) }
+                        .sorted()
+                        .joinToString(" | ")
+                }
+            else -> "any"
+        }
+
+    private fun formatTypeNullable(type: BsonType): String =
+        when (type) {
+            is BsonDouble -> "Double"
+            is BsonString -> "String"
+            is BsonObject -> "Object"
+            is BsonArray -> "List<${formatTypeNullable(type.schema)}>"
+            is BsonObjectId -> "ObjectId"
+            is BsonBoolean -> "Boolean"
+            is BsonDate -> "Date"
+            is BsonNull -> "null"
+            is BsonInt32 -> "Integer"
+            is BsonInt64 -> "Long"
+            is BsonDecimal128 -> "BigDecimal"
+            is BsonAny -> "any"
+            is BsonAnyOf ->
                 type.types
-                    .map { formatType(it) }
+                    .map { formatTypeNullable(it) }
                     .sorted()
                     .joinToString(" | ")
             else -> "any"
