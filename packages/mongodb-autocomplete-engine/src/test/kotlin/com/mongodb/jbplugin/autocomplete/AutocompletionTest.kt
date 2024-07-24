@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.autocomplete
 
-import com.mongodb.MongoException
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
@@ -41,7 +40,7 @@ class AutocompletionTest {
 
         // the server returns an error if the database provided to
         // runCommand does not exist
-        `when`(readModelProvider.slice(null, slice)).thenThrow(MongoException(""))
+        `when`(readModelProvider.slice(null, slice)).thenThrow(Exception(""))
 
         val result = autocompleteCollections(null, readModelProvider, "myDb")
 
