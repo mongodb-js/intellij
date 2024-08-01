@@ -31,7 +31,7 @@ class GetCollectionSchemaTest {
                 BsonObject(
                     mapOf(
                         "string" to BsonAnyOf(BsonNull, BsonString),
-                        "integer" to BsonAnyOf(BsonNull, BsonInt32),
+                        "integer" to BsonInt32,
                     ),
                 ),
                 result.schema.schema,

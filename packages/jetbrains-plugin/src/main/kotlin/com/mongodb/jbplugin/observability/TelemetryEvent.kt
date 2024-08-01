@@ -6,6 +6,9 @@
 
 package com.mongodb.jbplugin.observability
 
+import com.google.common.base.Objects
+import com.mongodb.jbplugin.dialects.Dialect
+
 /**
  * Represents a field in Segment. New fields will be added here, where the
  * publicName is how it will look like in Segment.
@@ -25,6 +28,9 @@ internal enum class TelemetryProperty(
     VERSION("version"),
     ERROR_CODE("error_code"),
     ERROR_NAME("error_name"),
+    DIALECT("dialect"),
+    AUTOCOMPLETE_TYPE("ac_type"),
+    AUTOCOMPLETE_COUNT("ac_count"),
 ;
 }
 
@@ -49,6 +55,14 @@ internal sealed class TelemetryEvent(
         name = "plugin-activated",
         properties = emptyMap(),
     )
+    override fun equals(other: Any?): Boolean =
+        (other as? TelemetryEvent)?.let {
+            name == it.name && properties == it.properties
+        } ?: false
+
+    override fun hashCode(): Int = Objects.hashCode(name, properties)
+
+    override fun toString(): String = "$name($properties)"
 
     /**
      * Represents the event that is emitted when the plugin connects
@@ -127,6 +141,28 @@ internal sealed class TelemetryEvent(
                     TelemetryProperty.VERSION to (version ?: ""),
                     TelemetryProperty.ERROR_CODE to errorCode,
                     TelemetryProperty.ERROR_NAME to errorName,
+                ),
+        )
+
+    /**
+     * Aggregated count of events of the same autocomplete type, sent to Segment
+     * every hour if not empty.
+     *
+     * @param dialect
+     * @param autocompleteType
+     * @param count
+     */
+    class AutocompleteGroupEvent(
+        dialect: Dialect<*>,
+        autocompleteType: String,
+        count: Int,
+    ) : TelemetryEvent(
+            name = "autocomplete-selected",
+            properties =
+                mapOf(
+                    TelemetryProperty.DIALECT to dialect.javaClass.simpleName,
+                    TelemetryProperty.AUTOCOMPLETE_TYPE to autocompleteType,
+                    TelemetryProperty.AUTOCOMPLETE_COUNT to count,
                 ),
         )
 }

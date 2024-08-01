@@ -41,6 +41,8 @@
                          implementationClass="com.mongodb.jbplugin.inspections.bridge.FieldExistenceCheckInspectionBridge"/>
         <database.virtualFileDataSourceProvider
             implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
+        <completion.contributor language="JAVA"
+                                implementationClass="com.mongodb.jbplugin.autocomplete.JavaDriverCompletionContributor" />
     </extensions>
     <applicationListeners>
     </applicationListeners>

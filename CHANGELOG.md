@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-24](https://jira.mongodb.org/browse/INTELLIJ-30): Supports for autocompletion in database names, collections and fields on queries. Requires 
+a connection to a MongoDB cluster set up in the editor.
 * [INTELLIJ-30](https://jira.mongodb.org/browse/INTELLIJ-30): Add an inline warning when querying a field that does not exist in the target
 collection.
 * [INTELLIJ-29](https://jira.mongodb.org/browse/INTELLIJ-29): Shows an inlay hint near a Java query that shows in which collection the query is

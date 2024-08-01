@@ -36,3 +36,5 @@
   enabled: false
 - name: TYPE_ALIAS # forcing typealias with few simple generics is actually harder to understand
   enabled: false
+- name: WRONG_OVERLOADING_FUNCTION_ARGUMENTS # this only makes sense if we don't interact with java
+  enabled: false

@@ -8,4 +8,9 @@ class JavaDriverDialectTest {
     fun `returns the correct parser`() {
         assertEquals(JavaDriverDialectParser, JavaDriverDialect.parser)
     }
+
+    @Test
+    fun `returns the correct formatter`() {
+        assertEquals(JavaDriverDialectFormatter, JavaDriverDialect.formatter)
+    }
 }

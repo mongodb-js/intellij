@@ -219,7 +219,7 @@ fun <T : PsiElement, S : PsiElement> PsiElement.collectTypeUntil(
         return listOf(this as T) + (this.parent?.collectTypeUntil(type, stopWord) ?: emptyList())
     }
 
-    return emptyList()
+    return this.parent?.collectTypeUntil(type, stopWord) ?: emptyList()
 }
 
 /**
