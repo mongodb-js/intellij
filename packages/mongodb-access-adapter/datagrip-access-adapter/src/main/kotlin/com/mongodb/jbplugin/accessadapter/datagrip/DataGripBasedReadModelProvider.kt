@@ -15,9 +15,13 @@ import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.Slice
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriver
+
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
+
 import kotlinx.coroutines.runBlocking
 
-private typealias MapOfCachedValues = MutableMap<String, CachedValue<*>>
+private typealias MapOfCachedValues = ConcurrentMap<String, CachedValue<*>>
 private typealias DriverFactory = (Project, LocalDataSource) -> MongoDbDriver
 
 /**
@@ -42,7 +46,7 @@ class DataGripBasedReadModelProvider(
     var driverFactory: DriverFactory = { project, dataSource ->
         DataGripMongoDbDriver(project, dataSource)
     }
-    private val cachedValues: MapOfCachedValues = mutableMapOf()
+    private val cachedValues: MapOfCachedValues = ConcurrentHashMap()
 
     override fun <T : Any> slice(
         dataSource: LocalDataSource,

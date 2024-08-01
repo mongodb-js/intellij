@@ -68,7 +68,8 @@ internal abstract class NewConnectionActivatedProbeTest(
                     event.properties[TelemetryProperty.IS_LOCALHOST] == isLocalhost &&
                     event.properties[TelemetryProperty.IS_ENTERPRISE] == isEnterprise &&
                     event.properties[TelemetryProperty.IS_GENUINE] == isGenuine &&
-                    event.properties[TelemetryProperty.VERSION] == version
+                    event.properties[TelemetryProperty.VERSION] == version &&
+                    !event.properties.containsKey(TelemetryProperty.ATLAS_HOST)
             },
         )
     }

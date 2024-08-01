@@ -15,8 +15,7 @@ import com.mongodb.jbplugin.observability.TelemetryService
 
 private val logger: Logger = logger<NewConnectionActivatedProbe>()
 
-/** This probe is emitted when a new connection happens through DataGrip. It connects
- * directly into DataGrip extension points, so it shouldn't be instantiated directly.
+/** This probe is emitted when a new connection happens through DataGrip.
  */
 class NewConnectionActivatedProbe : DatabaseSessionStateListener {
     override fun clientAttached(client: VisibleDatabaseSessionClient) {
@@ -58,6 +57,7 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
                 isGenuine = serverInfo.isGenuineMongoDb,
                 nonGenuineServerName = serverInfo.nonGenuineVariant,
                 serverOsFamily = serverInfo.buildEnvironment["target_os"],
+                atlasHost = serverInfo.atlasHost,
                 version = serverInfo.version,
             )
 

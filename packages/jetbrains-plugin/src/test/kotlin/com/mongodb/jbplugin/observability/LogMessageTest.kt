@@ -54,6 +54,7 @@ class LogMessageTest {
                         serverOsFamily = null,
                         version = null,
                         isLocalAtlas = false,
+                        atlasHost = "my-host"
                     ),
                 )
                 .build()
@@ -65,6 +66,7 @@ class LogMessageTest {
         assertEquals(false, parsedMessage[TelemetryProperty.IS_LOCALHOST.publicName])
         assertEquals(true, parsedMessage[TelemetryProperty.IS_GENUINE.publicName])
         assertEquals(false, parsedMessage[TelemetryProperty.IS_LOCAL_ATLAS.publicName])
+        assertEquals("my-host", parsedMessage[TelemetryProperty.ATLAS_HOST.publicName])
         assertEquals("", parsedMessage[TelemetryProperty.NON_GENUINE_SERVER_NAME.publicName])
         assertEquals("", parsedMessage[TelemetryProperty.SERVER_OS_FAMILY.publicName])
         assertEquals("", parsedMessage[TelemetryProperty.VERSION.publicName])
