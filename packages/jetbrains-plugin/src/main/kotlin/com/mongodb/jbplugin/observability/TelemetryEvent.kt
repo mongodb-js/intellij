@@ -19,6 +19,7 @@ internal enum class TelemetryProperty(
     val publicName: String,
 ) {
     IS_ATLAS("is_atlas"),
+    ATLAS_HOST("atlas_host"),
     IS_LOCAL_ATLAS("is_local_atlas"),
     IS_LOCALHOST("is_localhost"),
     IS_ENTERPRISE("is_enterprise"),
@@ -72,6 +73,7 @@ internal sealed class TelemetryEvent(
      * @param isLocalhost
      * @param isEnterprise
      * @param isGenuine
+     * @param atlasHost
      * @param nonGenuineServerName
      * @param serverOsFamily
      * @param version
@@ -83,6 +85,7 @@ internal sealed class TelemetryEvent(
         isLocalhost: Boolean,
         isEnterprise: Boolean,
         isGenuine: Boolean,
+        atlasHost: String?,
         nonGenuineServerName: String?,
         serverOsFamily: String?,
         version: String?,
@@ -95,6 +98,7 @@ internal sealed class TelemetryEvent(
                     TelemetryProperty.IS_LOCALHOST to isLocalhost,
                     TelemetryProperty.IS_ENTERPRISE to isEnterprise,
                     TelemetryProperty.IS_GENUINE to isGenuine,
+                    TelemetryProperty.ATLAS_HOST to (atlasHost ?: ""),
                     TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
                     TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
                     TelemetryProperty.VERSION to (version ?: ""),

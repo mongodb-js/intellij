@@ -53,6 +53,7 @@ internal class TelemetryServiceTest {
                 nonGenuineServerName = null,
                 serverOsFamily = null,
                 isLocalAtlas = false,
+                atlasHost = null,
                 version = "8.0",
             ),
         )

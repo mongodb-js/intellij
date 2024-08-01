@@ -4,6 +4,7 @@
 
 package com.mongodb.jbplugin.accessadapter.slice
 
+import com.mongodb.ConnectionString
 import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.toNs
@@ -42,7 +43,7 @@ data class BuildInfo(
     val isDigitalOcean: Boolean,
     val isGenuineMongoDb: Boolean,
     val nonGenuineVariant: String?,
-    val serverUrl: String,
+    val serverUrl: ConnectionString,
     val buildEnvironment: Map<String, String>,
 ) {
     object Slice : com.mongodb.jbplugin.accessadapter.Slice<BuildInfo> {
@@ -66,8 +67,7 @@ data class BuildInfo(
             val connectionString = from.connectionString()
             val isLocalHost = connectionString.hosts.all { it.matches(isLocalhostRegex) }
             val isAtlas = connectionString.hosts.all { it.matches(atlasRegex) }
-            val isLocalAtlas =
-                checkIsAtlasCliIfConnected(from)
+            val isLocalAtlas = checkIsAtlasCliIfConnected(from)
 
             val isAtlasStream = connectionString.hosts.all { it.matches(atlasRegex) && it.matches(atlasStreamRegex) }
             val isDigitalOcean = connectionString.hosts.all { it.matches(digitalOceanRegex) }
@@ -94,7 +94,7 @@ data class BuildInfo(
                 isDigitalOcean = isDigitalOcean,
                 isGenuineMongoDb = genuineVariant == null,
                 nonGenuineVariant = genuineVariant,
-                serverUrl = connectionString.toString(),
+                serverUrl = connectionString,
             )
         }
 
@@ -138,7 +138,7 @@ data class BuildInfo(
                 false,
                 false,
                 null,
-                "",
+                ConnectionString("mongodb://localhost"),
                 emptyMap(),
             )
     }

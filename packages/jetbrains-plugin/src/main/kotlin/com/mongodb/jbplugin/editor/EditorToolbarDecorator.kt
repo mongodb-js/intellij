@@ -2,6 +2,7 @@ package com.mongodb.jbplugin.editor
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.database.console.JdbcDriverManager
+import com.intellij.database.console.session.DatabaseSessionManager
 import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager
@@ -10,6 +11,7 @@ import com.intellij.database.model.RawDataSource
 import com.intellij.database.psi.DataSourceManager
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.lang.java.JavaLanguage
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
@@ -21,7 +23,8 @@ import com.intellij.psi.PsiManager
 import com.intellij.util.messages.MessageBusConnection
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
-import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.*
+import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
+import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -78,10 +81,16 @@ class EditorToolbarDecorator(
                 }
 
                 editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
-                val psiFile =
-                    PsiManager.getInstance(project).findFile(editor.virtualFile)
-                        ?: return@launchChildBackground
-                DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
+                ApplicationManager.getApplication().invokeLater {
+                    val session = DatabaseSessionManager.openSession(editor.project!!, dataSource, null)
+                    val probe = NewConnectionActivatedProbe()
+                    probe.connected(session)
+
+                    val psiFile =
+                        PsiManager.getInstance(project).findFile(editor.virtualFile)
+                            ?: return@invokeLater
+                    DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
+                }
             }
         } else {
             editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
