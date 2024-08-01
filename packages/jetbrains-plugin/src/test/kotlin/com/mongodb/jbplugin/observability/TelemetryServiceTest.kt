@@ -53,7 +53,7 @@ internal class TelemetryServiceTest {
                 nonGenuineServerName = null,
                 serverOsFamily = null,
                 isLocalAtlas = false,
-                atlasHost = "mongodb+srv://example-cluster.mongodb.net",
+                atlasHost = "example-cluster.mongodb.net",
                 version = "8.0",
             ),
         )
