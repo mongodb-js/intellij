@@ -117,7 +117,7 @@ class BuildInfoTest {
             false,
             false,
             null,
-            url,
+            ConnectionString(url),
             buildEnvironment = emptyMap(),
         )
 }
