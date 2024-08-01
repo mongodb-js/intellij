@@ -19,7 +19,7 @@ internal enum class TelemetryProperty(
     val publicName: String,
 ) {
     IS_ATLAS("is_atlas"),
-    ATLAS_HOST("atlas_host"),
+    ATLAS_HOST("atlas_hostname"),
     IS_LOCAL_ATLAS("is_local_atlas"),
     IS_LOCALHOST("is_localhost"),
     IS_ENTERPRISE("is_enterprise"),
