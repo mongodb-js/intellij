@@ -57,7 +57,7 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
                 isGenuine = serverInfo.isGenuineMongoDb,
                 nonGenuineServerName = serverInfo.nonGenuineVariant,
                 serverOsFamily = serverInfo.buildEnvironment["target_os"],
-                atlasHost = serverInfo.serverUrl.hosts[0].takeIf { serverInfo.isAtlas && !serverInfo.isLocalAtlas },
+                atlasHost = serverInfo.serverUrl!!.hosts[0].takeIf { serverInfo.isAtlas && !serverInfo.isLocalAtlas },
                 version = serverInfo.version,
             )
 

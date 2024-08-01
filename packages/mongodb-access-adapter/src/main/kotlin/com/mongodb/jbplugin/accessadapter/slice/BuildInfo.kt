@@ -43,7 +43,7 @@ data class BuildInfo(
     val isDigitalOcean: Boolean,
     val isGenuineMongoDb: Boolean,
     val nonGenuineVariant: String?,
-    val serverUrl: ConnectionString,
+    val serverUrl: ConnectionString?,
     val buildEnvironment: Map<String, String>,
 ) {
     object Slice : com.mongodb.jbplugin.accessadapter.Slice<BuildInfo> {
@@ -138,7 +138,7 @@ data class BuildInfo(
                 false,
                 false,
                 null,
-                ConnectionString("mongodb://localhost"),
+                null,
                 emptyMap(),
             )
     }
