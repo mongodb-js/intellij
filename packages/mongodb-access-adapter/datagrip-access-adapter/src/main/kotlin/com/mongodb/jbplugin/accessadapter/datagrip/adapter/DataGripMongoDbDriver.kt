@@ -5,7 +5,6 @@
 
 package com.mongodb.jbplugin.accessadapter.datagrip.adapter
 
-import com.google.gson.Gson
 import com.intellij.database.dataSource.DatabaseConnection
 import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
@@ -16,6 +15,11 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.mql.Namespace
+import org.bson.BsonDocument
+import org.bson.BsonDocumentReader
+import org.bson.BsonDocumentWriter
+import org.bson.codecs.DecoderContext
+import org.bson.codecs.EncoderContext
 import org.bson.codecs.configuration.CodecRegistries.fromRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
@@ -56,7 +60,6 @@ internal class DataGripMongoDbDriver(
         fromRegistries(
             MongoClientSettings.getDefaultCodecRegistry(),
         )
-    private val gson = Gson()
     private val jsonWriterSettings =
         JsonWriterSettings
             .builder()
@@ -163,9 +166,19 @@ internal class DataGripMongoDbDriver(
                         listOfResults.add(resultSet.getObject(1) as T)
                     }
                 } else {
+                    val inputCodec = codecRegistry.get(Map::class.java)
+                    val outputCodec = codecRegistry.get(resultClass.java)
+                    val encoderContext = EncoderContext.builder().build()
+                    val decoderContext = DecoderContext.builder().build()
+
                     while (resultSet.next()) {
+                        val writer = BsonDocumentWriter(BsonDocument())
+
                         val hashMap = resultSet.getObject(1) as Map<String, Any>
-                        val result = gson.fromJson(gson.toJson(hashMap), resultClass.java)
+                        inputCodec.encode(writer, hashMap, encoderContext)
+
+                        val reader = BsonDocumentReader(writer.document)
+                        val result = outputCodec.decode(reader, decoderContext)
                         listOfResults.add(result)
                     }
                 }
