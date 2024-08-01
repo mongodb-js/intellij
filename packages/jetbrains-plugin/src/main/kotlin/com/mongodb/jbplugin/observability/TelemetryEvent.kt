@@ -92,18 +92,24 @@ internal sealed class TelemetryEvent(
     ) : TelemetryEvent(
             name = "new-connection",
             properties =
-                mapOf(
-                    TelemetryProperty.IS_ATLAS to isAtlas,
-                    TelemetryProperty.IS_LOCAL_ATLAS to isLocalAtlas,
-                    TelemetryProperty.IS_LOCALHOST to isLocalhost,
-                    TelemetryProperty.IS_ENTERPRISE to isEnterprise,
-                    TelemetryProperty.IS_GENUINE to isGenuine,
-                    TelemetryProperty.ATLAS_HOST to (atlasHost ?: ""),
-                    TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
-                    TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
-                    TelemetryProperty.VERSION to (version ?: ""),
-                ),
-        )
+            mapOf(
+                TelemetryProperty.IS_ATLAS to isAtlas,
+                TelemetryProperty.IS_LOCAL_ATLAS to isLocalAtlas,
+                TelemetryProperty.IS_LOCALHOST to isLocalhost,
+                TelemetryProperty.IS_ENTERPRISE to isEnterprise,
+                TelemetryProperty.IS_GENUINE to isGenuine,
+                TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
+                TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
+                TelemetryProperty.VERSION to (version ?: ""),
+            ) + atlasHostProperties(atlasHost)
+        ) {
+        companion object {
+            fun atlasHostProperties(atlasHost: String?): Map<TelemetryProperty, String> {
+                atlasHost ?: return emptyMap()
+                return mapOf(TelemetryProperty.ATLAS_HOST to atlasHost)
+            }
+        }
+    }
 
     /**
      * Represents the event that is emitted when the there is an error

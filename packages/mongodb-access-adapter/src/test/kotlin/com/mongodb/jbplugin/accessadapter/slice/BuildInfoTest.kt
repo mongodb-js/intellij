@@ -103,6 +103,43 @@ class BuildInfoTest {
             assertEquals(mongodbVariant, data.nonGenuineVariant, "mongodbVariant does not match")
         }
 
+    @ParameterizedTest
+    @CsvSource(
+        value = [
+            "URL;;atlasHost",
+            "mongodb+srv://example-atlas-cluster.e06cc.mongodb.net;;example-atlas-cluster.e06cc.mongodb.net",
+            "mongodb://example-atlas-cluster-00.e06cc.mongodb.net:27107;;example-atlas-cluster-00.e06cc.mongodb.net",
+            "mongodb://localhost,another-server;;",
+            "mongodb+srv://ex-atlas-stream.e06cc.mongodb.net;;ex-atlas-stream.e06cc.mongodb.net",
+            "mongodb://[::1];;",
+            "mongodb://my-cluster.mongo.ondigitalocean.com;;",
+            "mongodb://my-cluster.cosmos.azure.com;;",
+            "mongodb://my-cluster.docdb.amazonaws.com;;",
+            "mongodb://my-cluster.docdb-elastic.amazonaws.com;;",
+        ],
+        delimiterString = ";;",
+        useHeadersInDisplayName = true,
+    )
+    fun `provides the correct connection host for atlas`(
+        url: String,
+        atlasHost: String?,
+    ): Unit =
+        runBlocking {
+            val command = Document(mapOf("buildInfo" to 1))
+            val driver = mock<MongoDbDriver>()
+            `when`(driver.connected).thenReturn(true)
+            `when`(driver.connectionString()).thenReturn(ConnectionString(url))
+            `when`(
+                driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
+            ).thenReturn(1L)
+            `when`(driver.runCommand("admin", command, BuildInfo::class)).thenReturn(
+                defaultBuildInfo(url),
+            )
+
+            val data = BuildInfo.Slice.queryUsingDriver(driver)
+            assertEquals(atlasHost, data.atlasHost, "atlasHost does not match")
+        }
+
     private fun defaultBuildInfo(url: String) =
         BuildInfo(
             "7.8.0",
