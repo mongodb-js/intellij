@@ -89,6 +89,8 @@ jobs:
           sleep 10
           mkdir -p packages/jetbrains-plugin/build/reports
           ./gradlew :packages:jetbrains-plugin:runIdeForUiTests > packages/jetbrains-plugin/build/reports/idea.log &
+          IDEA_PID=$!
+          echo $IDEA_PID > idea.pid
       - name: Wait for IDE to start
         uses: jtalk/url-health-check-action@v3
         with:
@@ -99,6 +101,8 @@ jobs:
         run: |
           export DISPLAY=:99.0
           ./gradlew --quiet --console=plain :packages:jetbrains-plugin:uiTest
+          IDEA_PID=$(cat idea.pid)
+          kill -9 $IDEA_PID
 
       - name: Patch Plugin XML
         run: |
