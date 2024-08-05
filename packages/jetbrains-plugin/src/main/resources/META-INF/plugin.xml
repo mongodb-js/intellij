@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>com.mongodb.jbplugin</id>
-    <name>MongoDB Integration</name>
+    <name>MongoDB for IntelliJ</name>
     <vendor email="compass@mongodb.com" url="https://www.mongodb.com/">MongoDB, Inc.</vendor>
     <description><![CDATA[
     Enjoy working with MongoDB and Java with autocompletion, intelli-sense suggestions based on defined queries and indexes.<br>
