@@ -102,6 +102,7 @@ jobs:
         env:
           DISPLAY: ":99.0"
         with:
+          timeout_minutes: 30
           max_attempts: 3
           command: ./gradlew --quiet --console=plain :packages:jetbrains-plugin:uiTest
       - name: Stop IDEA
