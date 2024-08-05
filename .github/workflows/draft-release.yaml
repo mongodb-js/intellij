@@ -98,12 +98,16 @@ jobs:
           max-attempts: 15
           retry-delay: 30s
       - name: Run UI Tests
+        uses: nick-fields/retry@v3
+        env:
+          DISPLAY: ":99.0"
+        with:
+          max_attempts: 3
+          command: ./gradlew --quiet --console=plain :packages:jetbrains-plugin:uiTest
+      - name: Stop IDEA
         run: |
-          export DISPLAY=:99.0
-          ./gradlew --quiet --console=plain :packages:jetbrains-plugin:uiTest
           IDEA_PID=$(cat idea.pid)
           kill -9 $IDEA_PID
-
       - name: Patch Plugin XML
         run: |
           ./gradlew ":packages:jetbrains-plugin:patchPluginXml"
