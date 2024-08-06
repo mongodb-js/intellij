@@ -51,6 +51,7 @@ data class BuildInfo(
 ?.replace(Regex(""":\d+"""), "")
         .takeIf { isAtlas }
     object Slice : com.mongodb.jbplugin.accessadapter.Slice<BuildInfo> {
+        override val id = javaClass.canonicalName
         private val atlasRegex = Regex(""".*\.mongodb(-dev|-qa|-stage)?\.net(:\d+)?$""")
         private val atlasStreamRegex = Regex("""^atlas-stream-.+""")
         private val isLocalhostRegex =

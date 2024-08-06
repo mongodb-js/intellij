@@ -14,8 +14,6 @@ package com.mongodb.jbplugin.accessadapter
  */
 interface Slice<S : Any> {
     val id: String
-        get() = this.javaClass.simpleName
-
     suspend fun queryUsingDriver(from: MongoDbDriver): S
 }
 
