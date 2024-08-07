@@ -19,7 +19,7 @@ data class GetCollectionSchema(
     data class Slice(
         private val namespace: Namespace,
     ) : com.mongodb.jbplugin.accessadapter.Slice<GetCollectionSchema> {
-        override val id = "GetCollectionSchema::$namespace"
+        override val id = "${javaClass.canonicalName}::$namespace"
 
         override suspend fun queryUsingDriver(from: MongoDbDriver): GetCollectionSchema {
             val sampleSomeDocs = from.findAll(namespace, Filters.empty(), Document::class, limit = 50)
