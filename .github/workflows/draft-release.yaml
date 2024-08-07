@@ -117,10 +117,6 @@ jobs:
         run: |
           ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
 
-      - name: Patch Changelog
-        run: |
-          ./gradlew ":packages:jetbrains-plugin:patchChangelog"
-
       - name: Sign and Publish Plugin in Beta
         env:
           JB_PUBLISH_CHANNEL: "beta"
@@ -130,6 +126,10 @@ jobs:
           JB_PRIVATE_KEY_PASSWORD: ${{ secrets.JB_PRIVATE_KEY_PASSWORD }}
         run: |
           ./gradlew ":packages:jetbrains-plugin:publishPlugin"
+
+      - name: Patch Changelog
+        run: |
+          ./gradlew ":packages:jetbrains-plugin:patchChangelog"
 
       - name: Create Draft Release
         shell: bash
