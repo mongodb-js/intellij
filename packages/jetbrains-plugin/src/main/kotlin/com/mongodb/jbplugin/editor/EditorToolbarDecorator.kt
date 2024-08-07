@@ -20,6 +20,7 @@ import com.intellij.openapi.rd.util.launchChildBackground
 import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.messages.MessageBusConnection
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
@@ -37,7 +38,8 @@ class EditorToolbarDecorator(
     private val coroutineScope: CoroutineScope,
 ) : EditorFactoryListener,
     DataSourceManager.Listener,
-    JdbcDriverManager.Listener {
+    JdbcDriverManager.Listener,
+    PsiModificationTracker.Listener {
     internal val toolbar =
         MdbJavaEditorToolbar(
             onDataSourceSelected = this::onDataSourceSelected,
@@ -114,6 +116,7 @@ class EditorToolbarDecorator(
             messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
             messageBusConnection.subscribe(JdbcDriverManager.TOPIC, this)
 
+            messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
             val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
             toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
         }
@@ -122,6 +125,7 @@ class EditorToolbarDecorator(
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {
+
     }
 
     private fun ensureToolbarIsVisibleIfNecessary() {
@@ -211,6 +215,10 @@ class EditorToolbarDecorator(
         ) {
             toolbar.selectedDataSource = null
         }
+    }
+
+    override fun modificationCountChanged() {
+        ensureToolbarIsVisibleIfNecessary()
     }
 
     companion object {

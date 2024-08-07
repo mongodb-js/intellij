@@ -71,4 +71,18 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot.ideaFrame().cleanDataSources()
         assertFalse(toolbar.dataSources.listValues().contains(javaClass.simpleName))
     }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `shows the toolbar when a reference to the driver is added`(
+        remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
+    ) {
+        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
+
+        val editor = remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/NoDriverReference.java")
+        editor.insertTextAtLine(1, 0, "import com.mongodb.client.MongoClient;")
+
+        remoteRobot.findJavaEditorToolbar()
+    }
 }

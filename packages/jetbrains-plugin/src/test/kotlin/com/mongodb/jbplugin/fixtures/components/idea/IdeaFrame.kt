@@ -8,7 +8,10 @@ package com.mongodb.jbplugin.fixtures.components.idea
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
-import com.intellij.remoterobot.fixtures.*
+import com.intellij.remoterobot.fixtures.CommonContainerFixture
+import com.intellij.remoterobot.fixtures.DefaultXpath
+import com.intellij.remoterobot.fixtures.EditorFixture
+import com.intellij.remoterobot.fixtures.FixtureName
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.findVisible
 import org.owasp.encoder.Encode
@@ -28,7 +31,7 @@ class IdeaFrame(
     remoteRobot: RemoteRobot,
     remoteComponent: RemoteComponent,
 ) : CommonContainerFixture(remoteRobot, remoteComponent) {
-    fun openFile(path: String) {
+    fun openFile(path: String): EditorFixture {
         this.closeAllFiles()
 
         val escapedPath = Encode.forJavaScript(path)
@@ -61,6 +64,8 @@ class IdeaFrame(
         """,
             true,
         )
+
+        return remoteRobot.findVisible(EditorFixture.locator)
     }
 
     fun addDataSourceWithUrl(
