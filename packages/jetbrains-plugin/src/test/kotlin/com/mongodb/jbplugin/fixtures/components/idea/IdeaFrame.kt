@@ -31,7 +31,7 @@ class IdeaFrame(
     remoteRobot: RemoteRobot,
     remoteComponent: RemoteComponent,
 ) : CommonContainerFixture(remoteRobot, remoteComponent) {
-    fun openFile(path: String): EditorFixture {
+    fun openFile(path: String) {
         this.closeAllFiles()
 
         val escapedPath = Encode.forJavaScript(path)
@@ -64,9 +64,9 @@ class IdeaFrame(
         """,
             true,
         )
-
-        return remoteRobot.findVisible(EditorFixture.locator)
     }
+
+    fun currentEditor(): EditorFixture = remoteRobot.findVisible(EditorFixture.locator)
 
     fun addDataSourceWithUrl(
         name: String,
