@@ -30,7 +30,6 @@ class SettingsUiTest {
     fun `allows opening the privacy policy in a browser`(remoteRobot: RemoteRobot) {
         remoteRobot.openBrowserSettings().run {
             useFakeBrowser()
-            ok.click()
         }
 
         val settings = remoteRobot.openSettings()

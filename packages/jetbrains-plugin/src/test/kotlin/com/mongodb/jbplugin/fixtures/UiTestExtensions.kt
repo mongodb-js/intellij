@@ -10,6 +10,7 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
+import com.intellij.remoterobot.utils.keyboard
 import okhttp3.Request
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
@@ -110,6 +111,7 @@ private class UiTestExtension :
                 ?.annotations
                 ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
 
+        remoteRobot.keyboard { escape() }
         remoteRobot.closeProject()
 
         requiresProject?.let {

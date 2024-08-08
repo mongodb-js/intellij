@@ -41,10 +41,9 @@ class BrowserSettingsFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteCo
  "//div[@class='TextFieldWithBrowseButton']"))
         commandInput.click()
 
-        remoteRobot.keyboard {
-            selectAll()
-            enterText(Path("src", "test", "resources", "fake-browser.sh").toAbsolutePath().toString(), 5)
-        }
+        val browserCmd = Path("src", "test", "resources", "fake-browser.sh").toAbsolutePath().toString()
+        commandInput.runJs("""component.setText("$browserCmd")""", true)
+        remoteRobot.keyboard { enter() }
     }
 
     fun lastBrowserUrl(): String {

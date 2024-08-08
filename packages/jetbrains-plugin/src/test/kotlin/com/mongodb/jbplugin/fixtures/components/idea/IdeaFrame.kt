@@ -8,7 +8,10 @@ package com.mongodb.jbplugin.fixtures.components.idea
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
-import com.intellij.remoterobot.fixtures.*
+import com.intellij.remoterobot.fixtures.CommonContainerFixture
+import com.intellij.remoterobot.fixtures.DefaultXpath
+import com.intellij.remoterobot.fixtures.EditorFixture
+import com.intellij.remoterobot.fixtures.FixtureName
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.findVisible
 import org.owasp.encoder.Encode
@@ -62,6 +65,8 @@ class IdeaFrame(
             true,
         )
     }
+
+    fun currentEditor(): EditorFixture = remoteRobot.findVisible(EditorFixture.locator)
 
     fun addDataSourceWithUrl(
         name: String,
