@@ -7,7 +7,7 @@
 
     <p>MongoDB's official plugin includes early-stage features that are still being developed and tested. We strongly advise exercising caution when using the plugin in the current state.</p>
 
-    <p>Please report any issues or feature requests.</p>
+    <p>Please report <a href="https://github.com/mongodb-js/intellij/issues">any issues or feature requests</a>.</p>
 
     <b>Requirements</b>
     <ul>

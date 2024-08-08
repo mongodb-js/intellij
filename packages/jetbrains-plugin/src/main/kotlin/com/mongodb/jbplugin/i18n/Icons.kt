@@ -20,21 +20,17 @@ object Icons {
             val scaledGreenCircle = IconUtil.resizeSquared(greenCircle, 6)
             setIcon(scaledGreenCircle, 1, SwingConstants.SOUTH_EAST)
         }
-
     val connectionFailed = AllIcons.General.Error
     val remove = AllIcons.Diff.Remove
     private val databaseLight = IconLoader.getIcon("/icons/Database.svg", javaClass)
     private val databaseDark = IconLoader.getIcon("/icons/DatabaseDark.svg", javaClass)
     private val database = if (JBColor.isBright()) databaseLight else databaseDark
-
     private val collectionLight = IconLoader.getIcon("/icons/Collection.svg", javaClass)
     private val collectionDark = IconLoader.getIcon("/icons/CollectionDark.svg", javaClass)
     private val collection = if (JBColor.isBright()) collectionLight else collectionDark
-
     private val fieldLight = IconLoader.getIcon("/icons/Field.svg", javaClass)
     private val fieldDark = IconLoader.getIcon("/icons/FieldDark.svg", javaClass)
     private val field = if (JBColor.isBright()) fieldLight else fieldDark
-
     val databaseAutocompleteEntry = database
     val collectionAutocompleteEntry = collection
     val fieldAutocompleteEntry = field
