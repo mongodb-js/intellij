@@ -94,8 +94,10 @@ internal class DataGripMongoDbDriver(
         ) {
             runQuery(
                 """
-                db.getSiblingDB("${database.encodeForJs()}")
-                  .runCommand(EJSON.parse("${command.toJson()}"))
+                EJSON.serialize(
+                    db.getSiblingDB("${database.encodeForJs()}")
+                      .runCommand(EJSON.parse("${command.toJson()}"))
+                )
                 """.trimIndent(),
                 result,
                 timeout,
@@ -130,9 +132,12 @@ internal class DataGripMongoDbDriver(
         timeout: Duration,
     ) = withContext(Dispatchers.IO) {
         runQuery(
-            """db.getSiblingDB("${namespace.database.encodeForJs()}")
-                 .getCollection("${namespace.collection.encodeForJs()}")
-                 .find(EJSON.parse("${query.toJson()}")).limit($limit) 
+            """
+                EJSON.serialize(
+                    db.getSiblingDB("${namespace.database.encodeForJs()}")
+                     .getCollection("${namespace.collection.encodeForJs()}")
+                     .find(EJSON.parse("${query.toJson()}")).limit($limit).toArray()
+                )
             """.trimMargin(),
             result,
             timeout,
@@ -175,8 +180,6 @@ internal class DataGripMongoDbDriver(
                         listOfResults.add(resultSet.getObject(1) as T)
                     }
                 } else {
-                    val hashMapCodec = codecRegistry.get(Map::class.java)
-                    val encoderContext = EncoderContext.builder().isEncodingCollectibleDocument(true).build()
                     val decoderContext = DecoderContext.builder().checkedDiscriminator(true).build()
                     val outputCodec = codecRegistry.get(resultClass.java)
                     val gson = Gson()
