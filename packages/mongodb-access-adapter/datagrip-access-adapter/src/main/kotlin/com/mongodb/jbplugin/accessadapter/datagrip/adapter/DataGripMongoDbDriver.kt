@@ -187,10 +187,10 @@ internal class DataGripMongoDbDriver(
 
                     while (resultSet.next()) {
                         val hashMap = resultSet.getObject(1) as Map<String, Any>
-                        val document = Document.parse(gson.toJson(hashMap)).toBsonDocument(resultClass.java,
- codecRegistry)
+                        val mdbDocument = Document.parse(gson.toJson(hashMap))
+                        val bsonDocument = mdbDocument.toBsonDocument(resultClass.java, codecRegistry)
 
-                        val result = outputCodec.decode(document.asBsonReader(), decoderContext)
+                        val result = outputCodec.decode(bsonDocument.asBsonReader(), decoderContext)
                         listOfResults.add(result)
                     }
                 }
