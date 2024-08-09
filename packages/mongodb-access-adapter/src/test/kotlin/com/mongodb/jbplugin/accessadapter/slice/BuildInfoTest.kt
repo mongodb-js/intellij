@@ -26,8 +26,8 @@ class BuildInfoTest {
             `when`(
                 driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
             ).thenReturn(1L)
-            `when`(driver.runCommand("admin", command, BuildInfo::class)).thenReturn(
-                defaultBuildInfo("mongodb://localhost"),
+            `when`(driver.runCommand("admin", command, BuildInfoFromMongoDb::class)).thenReturn(
+                defaultBuildInfo(),
             )
 
             val data = BuildInfo.Slice.queryUsingDriver(driver)
@@ -90,8 +90,8 @@ class BuildInfoTest {
             `when`(
                 driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
             ).thenReturn(1L)
-            `when`(driver.runCommand("admin", command, BuildInfo::class)).thenReturn(
-                defaultBuildInfo(url),
+            `when`(driver.runCommand("admin", command, BuildInfoFromMongoDb::class)).thenReturn(
+                defaultBuildInfo(),
             )
 
             val data = BuildInfo.Slice.queryUsingDriver(driver)
@@ -132,29 +132,20 @@ class BuildInfoTest {
             `when`(
                 driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
             ).thenReturn(1L)
-            `when`(driver.runCommand("admin", command, BuildInfo::class)).thenReturn(
-                defaultBuildInfo(url),
+            `when`(driver.runCommand("admin", command, BuildInfoFromMongoDb::class)).thenReturn(
+                defaultBuildInfo(),
             )
 
             val data = BuildInfo.Slice.queryUsingDriver(driver)
             assertEquals(atlasHost, data.atlasHost, "atlasHost does not match")
         }
 
-    private fun defaultBuildInfo(url: String) =
-        BuildInfo(
+    private fun defaultBuildInfo() =
+        BuildInfoFromMongoDb(
             "7.8.0",
             "1235abc",
             emptyList(),
+                    emptyMap(),
             false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            null,
-            ConnectionString(url),
-            buildEnvironment = emptyMap(),
         )
 }

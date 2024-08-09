@@ -9,7 +9,13 @@ import org.bson.Document
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
+import java.math.BigDecimal
+import java.util.*
+
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toJavaInstant
 
 @IntegrationTest
 class DataGripMongoDbDriverTest {
@@ -60,23 +66,27 @@ class DataGripMongoDbDriverTest {
         version: MongoDbVersion,
         driver: MongoDbDriver,
     ) = runBlocking {
+        driver as DataGripMongoDbDriver
+
         data class ExampleDocument(
             val text: String,
+            val date: Date,
+            val decimal: BigDecimal
         )
 
-        driver.runCommand(
-            "test",
-            Document(
-                mapOf(
-                    "insert" to "docs",
-                    "documents" to
-                        listOf(
-                            ExampleDocument("myExampleTest"),
-                        ),
-                ),
-            ),
-            Unit::class,
-        )
+        val decimalValue = BigDecimal("52.3249824889273498237498")
+        val dateString = "2024-08-09T12:06:00.467Z"
+        val dateValue = Date.from(Instant.parse(dateString).toJavaInstant())
+
+        driver.runQuery("""
+            db.docs
+            .insertOne(
+                { text: "myExampleTest", 
+                  date: ISODate('$dateString'), 
+                  decimal: { ${'$'}numberDecimal: "52.3249824889273498237498" }
+                }
+            )
+        """.trimIndent(), Unit::class, 5.seconds)
 
         val result =
             driver.findOne(
@@ -87,6 +97,8 @@ class DataGripMongoDbDriverTest {
             )
 
         assertEquals(result?.text, "myExampleTest")
+        assertEquals(result?.date, dateValue)
+        assertEquals(result?.decimal, decimalValue)
     }
 
     @Test
