@@ -52,7 +52,7 @@ jobs:
           fi
 
           NEXT_VERSION=$(./gradlew --quiet --console=plain getVersion)
-          echo "RELEASE_TAG=v${NEXT_VERSION}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=v0.0.2" >> "$GITHUB_ENV"
 
       - name: Validate release tag
         shell: bash
