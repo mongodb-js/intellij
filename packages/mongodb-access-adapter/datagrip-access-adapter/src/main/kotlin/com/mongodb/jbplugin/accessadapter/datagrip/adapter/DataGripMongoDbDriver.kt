@@ -16,6 +16,13 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.mql.Namespace
+import org.bson.BsonReader
+import org.bson.BsonWriter
+import org.bson.Document
+import org.bson.codecs.Codec
+import org.bson.codecs.DecoderContext
+import org.bson.codecs.EncoderContext
+import org.bson.codecs.configuration.CodecRegistries
 import org.bson.codecs.configuration.CodecRegistries.fromRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
@@ -55,8 +62,10 @@ internal class DataGripMongoDbDriver(
     private val codecRegistry: CodecRegistry =
         fromRegistries(
             MongoClientSettings.getDefaultCodecRegistry(),
+            CodecRegistries.fromCodecs(
+                UnitCodec
+            )
         )
-    private val gson = Gson()
     private val jsonWriterSettings =
         JsonWriterSettings
             .builder()
@@ -102,9 +111,11 @@ internal class DataGripMongoDbDriver(
     ): T? =
         withContext(Dispatchers.IO) {
             runQuery(
-                """db.getSiblingDB("${namespace.database.encodeForJs()}")
-                 .getCollection("${namespace.collection.encodeForJs()}")
-                 .findOne(EJSON.parse("${query.toJson()}"), EJSON.parse("${options.toJson()}")) 
+                """EJSON.serialize(
+                      db.getSiblingDB("${namespace.database.encodeForJs()}")
+                     .getCollection("${namespace.collection.encodeForJs()}")
+                     .findOne(EJSON.parse("${query.toJson()}"), EJSON.parse("${options.toJson()}"))
+                )
                 """.trimMargin(),
                 result,
                 timeout,
@@ -144,7 +155,8 @@ internal class DataGripMongoDbDriver(
         )[0]
     }
 
-    suspend fun <T : Any> runQuery(
+    @VisibleForTesting
+    internal suspend fun <T : Any> runQuery(
         queryString: String,
         resultClass: KClass<T>,
         timeout: Duration,
@@ -156,16 +168,24 @@ internal class DataGripMongoDbDriver(
 
             withTimeout(timeout) {
                 val listOfResults = mutableListOf<T>()
-                val resultSet = statement.executeQuery()
+                val resultSet = statement.executeQuery() ?: return@withTimeout emptyList()
 
                 if (resultClass.java.isPrimitive || resultClass == String::class.java) {
                     while (resultSet.next()) {
                         listOfResults.add(resultSet.getObject(1) as T)
                     }
                 } else {
+                    val hashMapCodec = codecRegistry.get(Map::class.java)
+                    val encoderContext = EncoderContext.builder().isEncodingCollectibleDocument(true).build()
+                    val decoderContext = DecoderContext.builder().checkedDiscriminator(true).build()
+                    val outputCodec = codecRegistry.get(resultClass.java)
+                    val gson = Gson()
+
                     while (resultSet.next()) {
                         val hashMap = resultSet.getObject(1) as Map<String, Any>
-                        val result = gson.fromJson(gson.toJson(hashMap), resultClass.java)
+                        val document = Document.parse(gson.toJson(hashMap)).toBsonDocument()
+
+                        val result = outputCodec.decode(document.asBsonReader(), decoderContext)
                         listOfResults.add(result)
                     }
                 }
@@ -225,6 +245,25 @@ internal class DataGripMongoDbDriver(
             fn(myConnections)
             myConnectionsField.isAccessible = false
         }
+    }
+}
+
+/**
+ * The Java driver doesn't know how to serialize/deserialize Unit (Kotlin's void)
+ * so we are adding our custom implementation that is noop.
+ */
+private object UnitCodec : Codec<Unit> {
+    override fun encode(
+writer: BsonWriter,
+ value: Unit,
+ encoderContext: EncoderContext
+) {
+    }
+
+    override fun getEncoderClass(): Class<Unit> = Unit::class.java
+
+    override fun decode(reader: BsonReader, decoderContext: DecoderContext) {
+        return
     }
 }
 
