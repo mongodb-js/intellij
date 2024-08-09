@@ -22,7 +22,6 @@ import org.bson.Document
 import org.bson.codecs.Codec
 import org.bson.codecs.DecoderContext
 import org.bson.codecs.EncoderContext
-import org.bson.codecs.configuration.CodecRegistries
 import org.bson.codecs.configuration.CodecRegistries.fromRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
@@ -61,10 +60,7 @@ internal class DataGripMongoDbDriver(
 
     private val codecRegistry: CodecRegistry =
         fromRegistries(
-            MongoClientSettings.getDefaultCodecRegistry(),
-            CodecRegistries.fromCodecs(
-                UnitCodec
-            )
+            MongoClientSettings.getDefaultCodecRegistry()
         )
     private val jsonWriterSettings =
         JsonWriterSettings
@@ -175,18 +171,24 @@ internal class DataGripMongoDbDriver(
                 val listOfResults = mutableListOf<T>()
                 val resultSet = statement.executeQuery() ?: return@withTimeout emptyList()
 
+                if (resultClass.java == Unit::class.java) {
+                    listOfResults.add(Unit as T)
+                    return@withTimeout listOfResults
+                }
+
                 if (resultClass.java.isPrimitive || resultClass == String::class.java) {
                     while (resultSet.next()) {
                         listOfResults.add(resultSet.getObject(1) as T)
                     }
                 } else {
-                    val decoderContext = DecoderContext.builder().checkedDiscriminator(true).build()
+                    val decoderContext = DecoderContext.builder().build()
                     val outputCodec = codecRegistry.get(resultClass.java)
                     val gson = Gson()
 
                     while (resultSet.next()) {
                         val hashMap = resultSet.getObject(1) as Map<String, Any>
-                        val document = Document.parse(gson.toJson(hashMap)).toBsonDocument()
+                        val document = Document.parse(gson.toJson(hashMap)).toBsonDocument(resultClass.java,
+ codecRegistry)
 
                         val result = outputCodec.decode(document.asBsonReader(), decoderContext)
                         listOfResults.add(result)

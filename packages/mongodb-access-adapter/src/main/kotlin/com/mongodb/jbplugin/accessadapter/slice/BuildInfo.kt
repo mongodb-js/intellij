@@ -85,21 +85,26 @@ data class BuildInfo(
                     null
                 }
 
-            val buildInfo =
+            val buildInfoFromMongoDb =
                 runBuildInfoCommandIfConnected(from)
 
-            return buildInfo.copy(
+            return BuildInfo(
+                version = buildInfoFromMongoDb.version,
+                gitVersion = buildInfoFromMongoDb.gitVersion,
+                modules = buildInfoFromMongoDb.modules,
+                buildEnvironment = buildInfoFromMongoDb.buildEnvironment,
                 isLocalhost = isLocalHost,
                 isEnterprise =
-                    buildInfo.gitVersion?.contains("enterprise") == true ||
-                        buildInfo.modules?.contains("enterprise") == true,
+                buildInfoFromMongoDb.gitVersion?.contains("enterprise") == true ||
+                        buildInfoFromMongoDb.modules?.contains("enterprise") == true,
                 isAtlas = isAtlas,
                 isLocalAtlas = isLocalAtlas,
                 isAtlasStream = isAtlasStream,
                 isDigitalOcean = isDigitalOcean,
                 isGenuineMongoDb = nonGenuineVariant == null,
                 nonGenuineVariant = nonGenuineVariant,
-                serverUrl = connectionString,
+                isDataLake = buildInfoFromMongoDb.isDataLake ?: false,
+                serverUrl = connectionString
             )
         }
 
@@ -122,7 +127,7 @@ data class BuildInfo(
                             "buildInfo" to 1,
                         ),
                     ),
-                    BuildInfo::class,
+                    BuildInfoFromMongoDb::class,
                 )
             } else {
                 empty()
@@ -130,22 +135,28 @@ data class BuildInfo(
     }
 
     companion object {
-        fun empty(): BuildInfo =
-            BuildInfo(
+        private fun empty(): BuildInfoFromMongoDb =
+            BuildInfoFromMongoDb(
                 "<unknown>",
                 null,
                 null,
-                false,
-                false,
-                false,
-                false,
-                false,
-                false,
-                false,
-                false,
-                null,
-                null,
                 emptyMap(),
+                false
             )
     }
 }
+
+/**
+ * @property version
+ * @property gitVersion
+ * @property modules
+ * @property buildEnvironment
+ * @property isDataLake
+ */
+internal data class BuildInfoFromMongoDb(
+    val version: String,
+    val gitVersion: String?,
+    val modules: List<String>?,
+    val buildEnvironment: Map<String, String>,
+    val isDataLake: Boolean?
+)
