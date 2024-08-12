@@ -8,7 +8,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialectFormat
 
 object SpringCriteriaDialect : Dialect<PsiElement> {
     override val parser: DialectParser<PsiElement>
-        get() = TODO("Not yet implemented")
+        get() = SpringCriteriaDialectParser
 
     override val formatter: DialectFormatter
         get() = JavaDriverDialectFormatter
