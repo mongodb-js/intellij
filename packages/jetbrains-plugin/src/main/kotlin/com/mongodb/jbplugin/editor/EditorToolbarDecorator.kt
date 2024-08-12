@@ -16,6 +16,9 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.rd.util.launchChildBackground
 import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiJavaFile
@@ -37,6 +40,7 @@ import kotlinx.coroutines.CoroutineScope
 class EditorToolbarDecorator(
     private val coroutineScope: CoroutineScope,
 ) : EditorFactoryListener,
+    FileEditorManagerListener,
     DataSourceManager.Listener,
     JdbcDriverManager.Listener,
     PsiModificationTracker.Listener {
@@ -107,12 +111,20 @@ class EditorToolbarDecorator(
         DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
     }
 
+    override fun selectionChanged(event: FileEditorManagerEvent) {
+        (event.newEditor as TextEditor)?.editor?.let {
+            editor = it
+            ensureToolbarIsVisibleIfNecessary()
+        }
+    }
+
     override fun editorCreated(event: EditorFactoryEvent) {
         editor = event.editor
 
         editor.project?.let {
             val project = editor.project!!
             messageBusConnection = project.messageBus.connect()
+            messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
             messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
             messageBusConnection.subscribe(JdbcDriverManager.TOPIC, this)
 
