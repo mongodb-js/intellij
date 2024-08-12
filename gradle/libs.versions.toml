@@ -1,10 +1,10 @@
 [versions]
 # IntelliJ platform dependencies
 intellij-min = "2024.1.1"
+intellij-minBuild = "241.15989.155"
 intellij-type = "IU"
 intellij-remoteRobot = "0.11.22"
 intellij-plugin = "1.17.3"
-intellij-testBuild = "241.14494.241"
 intellij-changelog-plugin = "2.2.0"
 # Other plugin dependencies
 versions-plugin = "0.51.0"
@@ -28,7 +28,7 @@ gson = "2.10.1"
 mongodb-driver = "5.1.3"
 owasp-encoder = "1.2.3"
 testContainers = "1.19.8"
-intellij-database = "241.15989.150"
+spring-mongodb="4.3.2"
 
 [plugins]
 intellij = { id = "org.jetbrains.intellij", version.ref = "intellij-plugin" }
@@ -49,11 +49,11 @@ kotlin-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coro
 ######################################################
 ## IntelliJ compileOnly libraries. They must not be bundled because they are already part of the
 ## JetBrains ecosystem.
-intellij-database-sql = { group = "com.jetbrains.intellij.database", name = "database-sql", version.ref = "intellij-database" }
-intellij-database-connectivity = { group = "com.jetbrains.intellij.database", name = "database-connectivity", version.ref = "intellij-database" }
-intellij-database-jdbc-console = { group = "com.jetbrains.intellij.database", name = "database-jdbc-console", version.ref = "intellij-database" }
-intellij-database-core-base = { group = "com.jetbrains.intellij.database", name = "database", version.ref = "intellij-database" }
-intellij-database-core-impl = { group = "com.jetbrains.intellij.database", name = "database-core-impl", version.ref = "intellij-database" }
+intellij-database-sql = { group = "com.jetbrains.intellij.database", name = "database-sql", version.ref = "intellij-minBuild" }
+intellij-database-connectivity = { group = "com.jetbrains.intellij.database", name = "database-connectivity", version.ref = "intellij-minBuild" }
+intellij-database-jdbc-console = { group = "com.jetbrains.intellij.database", name = "database-jdbc-console", version.ref = "intellij-minBuild" }
+intellij-database-core-base = { group = "com.jetbrains.intellij.database", name = "database", version.ref = "intellij-minBuild" }
+intellij-database-core-impl = { group = "com.jetbrains.intellij.database", name = "database-core-impl", version.ref = "intellij-minBuild" }
 ######################################################
 ## Production Libraries.
 segment = { group = "com.segment.analytics.java", name = "analytics", version.ref = "segment" }
@@ -74,8 +74,9 @@ testing-remoteRobot = { group = "com.intellij.remoterobot", name = "remote-robot
 testing-remoteRobotDeps-remoteFixtures = { group = "com.intellij.remoterobot", name = "remote-fixtures", version.ref = "intellij-remoteRobot" }
 testing-remoteRobotDeps-ideLauncher = { group = "com.intellij.remoterobot", name = "ide-launcher", version.ref = "intellij-remoteRobot" }
 testing-remoteRobotDeps-okHttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okHttp" }
-testing-intellij-ideImpl = { group = "com.jetbrains.intellij.platform", name = "ide", version.ref = "intellij-testBuild" }
-testing-intellij-coreUi = { group = "com.jetbrains.intellij.platform", name = "core-ui", version.ref = "intellij-testBuild" }
+testing-intellij-ideImpl = { group = "com.jetbrains.intellij.platform", name = "ide", version.ref = "intellij-minBuild" }
+testing-intellij-coreUi = { group = "com.jetbrains.intellij.platform", name = "core-ui", version.ref = "intellij-minBuild" }
+testing-intellij-testingFramework = { group = "com.jetbrains.intellij.platform", name = "test-framework-junit5", version.ref = "intellij-minBuild" }
 testing-remoteRobotDeps-retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 testing-remoteRobotDeps-retrofitGson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 testing-jmh-core = { group = "org.openjdk.jmh", name = "jmh-core", version.ref = "jmh" }
@@ -84,6 +85,8 @@ testing-jmh-generatorByteCode = { group = "org.openjdk.jmh", name = "jmh-generat
 testing-testContainers-core = { group = "org.testcontainers", name = "testcontainers", version.ref = "testContainers" }
 testing-testContainers-mongodb = { group = "org.testcontainers", name = "mongodb", version.ref = "testContainers" }
 testing-testContainers-jupiter = { group = "org.testcontainers", name = "junit-jupiter", version.ref = "testContainers" }
+testing-spring-mongodb = { group = "org.springframework.data", name="spring-data-mongodb", version.ref="spring-mongodb" }
+
 ######################################################
 ## Libraries and plugins only used for the buildScript.
 buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = "1.9.23" }

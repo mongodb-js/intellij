@@ -12,6 +12,7 @@ include(
     "packages:mongodb-mql-model",
     "packages:mongodb-dialects",
     "packages:mongodb-dialects:java-driver",
+    "packages:mongodb-dialects:spring-criteria",
     "packages:mongodb-autocomplete-engine",
     "packages:mongodb-linting-engine",
     "packages:mongodb-access-adapter",

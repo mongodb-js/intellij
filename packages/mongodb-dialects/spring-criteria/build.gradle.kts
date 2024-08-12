@@ -40,8 +40,9 @@ intellij {
 dependencies {
     implementation(project(":packages:mongodb-mql-model"))
     implementation(project(":packages:mongodb-dialects"))
+    implementation(project(":packages:mongodb-dialects:java-driver"))
 
-    testImplementation(libs.mongodb.driver)
+    testImplementation(libs.testing.spring.mongodb)
     testImplementation(libs.testing.intellij.testingFramework) {
         exclude("ai.grazie.spell")
         exclude("ai.grazie.utils")
