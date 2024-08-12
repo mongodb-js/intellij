@@ -27,6 +27,7 @@ dependencies {
     implementation(project(":packages:mongodb-autocomplete-engine"))
     implementation(project(":packages:mongodb-dialects"))
     implementation(project(":packages:mongodb-dialects:java-driver"))
+    implementation(project(":packages:mongodb-dialects:spring-criteria"))
     implementation(project(":packages:mongodb-linting-engine"))
     implementation(project(":packages:mongodb-mql-model"))
 
