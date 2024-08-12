@@ -93,7 +93,7 @@ internal class DataGripMongoDbDriver(
                 EJSON.serialize(
                     db.getSiblingDB("${database.encodeForJs()}")
                       .runCommand(EJSON.parse("${command.toJson()}"))
-                )
+                , { relaxed: false })
                 """.trimIndent(),
                 result,
                 timeout,
@@ -113,7 +113,7 @@ internal class DataGripMongoDbDriver(
                       db.getSiblingDB("${namespace.database.encodeForJs()}")
                      .getCollection("${namespace.collection.encodeForJs()}")
                      .findOne(EJSON.parse("${query.toJson()}"), EJSON.parse("${options.toJson()}"))
-                )
+                , { relaxed: false })
                 """.trimMargin(),
                 result,
                 timeout,
@@ -133,7 +133,7 @@ internal class DataGripMongoDbDriver(
                     db.getSiblingDB("${namespace.database.encodeForJs()}")
                      .getCollection("${namespace.collection.encodeForJs()}")
                      .find(EJSON.parse("${query.toJson()}")).limit($limit).toArray()
-                )
+                , { relaxed: false })
             """.trimMargin(),
             result,
             timeout,
