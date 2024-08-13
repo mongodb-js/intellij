@@ -100,7 +100,7 @@ jobs:
           cache: 'gradle'
       - name: Run Linter
         run: |
-          ./gradlew --quiet --console=plain spotlessApply
+          ./gradlew --quiet --console=plain spotlessCheck
 
   unit-tests:
     name: 'Unit Tests'
