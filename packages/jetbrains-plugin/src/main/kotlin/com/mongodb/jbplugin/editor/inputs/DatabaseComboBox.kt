@@ -12,14 +12,17 @@ import java.awt.event.ItemEvent
 import javax.swing.DefaultComboBoxModel
 import javax.swing.SwingConstants
 
-typealias DatabaseSelectedListener = (String) -> Unit;
-typealias DatabaseUnselectedListener = () -> Unit;
+typealias DatabaseSelectedListener = (String) -> Unit
+typealias DatabaseUnselectedListener = () -> Unit
 
+/**
+ * @param onDatabaseSelected
+ * @param onDatabaseUnselected
+ */
 class DatabaseComboBox(
     private val onDatabaseSelected: DatabaseSelectedListener,
     private val onDatabaseUnselected: DatabaseUnselectedListener,
 ) : ComboBox<String>() {
-
     var databases: List<String>
         set(value) {
             val selectedItem = this.selectedDatabase
@@ -28,6 +31,7 @@ class DatabaseComboBox(
             model.addElement(null)
             model.addAll(value)
             selectDatabaseByName(selectedItem)
+            isEnabled = value.isNotEmpty()
         }
         get() =
             (model as DefaultComboBoxModel<String>).asSequence().toList().filterNotNull()
@@ -40,6 +44,7 @@ class DatabaseComboBox(
 
     init {
         prototypeDisplayValue = "XXXXXXXXXXXXXX"
+        databases = emptyList()
 
         addItemListener {
             if (it.stateChange == ItemEvent.DESELECTED) {

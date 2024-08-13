@@ -20,12 +20,14 @@ import com.mongodb.jbplugin.editor.inputs.DataSourceComboBox
 import com.mongodb.jbplugin.editor.inputs.DatabaseComboBox
 import com.mongodb.jbplugin.editor.inputs.DatabaseSelectedListener
 import com.mongodb.jbplugin.editor.inputs.DatabaseUnselectedListener
-import kotlinx.coroutines.CoroutineScope
+
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
 import javax.swing.JComponent
 import javax.swing.JDialog
 import javax.swing.JPanel
+
+import kotlinx.coroutines.CoroutineScope
 
 typealias OnConnectedListener = (LocalDataSource) -> Unit
 typealias OnDisconnectedListener = () -> Unit
@@ -33,34 +35,45 @@ typealias OnDisconnectedListener = () -> Unit
 /**
  * Represents the toolbar that will be inserted into an active Java editor.
  *
- * @param onDataSourceSelected
- * @param onDataSourceUnselected
+ * @param project
+ * @param coroutineScope
+ * @param onConnected
+ * @param onDisconnected
+ * @param onDatabaseSelected
+ * @param onDatabaseUnselected
  */
 class MdbJavaEditorToolbar(
     private val project: Project,
     private val coroutineScope: CoroutineScope,
     private val onConnected: OnConnectedListener,
     private val onDisconnected: OnDisconnectedListener,
-    private val onDatabaseSelected: DatabaseSelectedListener,
-    private val onDatabaseUnselected: DatabaseUnselectedListener
+    onDatabaseSelected: DatabaseSelectedListener,
+    onDatabaseUnselected: DatabaseUnselectedListener
 ) : JBPanel<MdbJavaEditorToolbar>(BorderLayout()) {
     internal val dataSourceComboBox: DataSourceComboBox = DataSourceComboBox(
         onDataSourceSelected = this::onDataSourceSelected,
         onDataSourceUnselected = this::onDataSourceUnselected
     )
-
     internal val databaseComboBox: DatabaseComboBox = DatabaseComboBox(
         onDatabaseSelected = onDatabaseSelected,
         onDatabaseUnselected = onDatabaseUnselected
     )
+    private val dropdowns = JPanel()
 
     init {
-        val dropdowns = JPanel()
         dropdowns.layout = BoxLayout(dropdowns, BoxLayout.X_AXIS)
 
         dropdowns.add(dataSourceComboBox)
         dropdowns.add(databaseComboBox)
         add(dropdowns, BorderLayout.EAST)
+    }
+
+    fun showDatabaseSelector() {
+        dropdowns.add(databaseComboBox)
+    }
+
+    fun hideDatabaseSelector() {
+        dropdowns.remove(databaseComboBox)
     }
 
     private fun onDataSourceSelected(dataSource: LocalDataSource) {
@@ -116,13 +129,13 @@ class MdbJavaEditorToolbar(
     }
 
     fun reloadDatabases() {
-        if (dataSourceComboBox.selectedDataSource == null) {
-            databaseComboBox.databases = emptyList()
-        } else {
-            val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
-            val databases = readModel.slice(dataSourceComboBox.selectedDataSource!!, ListDatabases.Slice)
-            databaseComboBox.databases = databases.databases.map { it.name }
-        }
+        dataSourceComboBox.selectedDataSource?.let {
+val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
+val databases = readModel.slice(dataSourceComboBox.selectedDataSource!!, ListDatabases.Slice)
+databaseComboBox.databases = databases.databases.map { it.name }
+} ?: run {
+databaseComboBox.databases = emptyList()
+}
     }
     fun disconnect(dataSource: LocalDataSource) {
         if (dataSource.isMongoDbDataSource() &&
@@ -156,7 +169,7 @@ class MdbJavaEditorToolbar(
                 val localDataSourceManager =
                     DataSourceManager.byDataSource(project, LocalDataSource::class.java)
                         ?: return@invokeLater
-                toolbar.dataSourceComboBox.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+                toolbar.reloadDataSources(localDataSourceManager.dataSources)
 
                 val dialog = SelectConnectionDialogWrapper(project, toolbar)
                 if (dialog.showAndGet()) {

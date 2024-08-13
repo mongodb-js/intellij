@@ -24,6 +24,7 @@ val PsiFile.dataSource: LocalDataSource?
 class MongoDbVirtualFileDataSourceProvider : VirtualFileDataSourceProvider() {
     object Keys {
         internal val attachedDataSource: Key<LocalDataSource> = Key.create("com.mongodb.jbplugin.AttachedDataSource")
+        internal val attachedDatabase: Key<String> = Key.create("com.mongodb.jbplugin.AttachedDatabase")
     }
 
     override fun getDataSource(
@@ -35,4 +36,8 @@ class MongoDbVirtualFileDataSourceProvider : VirtualFileDataSourceProvider() {
 
         return facade.findDataSource(attachedDataSource.uniqueId)
     }
+
+    fun getDatabase(
+        file: VirtualFile
+    ): String? = file.getUserData(Keys.attachedDatabase)
 }

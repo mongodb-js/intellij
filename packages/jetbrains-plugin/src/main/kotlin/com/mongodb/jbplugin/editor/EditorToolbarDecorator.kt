@@ -22,7 +22,6 @@ import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.messages.MessageBusConnection
-import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
 import kotlinx.coroutines.CoroutineScope
@@ -64,6 +63,18 @@ class EditorToolbarDecorator(
         DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
     }
 
+    fun onDatabaseSelected(database: String) {
+        editor.virtualFile?.putUserData(Keys.attachedDatabase, database)
+        val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
+        DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+    }
+
+    fun onDatabaseUnselected() {
+        editor.virtualFile?.putUserData(Keys.attachedDatabase, null)
+        val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
+        DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+    }
+
     override fun selectionChanged(event: FileEditorManagerEvent) {
         (event.newEditor as? TextEditor)?.editor?.let {
             editor = it
@@ -79,8 +90,8 @@ class EditorToolbarDecorator(
             coroutineScope,
             onConnected = this::onConnected,
             onDisconnected = this::onDisconnected,
-            onDatabaseSelected = {},
-            onDatabaseUnselected = {}
+            onDatabaseSelected = this::onDatabaseSelected,
+            onDatabaseUnselected = this::onDatabaseUnselected
         )
 
         editor.project?.let { project ->
@@ -130,15 +141,30 @@ class EditorToolbarDecorator(
         }
 
         val javaPsiFile = psiFile as PsiJavaFile
-        return arrayOf(
-            this::isUsingTheJavaDriver,
-        ).any { it(javaPsiFile) }
+        if (isUsingSpringDataMongoDb(javaPsiFile)) {
+            toolbar.showDatabaseSelector()
+            return true
+        }
+
+        if (isUsingTheJavaDriver(javaPsiFile)) {
+            toolbar.hideDatabaseSelector()
+            return true
+        }
+
+        return false
     }
 
     private fun isUsingTheJavaDriver(psiFile: PsiJavaFile): Boolean {
         val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
         return importStatements.any {
             return@any it.importReference?.canonicalText?.startsWith("com.mongodb") == true
+        }
+    }
+
+    private fun isUsingSpringDataMongoDb(psiFile: PsiJavaFile): Boolean {
+        val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
+        return importStatements.any {
+            return@any it.importReference?.canonicalText?.startsWith("org.springframework.data.mongodb") == true
         }
     }
 
