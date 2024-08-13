@@ -76,7 +76,7 @@ class MdbJavaEditorToolbar(
         dropdowns.remove(databaseComboBox)
     }
 
-    private fun onDataSourceSelected(dataSource: LocalDataSource) {
+    internal fun onDataSourceSelected(dataSource: LocalDataSource) {
         if (!dataSource.isConnected()) {
             coroutineScope.launchChildBackground {
                 dataSourceComboBox.connecting = true
@@ -119,7 +119,7 @@ class MdbJavaEditorToolbar(
         }
     }
 
-    fun onDataSourceUnselected() {
+    internal fun onDataSourceUnselected() {
         onDisconnected()
         reloadDatabases()
     }

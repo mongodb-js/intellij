@@ -17,6 +17,10 @@ import javax.swing.SwingConstants
 typealias DataSourceSelectedListener = (LocalDataSource) -> Unit
 typealias DataSourceUnselectedListener = () -> Unit
 
+/**
+ * @param onDataSourceSelected
+ * @param onDataSourceUnselected
+ */
 class DataSourceComboBox(
     private val onDataSourceSelected: DataSourceSelectedListener,
     private val onDataSourceUnselected: DataSourceUnselectedListener,

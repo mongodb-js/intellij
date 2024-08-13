@@ -16,7 +16,6 @@ import com.mongodb.jbplugin.inspections.MongoDbInspection
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * This inspection object calls the linting engine and transforms the result so they can be rendered in the IntelliJ

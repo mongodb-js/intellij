@@ -45,34 +45,32 @@ class EditorToolbarDecorator(
 
     fun onConnected(dataSource: LocalDataSource) {
         editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
+        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
+
         ApplicationManager.getApplication().invokeLater {
-            val session = DatabaseSessionManager.openSession(editor.project!!, dataSource, null)
+            val project = editor.project!!
+            val session = DatabaseSessionManager.openSession(project, dataSource, null)
             val probe = NewConnectionActivatedProbe()
             probe.connected(session)
 
-            val psiFile =
-                PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile)
-                    ?: return@invokeLater
-            DaemonCodeAnalyzer.getInstance(editor.project!!).restart(psiFile)
+            analyzeFileFromScratch()
         }
     }
 
     fun onDisconnected() {
         editor.virtualFile?.removeUserData(Keys.attachedDataSource) ?: return
-        val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
-        DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
+        analyzeFileFromScratch()
     }
 
     fun onDatabaseSelected(database: String) {
         editor.virtualFile?.putUserData(Keys.attachedDatabase, database)
-        val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
-        DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+        analyzeFileFromScratch()
     }
 
     fun onDatabaseUnselected() {
-        editor.virtualFile?.putUserData(Keys.attachedDatabase, null)
-        val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
-        DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
+        analyzeFileFromScratch()
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
@@ -201,6 +199,13 @@ class EditorToolbarDecorator(
 
     override fun modificationCountChanged() {
         ensureToolbarIsVisibleIfNecessary()
+    }
+
+    private fun analyzeFileFromScratch() {
+        runCatching {
+            val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
+            DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+        }
     }
 
     companion object {
