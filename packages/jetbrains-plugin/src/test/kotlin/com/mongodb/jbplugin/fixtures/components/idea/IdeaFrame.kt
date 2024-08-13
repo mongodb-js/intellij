@@ -31,8 +31,10 @@ class IdeaFrame(
     remoteRobot: RemoteRobot,
     remoteComponent: RemoteComponent,
 ) : CommonContainerFixture(remoteRobot, remoteComponent) {
-    fun openFile(path: String) {
-        this.closeAllFiles()
+    fun openFile(path: String, closeOpenedFiles: Boolean = true) {
+        if (closeOpenedFiles) {
+            this.closeAllFiles()
+        }
 
         val escapedPath = Encode.forJavaScript(path)
 
@@ -51,12 +53,13 @@ class IdeaFrame(
                 const file = LocalFileSystem.getInstance().findFileByPath(projectPath + '/' + path)
                 const openFileFunction = new Runnable({
                     run: function() {
-                        FileEditorManager.getInstance(project).openTextEditor(
-                            new OpenFileDescriptor(
-                                project,
-                                file
-                            ), true
-                        )
+                        const fileEditorManager = FileEditorManager.getInstance(project);
+                        const fileDescriptor = new OpenFileDescriptor(
+                            project,
+                            file
+                        );
+                        fileEditorManager.openTextEditor(fileDescriptor, true)
+                        fileEditorManager.navigateToTextEditor(fileDescriptor)
                     }
                 })
                 ApplicationManager.getApplication().invokeLater(openFileFunction)

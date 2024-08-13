@@ -40,6 +40,27 @@ class JavaDriverToolbarVisibilityUiTest {
 
     @Test
     @RequiresProject("basic-java-project-with-mongodb")
+    fun `shows the toolbar in all the java files with references to the driver`(remoteRobot: RemoteRobot) {
+        remoteRobot.ideaFrame().openFile(
+            path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+
+        remoteRobot.ideaFrame().openFile(
+            path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepositoryClone.java",
+            closeOpenedFiles = false
+        )
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+
+        remoteRobot.ideaFrame().openFile(
+            path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java",
+            closeOpenedFiles = false
+        )
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+    }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
     fun `does not show the toolbar in a java file without references to the driver`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/NoDriverReference.java")
         assertTrue(remoteRobot.isJavaEditorToolbarHidden())
