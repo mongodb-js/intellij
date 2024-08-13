@@ -25,14 +25,18 @@ import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
+
 import java.lang.reflect.Method
 import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
+
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Retention(AnnotationRetention.RUNTIME)
 @Test
@@ -132,34 +136,20 @@ internal class IntegrationTestExtension :
         invocationContext: ReflectiveInvocationContext<Method>,
         extensionContext: ExtensionContext,
     ) {
-        val throwable: AtomicReference<Throwable?> = AtomicReference(null)
-        val finished = AtomicBoolean(false)
-
         val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
         val dumbService = DumbService.getInstance(fixture.project)
 
-        dumbService.runWhenSmart {
-            val result =
-                runCatching {
-                    invocation.proceed()
+        // Run only when the code has been analysed
+        runBlocking {
+            suspendCancellableCoroutine { callback ->
+                dumbService.runWhenSmart {
+                    runCatching {
+                        callback.resume(invocation.proceed())
+                    }.onFailure {
+                        callback.resumeWithException(it)
+                    }
                 }
-            result.onSuccess {
-                finished.set(true)
             }
-
-            result.onFailure {
-                finished.set(true)
-                throwable.set(it)
-            }
-        }
-
-        while (!finished.get()) {
-            Thread.sleep(1)
-        }
-
-        throwable.get()?.let {
-            it.printStackTrace(System.err)
-            throw it
         }
     }
 
