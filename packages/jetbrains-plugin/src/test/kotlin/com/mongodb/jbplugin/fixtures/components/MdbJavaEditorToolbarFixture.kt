@@ -30,7 +30,16 @@ class MdbJavaEditorToolbarFixture(
         remoteComponent,
     ) {
     val dataSources: ComboBoxFixture
-        get() = find(byXpath("//div[@class='ComboBox']"))
+        get() = find(byXpath("//div[@class='DataSourceComboBox']"))
+
+    val databases: ComboBoxFixture
+        get() = find(byXpath("//div[@class='DatabaseComboBox']"))
+
+    val hasDatabasesComboBox: Boolean
+        get() = runCatching {
+            find<ComboBoxFixture>(byXpath("//div[@class='DatabaseComboBox']"), timeout = 50.milliseconds.toJavaDuration(
+))
+        }.isSuccess
 }
 
 /**

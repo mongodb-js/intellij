@@ -1,10 +1,7 @@
 package com.mongodb.jbplugin.editor.javaEditor
 
 import com.intellij.remoterobot.RemoteRobot
-import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
-import com.mongodb.jbplugin.fixtures.RequiresMongoDbCluster
-import com.mongodb.jbplugin.fixtures.RequiresProject
-import com.mongodb.jbplugin.fixtures.UiTest
+import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.components.isJavaEditorToolbarHidden
@@ -13,6 +10,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toJavaDuration
 
 @UiTest
 @RequiresMongoDbCluster
@@ -76,6 +75,38 @@ class JavaDriverToolbarVisibilityUiTest {
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
+    }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `does not show the database select on a java driver file`(
+        remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
+    ) {
+        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
+
+        val toolbar = remoteRobot.findJavaEditorToolbar()
+        assertFalse(toolbar.hasDatabasesComboBox)
+    }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `does show the database select on a spring criteria file`(
+        remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
+    ) {
+        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/springcriteria/SpringCriteriaRepository.java")
+
+        val toolbar = remoteRobot.findJavaEditorToolbar()
+        assertTrue(toolbar.hasDatabasesComboBox)
+
+        // when we select a cluster, it will connect asynchronously
+        toolbar.dataSources.selectItem(javaClass.simpleName)
+        // it can take a few seconds, we will retry every few milliseconds
+        // but wait at least for a minute if we can't select a database
+        eventually(1.minutes.toJavaDuration()) {
+            toolbar.databases.selectItem("admin")
+        }
     }
 
     @Test
