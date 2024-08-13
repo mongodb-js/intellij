@@ -76,6 +76,8 @@ internal class IntegrationTestExtension :
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
 
+        // Add the Spring libraries to the project, the real jars, that are
+        // defined in Gradle as test dependencies.
         ApplicationManager.getApplication().invokeAndWait {
             val module = testFixture.module
 
@@ -96,6 +98,7 @@ internal class IntegrationTestExtension :
             }
         }
 
+        // Add source folders to the project
         PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
         PsiTestUtil.addSourceRoot(testFixture.module, tmpRootDir)
@@ -106,6 +109,7 @@ internal class IntegrationTestExtension :
         val fixture = context.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
         val modulePath = context.getStore(namespace).get(testPathKey).toString()
 
+        // Configure an editor with the source code from @ParsingTest
         ApplicationManager.getApplication().invokeAndWait {
             val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java) ?: return@invokeAndWait
 
@@ -129,6 +133,7 @@ internal class IntegrationTestExtension :
         val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
         val dumbService = DumbService.getInstance(fixture.project)
 
+        // Run only when the code has been analysed
         dumbService.runWhenSmart {
             val result =
                 runCatching {
