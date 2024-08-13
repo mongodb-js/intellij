@@ -112,7 +112,7 @@ class EditorToolbarDecorator(
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        (event.newEditor as TextEditor)?.editor?.let {
+        (event.newEditor as? TextEditor)?.editor?.let {
             editor = it
             ensureToolbarIsVisibleIfNecessary()
         }
