@@ -89,8 +89,8 @@ class EditorToolbarDecoratorTest {
         decorator.editorCreated(EditorFactoryEvent(mock(), decorator.editor))
         decorator.toolbar.reloadDataSources(listOf(dataSource))
         val dataSourceCombo = decorator.toolbar.dataSourceComboBox.apply {
-        selectedDataSource = dataSource
-}
+            selectedDataSource = dataSource
+        }
 
         assertEquals(dataSource, dataSourceCombo.selectedDataSource)
         decorator.onTerminated(dataSource, null)
@@ -118,5 +118,27 @@ class EditorToolbarDecoratorTest {
 
         verify(virtualFile, never()).putUserData(MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
  dataSource)
+    }
+
+    @Test
+    fun `when the datasource changes the list of databases is reset`(
+        project: Project,
+        testScope: TestScope,
+    ) = testScope.runTest {
+        val decorator = EditorToolbarDecorator(testScope)
+        val dataSource = mockDataSource()
+        val virtualFile = mock<VirtualFile>()
+        decorator.editor = mock<Editor>()
+        `when`(decorator.editor.project).thenReturn(project)
+        decorator.editorCreated(EditorFactoryEvent(mock(), decorator.editor))
+
+        decorator.editor = mock<Editor>()
+        `when`(decorator.editor.project).thenReturn(project)
+        `when`(decorator.editor.virtualFile).thenReturn(virtualFile)
+        decorator.toolbar.onDataSourceSelected(dataSource)
+
+        runCurrent()
+
+        assertEquals(emptyList<String>(), decorator.toolbar.databaseComboBox.databases)
     }
 }
