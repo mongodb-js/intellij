@@ -79,7 +79,7 @@ internal class IntegrationTestExtension :
         ApplicationManager.getApplication().invokeAndWait {
             val module = testFixture.module
 
-            if (!JavaLibraryUtil.hasLibraryJar(module, "org.mongodb:mongodb-driver-sync:5.1.0")) {
+            if (!JavaLibraryUtil.hasLibraryJar(module, "org.springframework.data:spring-data-mongodb:4.3.2")) {
                 runCatching {
                     PsiTestUtil.addProjectLibrary(
                         module,
