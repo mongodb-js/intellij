@@ -3,7 +3,7 @@
  * that use the IntelliJ Java parser.
  */
 
-package com.mongodb.jbplugin.dialects.javadriver
+package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
@@ -12,19 +12,16 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.mongodb.client.MongoClient
-import com.mongodb.client.model.Filters
-import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
+import org.springframework.data.mongodb.core.MongoTemplate
+import org.springframework.data.mongodb.core.mapping.Document
 
 import java.lang.reflect.Method
 import java.net.URI
@@ -83,32 +80,29 @@ internal class IntegrationTestExtension :
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
 
+        // Add the Spring libraries to the project, the real jars, that are
+        // defined in Gradle as test dependencies.
         ApplicationManager.getApplication().invokeAndWait {
             val module = testFixture.module
 
-            if (!JavaLibraryUtil.hasLibraryJar(module, "org.mongodb:mongodb-driver-sync:5.1.0")) {
+            if (!JavaLibraryUtil.hasLibraryJar(module, "org.springframework.data:spring-data-mongodb:4.3.2")) {
                 runCatching {
                     PsiTestUtil.addProjectLibrary(
                         module,
-                        "org.mongodb:mongodb-driver-sync:5.1.0",
-                        listOf(pathToClassJarFile(MongoClient::class.java)),
+                        "org.springframework.data:spring-data-mongodb:4.3.2",
+                        listOf(pathToClassJarFile(MongoTemplate::class.java)),
                     )
 
                     PsiTestUtil.addProjectLibrary(
                         module,
-                        "org.mongodb:mongodb-driver-core:5.1.0",
-                        listOf(pathToClassJarFile(Filters::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:bson:5.1.0",
-                        listOf(pathToClassJarFile(ObjectId::class.java)),
+                        "org.springframework.data:spring-data-mongodb-mapping:4.3.2",
+                        listOf(pathToClassJarFile(Document::class.java)),
                     )
                 }
             }
         }
 
+        // Add source folders to the project
         PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
         PsiTestUtil.addSourceRoot(testFixture.module, tmpRootDir)
@@ -119,6 +113,7 @@ internal class IntegrationTestExtension :
         val fixture = context.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
         val modulePath = context.getStore(namespace).get(testPathKey).toString()
 
+        // Configure an editor with the source code from @ParsingTest
         ApplicationManager.getApplication().invokeAndWait {
             val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java) ?: return@invokeAndWait
 
@@ -207,13 +202,3 @@ fun PsiFile.getClassByName(name: String): PsiClass =
     childrenOfType<PsiClass>().first {
         it.name == name
     }
-
-fun PsiFile.getQueryAtMethod(
-    className: String,
-    methodName: String,
-): PsiElement {
-    val actualClass = getClassByName(className)
-    val method = actualClass.allMethods.first { it.name == methodName }
-    val returnExpr = PsiUtil.findReturnStatements(method).last()
-    return returnExpr.returnValue!!
-}
