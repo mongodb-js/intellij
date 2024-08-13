@@ -6,6 +6,7 @@ group = "com.mongodb"
 version = "0.0.1"
 
 plugins {
+    alias(libs.plugins.intellij) apply false
     alias(libs.plugins.versions)
     id("jacoco")
 }
