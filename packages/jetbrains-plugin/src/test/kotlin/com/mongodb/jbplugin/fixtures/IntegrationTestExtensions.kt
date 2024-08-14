@@ -6,16 +6,20 @@ package com.mongodb.jbplugin.fixtures
 
 import com.google.gson.Gson
 import com.intellij.database.Dbms
-import com.intellij.database.dataSource.*
+import com.intellij.database.dataSource.DatabaseConnection
+import com.intellij.database.dataSource.DatabaseConnectionPoint
+import com.intellij.database.dataSource.DatabaseDriver
+import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.remote.jdbc.RemoteConnection
-import com.intellij.openapi.application.*
+import com.intellij.ide.impl.ProjectUtil
+import com.intellij.openapi.application.Application
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.client.ClientSessionsManager
 import com.intellij.openapi.components.ComponentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.project.impl.ProjectImpl
-import com.intellij.serviceContainer.ComponentManagerImpl
 import com.intellij.testFramework.common.cleanApplicationState
 import com.intellij.testFramework.common.initTestApplication
 import com.intellij.testFramework.replaceService
@@ -60,12 +64,14 @@ private class IntegrationTestExtension :
         initTestApplication()
 
         application = ApplicationManager.getApplication() as ApplicationEx
-        project =
-            ProjectImpl(
-                application as ComponentManagerImpl,
-                Path("src/test/resources/project-fixtures/basic-java-project-with-mongodb"),
-                null,
-            )
+
+        application.invokeAndWait {
+            project = ProjectUtil.openOrCreateProject(
+                "basic-java-project-with-mongodb",
+                Path("src/test/resources/project-fixtures/basic-java-project-with-mongodb")
+            )!!
+        }
+
         settings = useSettings()
         settings.isTelemetryEnabled = true
         testScope = TestScope()
@@ -187,7 +193,7 @@ internal fun mockLogMessage() =
  * @param url
  * @return
  */
-internal fun mockDataSource(url: MongoDbServerUrl = MongoDbServerUrl("http://localhost:27017")) =
+internal fun mockDataSource(url: MongoDbServerUrl = MongoDbServerUrl("mongodb://localhost:27017")) =
     mock<LocalDataSource>().also { dataSource ->
         val driver = mock<DatabaseDriver>()
         `when`(driver.id).thenReturn("mongo")

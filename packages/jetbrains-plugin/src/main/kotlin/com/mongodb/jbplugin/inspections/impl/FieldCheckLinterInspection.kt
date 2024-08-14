@@ -89,7 +89,7 @@ object FieldCheckLinterInspection : MongoDbInspection {
             descriptor: ProblemDescriptor,
         ) {
             val editor = FileEditorManager.getInstance(project).selectedTextEditorWithRemotes[0] ?: return
-            MdbJavaEditorToolbar.showModalForSelection(editor)
+            MdbJavaEditorToolbar.showModalForSelection(editor, project.coroutineScope)
         }
     }
 }

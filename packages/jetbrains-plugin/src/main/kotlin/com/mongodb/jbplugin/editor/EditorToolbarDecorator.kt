@@ -3,10 +3,8 @@ package com.mongodb.jbplugin.editor
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.database.console.JdbcDriverManager
 import com.intellij.database.console.session.DatabaseSessionManager
-import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager
-import com.intellij.database.dataSource.connection.ConnectionRequestor
 import com.intellij.database.model.RawDataSource
 import com.intellij.database.psi.DataSourceManager
 import com.intellij.database.run.ConsoleRunConfiguration
@@ -19,14 +17,11 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
-import com.intellij.openapi.rd.util.launchChildBackground
 import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.messages.MessageBusConnection
-import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
-import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
 import kotlinx.coroutines.CoroutineScope
@@ -44,71 +39,38 @@ class EditorToolbarDecorator(
     DataSourceManager.Listener,
     JdbcDriverManager.Listener,
     PsiModificationTracker.Listener {
-    internal val toolbar =
-        MdbJavaEditorToolbar(
-            onDataSourceSelected = this::onDataSourceSelected,
-            onDataSourceUnselected = this::onDataSourceUnselected,
-        )
+    internal lateinit var toolbar: MdbJavaEditorToolbar
     internal lateinit var editor: Editor
     internal lateinit var messageBusConnection: MessageBusConnection
 
-    fun onDataSourceSelected(dataSource: LocalDataSource) {
-        val project = editor.project ?: return
+    fun onConnected(dataSource: LocalDataSource) {
+        editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
+        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
 
-        if (!dataSource.isConnected()) {
-            coroutineScope.launchChildBackground {
-                toolbar.connecting = true
-                val connectionManager = DatabaseConnectionManager.getInstance()
-                val connectionHandler =
-                    connectionManager
-                        .build(project, dataSource)
-                        .setRequestor(ConnectionRequestor.Anonymous())
-                        .setAskPassword(true)
-                        .setRunConfiguration(
-                            ConsoleRunConfiguration.newConfiguration(project).apply {
-                                setOptionsFromDataSource(dataSource)
-                            },
-                        )
+        ApplicationManager.getApplication().invokeLater {
+            val project = editor.project!!
+            val session = DatabaseSessionManager.openSession(project, dataSource, null)
+            val probe = NewConnectionActivatedProbe()
+            probe.connected(session)
 
-                val connectionJob = runCatching { connectionHandler.create()?.get() }
-                connectionJob.onFailure {
-                    toolbar.connecting = false
-                    toolbar.failedConnection = dataSource
-                    return@launchChildBackground
-                }
-
-                val connection = connectionJob.getOrNull()
-                toolbar.connecting = false
-
-                // could not connect, do nothing
-                if (connection == null || !dataSource.isConnected()) {
-                    toolbar.selectedDataSource = null // remove data source because we didn't connect
-                    return@launchChildBackground
-                }
-
-                editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
-                ApplicationManager.getApplication().invokeLater {
-                    val session = DatabaseSessionManager.openSession(editor.project!!, dataSource, null)
-                    val probe = NewConnectionActivatedProbe()
-                    probe.connected(session)
-
-                    val psiFile =
-                        PsiManager.getInstance(project).findFile(editor.virtualFile)
-                            ?: return@invokeLater
-                    DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
-                }
-            }
-        } else {
-            editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
-            val psiFile = PsiManager.getInstance(project).findFile(editor.virtualFile) ?: return
-            DaemonCodeAnalyzer.getInstance(project).restart(psiFile)
+            analyzeFileFromScratch()
         }
     }
 
-    fun onDataSourceUnselected() {
-        editor.virtualFile?.removeUserData(Keys.attachedDataSource) ?: return
-        val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
-        DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+    fun onDisconnected() {
+        editor.virtualFile?.removeUserData(Keys.attachedDataSource)
+        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
+        analyzeFileFromScratch()
+    }
+
+    fun onDatabaseSelected(database: String) {
+        editor.virtualFile?.putUserData(Keys.attachedDatabase, database)
+        analyzeFileFromScratch()
+    }
+
+    fun onDatabaseUnselected() {
+        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
+        analyzeFileFromScratch()
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
@@ -121,8 +83,16 @@ class EditorToolbarDecorator(
     override fun editorCreated(event: EditorFactoryEvent) {
         editor = event.editor
 
-        editor.project?.let {
-            val project = editor.project!!
+        toolbar = MdbJavaEditorToolbar(
+            editor.project!!,
+            coroutineScope,
+            onConnected = this::onConnected,
+            onDisconnected = this::onDisconnected,
+            onDatabaseSelected = this::onDatabaseSelected,
+            onDatabaseUnselected = this::onDatabaseUnselected
+        )
+
+        editor.project?.let { project ->
             messageBusConnection = project.messageBus.connect()
             messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
             messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
@@ -130,7 +100,7 @@ class EditorToolbarDecorator(
 
             messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
             val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
-            toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+            toolbar.reloadDataSources(localDataSourceManager.dataSources)
         }
 
         ensureToolbarIsVisibleIfNecessary()
@@ -142,19 +112,19 @@ class EditorToolbarDecorator(
 
     private fun ensureToolbarIsVisibleIfNecessary() {
         if (!editor.hasHeaderComponent()) {
-            if (isEditingJavaFileWithMongoDbRelatedCode()) {
+            if (isToolbarSetUpForCurrentFile()) {
                 (editor as EditorEx?)?.permanentHeaderComponent = toolbar
                 editor.headerComponent = toolbar
             }
         } else {
-            if (!isEditingJavaFileWithMongoDbRelatedCode()) {
+            if (!isToolbarSetUpForCurrentFile()) {
                 (editor as EditorEx?)?.permanentHeaderComponent = null
                 editor.headerComponent = null
             }
         }
     }
 
-    private fun isEditingJavaFileWithMongoDbRelatedCode(): Boolean {
+    private fun isToolbarSetUpForCurrentFile(): Boolean {
         val project = editor.project ?: return false
         val psiFileResult = runCatching { PsiManager.getInstance(project).findFile(editor.virtualFile) }
 
@@ -169,9 +139,17 @@ class EditorToolbarDecorator(
         }
 
         val javaPsiFile = psiFile as PsiJavaFile
-        return arrayOf(
-            this::isUsingTheJavaDriver,
-        ).any { it(javaPsiFile) }
+        if (isUsingSpringDataMongoDb(javaPsiFile)) {
+            toolbar.showDatabaseSelector()
+            return true
+        }
+
+        if (isUsingTheJavaDriver(javaPsiFile)) {
+            toolbar.hideDatabaseSelector()
+            return true
+        }
+
+        return false
     }
 
     private fun isUsingTheJavaDriver(psiFile: PsiJavaFile): Boolean {
@@ -181,12 +159,19 @@ class EditorToolbarDecorator(
         }
     }
 
+    private fun isUsingSpringDataMongoDb(psiFile: PsiJavaFile): Boolean {
+        val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
+        return importStatements.any {
+            return@any it.importReference?.canonicalText?.startsWith("org.springframework.data.mongodb") == true
+        }
+    }
+
     override fun <T : RawDataSource?> dataSourceAdded(
         manager: DataSourceManager<T>,
         dataSource: T & Any,
     ) {
         val localDataSourceManager = manager as? LocalDataSourceManager ?: return
-        toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+        toolbar.reloadDataSources(localDataSourceManager.dataSources)
     }
 
     override fun <T : RawDataSource?> dataSourceRemoved(
@@ -194,12 +179,7 @@ class EditorToolbarDecorator(
         dataSource: T & Any,
     ) {
         val localDataSourceManager = manager as? LocalDataSourceManager ?: return
-
-        if (toolbar.selectedDataSource?.uniqueId == dataSource.uniqueId) {
-            toolbar.selectedDataSource = null
-        }
-
-        toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+        toolbar.reloadDataSources(localDataSourceManager.dataSources)
     }
 
     override fun <T : RawDataSource?> dataSourceChanged(
@@ -207,30 +187,25 @@ class EditorToolbarDecorator(
         dataSource: T?,
     ) {
         val localDataSourceManager = manager as? LocalDataSourceManager ?: return
-
-        if (toolbar.selectedDataSource?.uniqueId == dataSource?.uniqueId) {
-            toolbar.selectedDataSource = null
-        }
-
-        toolbar.dataSources = localDataSourceManager.dataSources.filter { it.isMongoDbDataSource() }
+        toolbar.reloadDataSources(localDataSourceManager.dataSources)
     }
 
     override fun onTerminated(
         dataSource: LocalDataSource,
         configuration: ConsoleRunConfiguration?,
     ) {
-        val selectedDataSource = toolbar.selectedDataSource
-
-        if (dataSource.isMongoDbDataSource() &&
-            !dataSource.isConnected() &&
-            selectedDataSource?.uniqueId == dataSource.uniqueId
-        ) {
-            toolbar.selectedDataSource = null
-        }
+        toolbar.disconnect(dataSource)
     }
 
     override fun modificationCountChanged() {
         ensureToolbarIsVisibleIfNecessary()
+    }
+
+    private fun analyzeFileFromScratch() {
+        runCatching {
+            val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
+            DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+        }
     }
 
     companion object {
