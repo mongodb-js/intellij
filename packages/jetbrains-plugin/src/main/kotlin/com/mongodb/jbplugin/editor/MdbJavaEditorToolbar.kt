@@ -69,6 +69,7 @@ class MdbJavaEditorToolbar(
     }
 
     fun showDatabaseSelector() {
+        dropdowns.remove(databaseComboBox)
         dropdowns.add(databaseComboBox)
     }
 
@@ -128,15 +129,16 @@ class MdbJavaEditorToolbar(
         dataSourceComboBox.dataSources = dataSources.filter { it.isMongoDbDataSource() }
     }
 
-    fun reloadDatabases() {
+    private fun reloadDatabases() {
         dataSourceComboBox.selectedDataSource?.let {
-val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
-val databases = readModel.slice(dataSourceComboBox.selectedDataSource!!, ListDatabases.Slice)
-databaseComboBox.databases = databases.databases.map { it.name }
-} ?: run {
-databaseComboBox.databases = emptyList()
-}
+            val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
+            val databases = readModel.slice(dataSourceComboBox.selectedDataSource!!, ListDatabases.Slice)
+            databaseComboBox.databases = databases.databases.map { it.name }
+        } ?: run {
+            databaseComboBox.databases = emptyList()
+        }
     }
+
     fun disconnect(dataSource: LocalDataSource) {
         if (dataSource.isMongoDbDataSource() &&
             !dataSource.isConnected() &&
@@ -157,14 +159,14 @@ databaseComboBox.databases = emptyList()
                     MdbJavaEditorToolbar(
                         editor.project!!,
                         coroutineScope, {
-                        selectedDataSource.getAndSet(it)
-                    }, {
-                        selectedDataSource.getAndSet(null)
-                    }, {
+                            selectedDataSource.getAndSet(it)
+                        }, {
+                            selectedDataSource.getAndSet(null)
+                        }, {
 
-                    }, {
+                        }, {
 
-                    })
+                        })
 
                 val localDataSourceManager =
                     DataSourceManager.byDataSource(project, LocalDataSource::class.java)
@@ -180,11 +182,11 @@ databaseComboBox.databases = emptyList()
             }
         }
 
-/**
- * @param project
- * @param toolbar
- */
-internal class SelectConnectionDialogWrapper(
+        /**
+         * @param project
+         * @param toolbar
+         */
+        internal class SelectConnectionDialogWrapper(
             project: Project,
             private val toolbar: MdbJavaEditorToolbar,
         ) : DialogWrapper(project, false) {
@@ -198,5 +200,5 @@ internal class SelectConnectionDialogWrapper(
                     (peer.window as? JDialog)?.isUndecorated = true
                 }
         }
-}
+    }
 }

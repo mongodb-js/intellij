@@ -58,7 +58,7 @@ class EditorToolbarDecorator(
     }
 
     fun onDisconnected() {
-        editor.virtualFile?.removeUserData(Keys.attachedDataSource) ?: return
+        editor.virtualFile?.removeUserData(Keys.attachedDataSource)
         editor.virtualFile?.removeUserData(Keys.attachedDatabase)
         analyzeFileFromScratch()
     }
