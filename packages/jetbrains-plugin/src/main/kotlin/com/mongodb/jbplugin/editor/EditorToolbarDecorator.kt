@@ -112,19 +112,19 @@ class EditorToolbarDecorator(
 
     private fun ensureToolbarIsVisibleIfNecessary() {
         if (!editor.hasHeaderComponent()) {
-            if (isEditingJavaFileWithMongoDbRelatedCode()) {
+            if (isToolbarSetUpForCurrentFile()) {
                 (editor as EditorEx?)?.permanentHeaderComponent = toolbar
                 editor.headerComponent = toolbar
             }
         } else {
-            if (!isEditingJavaFileWithMongoDbRelatedCode()) {
+            if (!isToolbarSetUpForCurrentFile()) {
                 (editor as EditorEx?)?.permanentHeaderComponent = null
                 editor.headerComponent = null
             }
         }
     }
 
-    private fun isEditingJavaFileWithMongoDbRelatedCode(): Boolean {
+    private fun isToolbarSetUpForCurrentFile(): Boolean {
         val project = editor.project ?: return false
         val psiFileResult = runCatching { PsiManager.getInstance(project).findFile(editor.virtualFile) }
 
