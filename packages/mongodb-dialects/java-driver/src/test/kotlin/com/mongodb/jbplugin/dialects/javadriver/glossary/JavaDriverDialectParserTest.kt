@@ -261,6 +261,49 @@ public class Repository {
     public FindIterable<Document> findReleasedBooks() {
         return client.getDatabase("myDatabase")
                 .getCollection("myCollection")
+                .find(eq("myField", null));
+    }
+}
+        """,
+    )
+    fun `correctly parses a nullable value reference as BsonNull type`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(
+            "myField",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonNull,
+            (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(null, (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
                 .find(and(eq("released", true), eq("hidden", false)));
     }
 }

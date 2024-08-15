@@ -18,7 +18,7 @@ data class HasValueReference(
      * @property type
      */
     data class Constant(
-        val value: Any,
+        val value: Any?,
         val type: BsonType,
     ) : ValueReference
 
