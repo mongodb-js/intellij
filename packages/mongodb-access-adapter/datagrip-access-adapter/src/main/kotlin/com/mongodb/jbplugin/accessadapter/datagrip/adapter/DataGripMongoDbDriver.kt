@@ -5,7 +5,7 @@
 
 package com.mongodb.jbplugin.accessadapter.datagrip.adapter
 
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.intellij.database.dataSource.DatabaseConnection
 import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
@@ -183,7 +183,7 @@ internal class DataGripMongoDbDriver(
                 } else {
                     val decoderContext = DecoderContext.builder().build()
                     val outputCodec = codecRegistry.get(resultClass.java)
-                    val gson = Gson()
+                    val gson = GsonBuilder().serializeNulls().create()
 
                     while (resultSet.next()) {
                         val hashMap = resultSet.getObject(1) as Map<String, Any>
