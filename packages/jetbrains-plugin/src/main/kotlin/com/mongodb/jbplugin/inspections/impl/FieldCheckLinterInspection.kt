@@ -28,16 +28,7 @@ object FieldCheckLinterInspection : MongoDbInspection {
         query: Node<PsiElement>,
     ) {
         if (dataSource == null || !dataSource.isConnected()) {
-            return problems.registerProblem(
-                query.source,
-                InspectionsAndInlaysMessages.message(
-                    "inspection.field.checking.error.message.no.connection",
-                ),
-                ProblemHighlightType.WARNING,
-                OpenConnectionChooserQuickFix(
-                    InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
-                ),
-            )
+            return registerNoConnectionProblem(problems, query.source)
         }
 
         val readModelProvider = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
@@ -53,6 +44,22 @@ object FieldCheckLinterInspection : MongoDbInspection {
             when (it) {
                 is FieldCheckWarning.FieldDoesNotExist -> registerFieldDoesNotExistProblem(problems, it)
             }
+        }
+    }
+
+    private fun registerNoConnectionProblem(problems: ProblemsHolder, source: PsiElement) {
+        val problemDescription = InspectionsAndInlaysMessages.message(
+            "inspection.field.checking.error.message.no.connection",
+        )
+        if (problems.results.none { it.descriptionTemplate == problemDescription }) {
+            problems.registerProblem(
+                source,
+                problemDescription,
+                ProblemHighlightType.WARNING,
+                OpenConnectionChooserQuickFix(
+                    InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+                ),
+            )
         }
     }
 
