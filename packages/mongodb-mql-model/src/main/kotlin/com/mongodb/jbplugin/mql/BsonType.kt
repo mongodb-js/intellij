@@ -15,7 +15,14 @@ import java.util.*
 /**
  * Represents any of the valid BSON types.
  */
-interface BsonType
+interface BsonType {
+    fun isMatching(otherType: BsonType): Boolean = when (otherType) {
+        this -> true
+        is BsonAny -> true
+        is BsonAnyOf -> otherType.types.any { this.isMatching(it) }
+        else -> false
+    }
+}
 
 /**
  * A double (64 bit floating point)
@@ -28,29 +35,6 @@ data object BsonDouble : BsonType
 data object BsonString : BsonType
 
 /**
- * Represents a map of key -> type.
- *
- * @property schema
- */
-data class BsonObject(
-    val schema: Map<String, BsonType>,
-) : BsonType
-
-/**
- * Represents the possible types that can be included in an array.
- *
- * @property schema
- */
-data class BsonArray(
-    val schema: BsonType,
-) : BsonType
-
-/**
- * ObjectId
- */
-data object BsonObjectId : BsonType
-
-/**
  * Boolean
  */
 data object BsonBoolean : BsonType
@@ -59,12 +43,6 @@ data object BsonBoolean : BsonType
  * Date
  */
 data object BsonDate : BsonType
-
-/**
- * null / non existing field
- */
-
-data object BsonNull : BsonType
 
 /**
  * 32-bit integer
@@ -83,6 +61,80 @@ data object BsonInt64 : BsonType
 data object BsonDecimal128 : BsonType
 
 /**
+ * ObjectId
+ */
+data object BsonObjectId : BsonType
+
+/**
+ * null / non existing field
+ */
+
+data object BsonNull : BsonType
+
+/**
+ * Represents a map of key -> type.
+ *
+ * @property schema
+ */
+data class BsonObject(
+    val schema: Map<String, BsonType>,
+) : BsonType {
+    /**
+     * Calculates whether this type is a subset of other type.
+     *
+     * @param otherType The type that this type is supposed
+     * to be matched with.
+     * Example:
+     * ```
+     * val valueType = BsonObject(mapOf("name" to BsonString, "version" to BsonString))
+     * val fieldType = BsonObject(mapOf("name" to BsonString))
+     * valueType.matchesType(fieldType) // false because not all the keys in the value are in field
+     * fieldType.matchesType(valueType) // true because all the keys in the field are in the value
+     * ```
+     */
+    override fun isMatching(otherType: BsonType): Boolean = when (otherType) {
+        is BsonAny -> true
+        is BsonAnyOf -> otherType.types.any { this.isMatching(it) }
+        is BsonObject -> this.isMatchingBsonObject(otherType)
+
+        else -> false
+    }
+
+    private fun isMatchingBsonObject(otherType: BsonObject): Boolean {
+        var objectMatches = true
+        for ((key, bsonType) in this.schema) {
+            if (!otherType.schema.containsKey(key)) {
+                objectMatches = false
+                break
+            }
+
+            if (!bsonType.isMatching(otherType.schema[key]!!)) {
+                objectMatches = false
+                break
+            }
+        }
+
+        return objectMatches
+    }
+}
+
+/**
+ * Represents the possible types that can be included in an array.
+ *
+ * @property schema
+ */
+data class BsonArray(
+    val schema: BsonType,
+) : BsonType {
+    override fun isMatching(otherType: BsonType): Boolean = when (otherType) {
+        is BsonAny -> true
+        is BsonAnyOf -> otherType.types.any { this.isMatching(it) }
+        is BsonArray -> this.schema.isMatching(otherType.schema)
+        else -> false
+    }
+}
+
+/**
  * This is not a BSON type per se, but need a value for an unknown
  * bson type.
  */
@@ -99,6 +151,8 @@ data class BsonAnyOf(
     val types: Set<BsonType>,
 ) : BsonType {
     constructor(vararg types: BsonType) : this(types.toSet())
+
+    override fun isMatching(otherType: BsonType): Boolean = this.types.any { it.isMatching(otherType) }
 }
 
 /**
@@ -124,6 +178,7 @@ fun <T> Class<T>?.toBsonType(value: T? = null): BsonType {
         CharSequence::class.java, String::class.java -> BsonAnyOf(BsonNull, BsonString)
         Date::class.java, Instant::class.java, LocalDate::class.java, LocalDateTime::class.java ->
             BsonAnyOf(BsonNull, BsonDate)
+
         BigInteger::class.java -> BsonAnyOf(BsonNull, BsonInt64)
         BigDecimal::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
         else ->
@@ -132,11 +187,11 @@ fun <T> Class<T>?.toBsonType(value: T? = null): BsonType {
             } else if (Map::class.java.isAssignableFrom(this)) {
                 value?.let {
                     val fields =
-                      Map::class.java.cast(value).entries.associate {
-                        it.key.toString() to it.value?.javaClass.toBsonType(it.value)
-                      }
-return BsonAnyOf(BsonNull, BsonObject(fields))
-} ?: return BsonAnyOf(BsonNull, BsonAny)
+                        Map::class.java.cast(value).entries.associate {
+                            it.key.toString() to it.value?.javaClass.toBsonType(it.value)
+                        }
+                    return BsonAnyOf(BsonNull, BsonObject(fields))
+                } ?: return BsonAnyOf(BsonNull, BsonAny)
             } else {
                 val fields =
                     this.declaredFields.associate {
