@@ -83,16 +83,16 @@ class EditorToolbarDecorator(
     override fun editorCreated(event: EditorFactoryEvent) {
         editor = event.editor
 
-        toolbar = MdbJavaEditorToolbar(
-            editor.project!!,
-            coroutineScope,
-            onConnected = this::onConnected,
-            onDisconnected = this::onDisconnected,
-            onDatabaseSelected = this::onDatabaseSelected,
-            onDatabaseUnselected = this::onDatabaseUnselected
-        )
-
         editor.project?.let { project ->
+            toolbar = MdbJavaEditorToolbar(
+                project,
+                coroutineScope,
+                onConnected = this::onConnected,
+                onDisconnected = this::onDisconnected,
+                onDatabaseSelected = this::onDatabaseSelected,
+                onDatabaseUnselected = this::onDatabaseUnselected
+            )
+
             messageBusConnection = project.messageBus.connect()
             messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
             messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
@@ -101,9 +101,9 @@ class EditorToolbarDecorator(
             messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
             val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
             toolbar.reloadDataSources(localDataSourceManager.dataSources)
-        }
 
-        ensureToolbarIsVisibleIfNecessary()
+            ensureToolbarIsVisibleIfNecessary()
+        }
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {
