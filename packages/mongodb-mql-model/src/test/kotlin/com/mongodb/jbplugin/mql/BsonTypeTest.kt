@@ -325,5 +325,5 @@ class BsonTypeTest {
         data class ExampleClass(
             val field: String,
         )
-}
+    }
 }
