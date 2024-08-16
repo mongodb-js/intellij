@@ -5,6 +5,7 @@
 
 package com.mongodb.jbplugin.mql
 
+import org.bson.types.Decimal128
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.Instant
@@ -181,6 +182,7 @@ fun <T> Class<T>?.toBsonType(value: T? = null): BsonType {
 
         BigInteger::class.java -> BsonAnyOf(BsonNull, BsonInt64)
         BigDecimal::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
+        Decimal128::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
         else ->
             if (Collection::class.java.isAssignableFrom(this) || Array::class.java.isAssignableFrom(this)) {
                 return BsonAnyOf(BsonNull, BsonArray(BsonAny)) // types are lost at runtime
