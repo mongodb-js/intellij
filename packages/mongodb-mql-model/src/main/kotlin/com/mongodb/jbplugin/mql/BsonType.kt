@@ -17,11 +17,35 @@ import java.util.*
  * Represents any of the valid BSON types.
  */
 interface BsonType {
-    fun isMatching(otherType: BsonType): Boolean = when (otherType) {
-        this -> true
+    /**
+     * Checks whether the underlying type is assignable to the provided type
+     * Example usage:
+     * ```kt
+     * val fieldType = BsonAnyOf(BsonInt32, BsonNull)
+     * val valueType = BsonInt32
+     * valueType.isAssignableTo(fieldType) // true
+     *
+     * // or
+     * val valueType = BsonObject(mapOf("name" to BsonString))
+     * val fieldType = BsonObject(mapOf("name" to BsonString, "version" to BsonString))
+     * valueType.isAssignableTo(fieldType) // true because all the keys in the value type are also in field type
+     *
+     * // or
+     * val valueType = BsonAnyOf(BsonInt32, BsonNull)
+     * val fieldType = BsonInt32
+     * valueType.isAssignableTo(fieldType) // false because the value can be BsonNull but field expects to be BsonInt32
+     * ```
+     *
+     * @param otherType
+     */
+    fun isAssignableTo(otherType: BsonType): Boolean = when (this) {
+        otherType -> true
         is BsonAny -> true
-        is BsonAnyOf -> otherType.types.any { this.isMatching(it) }
-        else -> false
+        else -> when (otherType) {
+            is BsonAny -> true
+            is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+            else -> false
+        }
     }
 }
 
@@ -80,43 +104,16 @@ data object BsonNull : BsonType
 data class BsonObject(
     val schema: Map<String, BsonType>,
 ) : BsonType {
-    /**
-     * Calculates whether this type is a subset of other type.
-     *
-     * @param otherType The type that this type is supposed
-     * to be matched with.
-     * Example:
-     * ```
-     * val valueType = BsonObject(mapOf("name" to BsonString, "version" to BsonString))
-     * val fieldType = BsonObject(mapOf("name" to BsonString))
-     * valueType.matchesType(fieldType) // false because not all the keys in the value are in field
-     * fieldType.matchesType(valueType) // true because all the keys in the field are in the value
-     * ```
-     */
-    override fun isMatching(otherType: BsonType): Boolean = when (otherType) {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
         is BsonAny -> true
-        is BsonAnyOf -> otherType.types.any { this.isMatching(it) }
-        is BsonObject -> this.isMatchingBsonObject(otherType)
-
+        is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+        is BsonObject -> this.isAssignableToBsonObjectType(otherType)
         else -> false
     }
 
-    private fun isMatchingBsonObject(otherType: BsonObject): Boolean {
-        var objectMatches = true
-        for ((key, bsonType) in this.schema) {
-            if (!otherType.schema.containsKey(key)) {
-                objectMatches = false
-                break
-            }
-
-            if (!bsonType.isMatching(otherType.schema[key]!!)) {
-                objectMatches = false
-                break
-            }
+    private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean = this.schema.all { (key, bsonType) ->
+            otherType.schema[key]?.let { bsonType.isAssignableTo(it) } ?: false
         }
-
-        return objectMatches
-    }
 }
 
 /**
@@ -127,10 +124,10 @@ data class BsonObject(
 data class BsonArray(
     val schema: BsonType,
 ) : BsonType {
-    override fun isMatching(otherType: BsonType): Boolean = when (otherType) {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
         is BsonAny -> true
-        is BsonAnyOf -> otherType.types.any { this.isMatching(it) }
-        is BsonArray -> this.schema.isMatching(otherType.schema)
+        is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+        is BsonArray -> this.schema.isAssignableTo(otherType.schema)
         else -> false
     }
 }
@@ -153,7 +150,8 @@ data class BsonAnyOf(
 ) : BsonType {
     constructor(vararg types: BsonType) : this(types.toSet())
 
-    override fun isMatching(otherType: BsonType): Boolean = this.types.any { it.isMatching(otherType) }
+    override fun isAssignableTo(otherType: BsonType): Boolean =
+        this.types.all { it.isAssignableTo(otherType) }
 }
 
 /**

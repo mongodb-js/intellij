@@ -28,17 +28,19 @@ class BsonTypeTest {
         "BsonObject match assertions",
     )
     fun `should calculate correctly whether a type matches the other provided type`(
-        type: BsonType,
-        otherType: BsonType,
+        // calling these value and field type just for clarity around usage
+        valueType: BsonType,
+        fieldType: BsonType,
         expectedToMatch: Boolean,
     ) {
         val assertionFailureMessage = if (expectedToMatch) {
-            "$type was expected to match $otherType but did not"
+            "$valueType was expected to be assignable to $fieldType but it was not!"
         } else {
-            "$type was not expected to match $otherType but it did"
+            "$valueType was not expected to be assignable to $fieldType but it was!"
         }
+        val result = valueType.isAssignableTo(fieldType)
         assertEquals(
-            type.isMatching(otherType),
+            result,
             expectedToMatch,
             assertionFailureMessage
         )
@@ -92,23 +94,22 @@ class BsonTypeTest {
 
             return simpleBsonTypes.flatMap { bsonType ->
                 listOf(
-                    // A type matches itself, Any and AnyOf
-                    // (if the union contains the provided type)
+                    // A type is assignable itself, Any and AnyOf
+                    // (if the union contains only the underlying type)
                     arrayOf(bsonType, bsonType, true),
-                    arrayOf(bsonType, BsonAny, true),
-                    arrayOf(bsonType, BsonAnyOf(bsonType, simpleBsonTypes.subtract(setOf(bsonType)).random()), true),
+                    arrayOf(BsonAny, bsonType, true),
+                    arrayOf(BsonAnyOf(bsonType), bsonType, true),
 
-                    // and does not match anything else
-                    arrayOf(bsonType, simpleBsonTypes.subtract(setOf(bsonType)).random(), false),
-                    // and does not match an AnyOf when the union does not contain the expected type
-                    arrayOf(
-                        bsonType,
-                        BsonAnyOf(
-                            simpleBsonTypes.subtract(setOf(bsonType)).random(),
-                            simpleBsonTypes.subtract(setOf(bsonType)).random()
-                        ),
-                        false
-                    ),
+                    // and any other type cannot be assigned to this type
+                    arrayOf(simpleBsonTypes.subtract(setOf(bsonType)).random(), bsonType, false),
+                    // not assignable because not all the types in AnyOf is assignable to this type
+                    arrayOf(BsonAnyOf(bsonType, simpleBsonTypes.subtract(setOf(bsonType)).random()), bsonType, false),
+                    // even an AnyOf with BsonNull won't be assignable to this type unless of-course the otherType
+                    // itself is BsonNull
+                    arrayOf(BsonAnyOf(bsonType, BsonNull), bsonType, bsonType == BsonNull),
+
+                    // collection types are not assignable to simple types
+                    arrayOf(BsonArray(bsonType), bsonType, false)
                 )
             }.toTypedArray()
         }
@@ -116,59 +117,71 @@ class BsonTypeTest {
         @JvmStatic
         fun `BsonAnyOf match assertions`(): Array<Array<Any>> =
             arrayOf(
-                // matches other simple type if it is in union
-                arrayOf(BsonAnyOf(BsonString, BsonNull), BsonString, true),
-                arrayOf(BsonAnyOf(BsonDouble, BsonNull), BsonDouble, true),
-                arrayOf(BsonAnyOf(BsonBoolean, BsonNull), BsonBoolean, true),
-                arrayOf(BsonAnyOf(BsonInt32, BsonNull), BsonInt32, true),
-                arrayOf(BsonAnyOf(BsonDate, BsonNull), BsonDate, true),
-                // also matches null if it is in union
-                arrayOf(BsonAnyOf(BsonDate, BsonNull), BsonNull, true),
-                // also matches Any because the individual types themselves matches Any
-                arrayOf(BsonAnyOf(BsonDate, BsonNull), BsonAny, true),
+                // A simple type can be assigned to BsonAnyOf if the same type is in the underlying union of BsonAnyOf
+                arrayOf(BsonString, BsonAnyOf(BsonString), true),
+                arrayOf(BsonDouble, BsonAnyOf(BsonDouble), true),
+                arrayOf(BsonBoolean, BsonAnyOf(BsonBoolean), true),
+                arrayOf(BsonInt32, BsonAnyOf(BsonInt32), true),
+                arrayOf(BsonDate, BsonAnyOf(BsonDate), true),
+                arrayOf(BsonNull, BsonAnyOf(BsonNull), true),
+                // A BsonAny can be assigned as well
+                arrayOf(BsonAny, BsonAnyOf(BsonDate, BsonNull), true),
 
-                // matches when the other type is AnyOf
+                // A BsonAnyOf of exact same union can be assigned
                 arrayOf(BsonAnyOf(BsonString, BsonNull), BsonAnyOf(BsonString, BsonNull), true),
                 arrayOf(BsonAnyOf(BsonDouble, BsonNull), BsonAnyOf(BsonDouble, BsonNull), true),
                 arrayOf(BsonAnyOf(BsonBoolean, BsonNull), BsonAnyOf(BsonBoolean, BsonNull), true),
                 arrayOf(BsonAnyOf(BsonInt32, BsonNull), BsonAnyOf(BsonInt32, BsonNull), true),
                 arrayOf(BsonAnyOf(BsonDate, BsonNull), BsonAnyOf(BsonDate, BsonNull), true),
-                // also matches null if it is in union
-                arrayOf(BsonAnyOf(BsonDate, BsonNull), BsonAnyOf(BsonNull), true),
 
-                // should not match when the underlying union types do not match
-                arrayOf(BsonAnyOf(BsonString, BsonNull), BsonInt32, false),
-                arrayOf(BsonAnyOf(BsonInt32, BsonNull), BsonInt64, false),
-                arrayOf(BsonAnyOf(BsonInt32, BsonNull), BsonAnyOf(BsonString, BsonDate), false),
-                arrayOf(BsonAnyOf(BsonString, BsonDate), BsonNull, false),
+                // A BsonAnyOf of a subset of union of the other type can also be assigned
+                arrayOf(BsonAnyOf(BsonString), BsonAnyOf(BsonString, BsonNull), true),
+                arrayOf(BsonAnyOf(BsonDouble), BsonAnyOf(BsonDouble, BsonNull), true),
+                arrayOf(BsonAnyOf(BsonBoolean), BsonAnyOf(BsonBoolean, BsonNull), true),
+                arrayOf(BsonAnyOf(BsonInt32), BsonAnyOf(BsonInt32, BsonNull), true),
+                arrayOf(BsonAnyOf(BsonDate), BsonAnyOf(BsonDate, BsonNull), true),
+                arrayOf(BsonAnyOf(BsonNull), BsonAnyOf(BsonDate, BsonNull), true),
+                arrayOf(
+                    BsonAnyOf(BsonInt32, BsonInt64),
+                    BsonAnyOf(BsonInt32, BsonInt64, BsonDecimal128, BsonNull),
+                    true
+                ),
+
+                // cannot assign because the union is not a subset
+                arrayOf(BsonAnyOf(BsonString, BsonNull), BsonAnyOf(BsonString), false),
+                arrayOf(BsonAnyOf(BsonString, BsonNull), BsonAnyOf(BsonString, BsonDate), false),
             )
 
         @JvmStatic
         fun `BsonArray match assertions`(): Array<Array<Any>> =
             arrayOf(
-                // Matches Array of simple types
+                // Similar type arrays can be assigned to each other
                 arrayOf(BsonArray(BsonString), BsonArray(BsonString), true),
                 arrayOf(BsonArray(BsonDouble), BsonArray(BsonDouble), true),
                 arrayOf(BsonArray(BsonBoolean), BsonArray(BsonBoolean), true),
                 arrayOf(BsonArray(BsonInt32), BsonArray(BsonInt32), true),
                 arrayOf(BsonArray(BsonDate), BsonArray(BsonDate), true),
-                // Matches an Array of nulls
                 arrayOf(BsonArray(BsonNull), BsonArray(BsonNull), true),
-                // also matches Any
-                arrayOf(BsonArray(BsonDate), BsonAny, true),
-                // matches AnyOf when the array schema matches
-                arrayOf(BsonArray(BsonString), BsonAnyOf(BsonArray(BsonString), BsonNull), true),
-                arrayOf(BsonArray(BsonInt32), BsonAnyOf(BsonArray(BsonString), BsonArray(BsonInt32)), true),
-                // matches when array elements are AnyOf
-                arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonString), true),
-                arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonAnyOf(BsonString, BsonDate)), true),
+                // BsonArray of BsonAnyOf type can be assigned when the underlying types of AnyOf matches that of the
+// other Array
+                arrayOf(BsonArray(BsonAnyOf(BsonString)), BsonArray(BsonString), true),
+                // because BsonAnyOf has a BsonNull which can't be assigned to BsonArray
+                arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonString), false),
+                arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonAnyOf(BsonString, BsonNull)), true),
+
+                // BsonAny can be assigned
+                arrayOf(BsonAny, BsonArray(BsonDate), true),
+                // BsonAnyOf can be assigned when the array schema on the right matches all the union types
+                arrayOf(BsonAnyOf(BsonArray(BsonString)), BsonArray(BsonString), true),
+                // otherwise not - in this case BsonNull cannot be assigned to BsonArray(BsonInt32)
+                arrayOf(BsonAnyOf(BsonArray(BsonString), BsonNull), BsonArray(BsonInt32), false),
 
                 // should not match otherwise
-                arrayOf(BsonArray(BsonString), BsonArray(BsonDate), false),
-                arrayOf(BsonArray(BsonDate), BsonArray(BsonNull), false),
-                arrayOf(BsonArray(BsonDate), BsonNull, false),
-                arrayOf(BsonArray(BsonDate), BsonAnyOf(BsonArray(BsonString)), false),
-                arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonAnyOf(BsonDate)), false),
+                arrayOf(BsonArray(BsonDate), BsonArray(BsonString), false),
+                arrayOf(BsonArray(BsonNull), BsonArray(BsonDate), false),
+                arrayOf(BsonNull, BsonArray(BsonDate), false),
+                arrayOf(BsonAnyOf(BsonArray(BsonString)), BsonArray(BsonDate), false),
+                arrayOf(BsonArray(BsonAnyOf(BsonDate)), BsonArray(BsonAnyOf(BsonString, BsonNull)), false),
             )
 
         @JvmStatic
@@ -224,29 +237,28 @@ class BsonTypeTest {
                     true
                 ),
                 arrayOf(
+                    BsonAny,
                     BsonObject(
                         mapOf(
                             "stringArray" to BsonArray(BsonString),
                             "double" to BsonDouble,
                         )
                     ),
-                    BsonAny,
                     true
                 ),
                 arrayOf(
-                    BsonObject(
-                        mapOf(
-                            "stringArray" to BsonArray(BsonString),
-                        )
-                    ),
                     BsonAnyOf(
                         BsonObject(
                             mapOf(
                                 "stringArray" to BsonArray(BsonString),
-                                "double" to BsonDouble,
                             )
                         ),
-                        BsonNull
+                    ),
+                    BsonObject(
+                        mapOf(
+                            "stringArray" to BsonArray(BsonString),
+                            "double" to BsonDouble,
+                        )
                     ),
                     true
                 ),
@@ -283,25 +295,27 @@ class BsonTypeTest {
                     ),
                     false
                 ),
-                // no part of AnyOf matches here
+                // BsonAnyOf can't be assigned if there are more in union types other than the object type itself
                 arrayOf(
-                    BsonObject(
-                        mapOf(
-                            "string" to BsonString,
-                            "double" to BsonDouble,
-                        )
-                    ),
                     BsonAnyOf(
+                        // this is not assignable because of type mismatch
                         BsonObject(
                             mapOf(
                                 "string" to BsonString,
                                 "double" to BsonDecimal128,
                             )
                         ),
+                        // this is assignable but the entire BsonAnyOf is still not because of the earlier type mismatch
                         BsonObject(
                             mapOf(
                                 "string" to BsonString,
                             )
+                        )
+                    ),
+                    BsonObject(
+                        mapOf(
+                            "string" to BsonString,
+                            "double" to BsonDouble,
                         )
                     ),
                     false
