@@ -6,6 +6,7 @@ import com.intellij.database.dataSource.connection.ConnectionRequestor
 import com.intellij.database.psi.DataSourceManager
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.rd.util.launchChildBackground
@@ -20,18 +21,17 @@ import com.mongodb.jbplugin.editor.inputs.DataSourceComboBox
 import com.mongodb.jbplugin.editor.inputs.DatabaseComboBox
 import com.mongodb.jbplugin.editor.inputs.DatabaseSelectedListener
 import com.mongodb.jbplugin.editor.inputs.DatabaseUnselectedListener
-
+import kotlinx.coroutines.CoroutineScope
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
 import javax.swing.JComponent
 import javax.swing.JDialog
 import javax.swing.JPanel
 
-import kotlinx.coroutines.CoroutineScope
-
 typealias OnConnectedListener = (LocalDataSource) -> Unit
 typealias OnDisconnectedListener = () -> Unit
 
+private val log = logger<MdbJavaEditorToolbar>()
 /**
  * Represents the toolbar that will be inserted into an active Java editor.
  *
@@ -59,6 +59,7 @@ class MdbJavaEditorToolbar(
         onDatabaseUnselected = onDatabaseUnselected
     )
     private val dropdowns = JPanel()
+    private var showsDatabases: Boolean = false
 
     init {
         dropdowns.layout = BoxLayout(dropdowns, BoxLayout.X_AXIS)
@@ -71,10 +72,12 @@ class MdbJavaEditorToolbar(
     fun showDatabaseSelector() {
         dropdowns.remove(databaseComboBox)
         dropdowns.add(databaseComboBox)
+        showsDatabases = true
     }
 
     fun hideDatabaseSelector() {
         dropdowns.remove(databaseComboBox)
+        showsDatabases = false
     }
 
     internal fun onDataSourceSelected(dataSource: LocalDataSource) {
@@ -103,25 +106,30 @@ class MdbJavaEditorToolbar(
 
                 val connection = connectionJob.getOrNull()
                 dataSourceComboBox.connecting = false
+                reloadDatabases()
 
                 // could not connect, do nothing
                 if (connection == null || !dataSource.isConnected()) {
                     dataSourceComboBox.selectedDataSource = null // remove data source because we didn't connect
-                    reloadDatabases()
                     return@launchChildBackground
                 }
 
-                onConnected(dataSource)
-                reloadDatabases()
+                runGracefullyFailing {
+                    onConnected(dataSource)
+                }
             }
         } else {
-            onConnected(dataSource)
+            runGracefullyFailing {
+                onConnected(dataSource)
+            }
             reloadDatabases()
         }
     }
 
     internal fun onDataSourceUnselected() {
-        onDisconnected()
+        runGracefullyFailing {
+            onDisconnected()
+        }
         reloadDatabases()
     }
 
@@ -129,7 +137,11 @@ class MdbJavaEditorToolbar(
         dataSourceComboBox.dataSources = dataSources.filter { it.isMongoDbDataSource() }
     }
 
-    private fun reloadDatabases() {
+    fun reloadDatabases() {
+        if (!showsDatabases) {
+            return
+        }
+
         dataSourceComboBox.selectedDataSource?.let {
             val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
             val databases = readModel.slice(dataSourceComboBox.selectedDataSource!!, ListDatabases.Slice)
@@ -200,5 +212,15 @@ class MdbJavaEditorToolbar(
                     (peer.window as? JDialog)?.isUndecorated = true
                 }
         }
+    }
+}
+
+private fun runGracefullyFailing(lambda: () -> Unit) {
+    val r = runCatching {
+        lambda()
+    }
+
+    r.onFailure {
+        log.info("Ignoring error because we are in a gracefully fallback block.", it)
     }
 }
