@@ -14,7 +14,7 @@ import com.mongodb.jbplugin.mql.components.HasValueReference
 
 private typealias FieldCheckWarnings<S> = List<FieldCheckWarning<S>>
 
-private typealias FieldAndReferences<S> = List<References<S>>
+private typealias FieldAndValueReferences<S> = List<Reference<S>>
 
 /**
  * Marker type for the result of the type.
@@ -89,13 +89,13 @@ object FieldCheckingLinter {
 
         val namespace = (queryNamespace.reference as HasCollectionReference.Known).namespace
         val collection = readModelProvider.slice(dataSource, GetCollectionSchema.Slice(namespace)).schema
-        val allFieldReferences = query.getAllFieldValueTypeAndReferences()
+        val fieldAndValueRefs = query.getAllFieldAndValueReferences()
 
         val warnings =
-            allFieldReferences.mapNotNull {
+            fieldAndValueRefs.mapNotNull {
                 when (it) {
-                    is References.FieldReferences -> it.toFieldExistenceWarning(collection, namespace)
-                    is References.FieldValueReferences ->
+                    is Reference.FieldReference -> it.toFieldExistenceWarning(collection, namespace)
+                    is Reference.FieldValueReference ->
                         it.toFieldExistenceWarning(collection, namespace)
                             ?: it.toFieldValueTypeMismatchWarning(collection)
                 }
@@ -108,13 +108,13 @@ object FieldCheckingLinter {
 /**
  * @param S
  */
-sealed interface References<S> {
+sealed interface Reference<S> {
     /**
- * @param S
- * @property fieldSource
- * @property fieldName
- */
-data class FieldReferences<S>(val fieldSource: S, val fieldName: String) : References<S> {
+     * @param S
+     * @property fieldSource
+     * @property fieldName
+     */
+    data class FieldReference<S>(val fieldSource: S, val fieldName: String) : Reference<S> {
         fun toFieldExistenceWarning(
             collectionSchema: CollectionSchema,
             namespace: Namespace,
@@ -129,18 +129,18 @@ data class FieldReferences<S>(val fieldSource: S, val fieldName: String) : Refer
     }
 
     /**
- * @param S
- * @property fieldSource
- * @property fieldName
- * @property valueSource
- * @property valueType
- */
-data class FieldValueReferences<S>(
+     * @param S
+     * @property fieldSource
+     * @property fieldName
+     * @property valueSource
+     * @property valueType
+     */
+    data class FieldValueReference<S>(
         val fieldSource: S,
- val fieldName: String,
- val valueSource: S,
- val valueType: BsonType
-    ) : References<S> {
+        val fieldName: String,
+        val valueSource: S,
+        val valueType: BsonType
+    ) : Reference<S> {
         fun toFieldExistenceWarning(
             collectionSchema: CollectionSchema,
             namespace: Namespace,
@@ -167,25 +167,25 @@ data class FieldValueReferences<S>(
     }
 }
 
-private fun <S> Node<S>.getAllFieldValueTypeAndReferences(): FieldAndReferences<S> {
+private fun <S> Node<S>.getAllFieldAndValueReferences(): FieldAndValueReferences<S> {
     val hasChildren = component<HasChildren<S>>()
-    val otherRefs = hasChildren?.children?.flatMap { it.getAllFieldValueTypeAndReferences() } ?: emptyList()
+    val otherRefs = hasChildren?.children?.flatMap { it.getAllFieldAndValueReferences() } ?: emptyList()
     val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
     val valueRef = component<HasValueReference<S>>()?.reference
     return if (fieldRef is HasFieldReference.Known) {
         otherRefs + (valueRef?.let { reference ->
             when (reference) {
-                is HasValueReference.Constant<S> -> References.FieldValueReferences(
+                is HasValueReference.Constant<S> -> Reference.FieldValueReference(
                     fieldRef.source, fieldRef.fieldName, reference.source, reference.type
                 )
 
-                is HasValueReference.Runtime<S> -> References.FieldValueReferences(
+                is HasValueReference.Runtime<S> -> Reference.FieldValueReference(
                     fieldRef.source, fieldRef.fieldName, reference.source, reference.type
                 )
 
                 else -> null
             }
-        } ?: References.FieldReferences(
+        } ?: Reference.FieldReference(
             fieldRef.source,
             fieldRef.fieldName,
         ))
