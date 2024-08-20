@@ -12,7 +12,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
@@ -202,3 +204,13 @@ fun PsiFile.getClassByName(name: String): PsiClass =
     childrenOfType<PsiClass>().first {
         it.name == name
     }
+
+fun PsiFile.getQueryAtMethod(
+    className: String,
+    methodName: String,
+): PsiExpression {
+    val actualClass = getClassByName(className)
+    val method = actualClass.allMethods.first { it.name == methodName }
+    val returnExpr = PsiUtil.findReturnStatements(method).last()
+    return returnExpr.returnValue!!
+}
