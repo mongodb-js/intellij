@@ -15,7 +15,7 @@ data class HasValueReference<S>(
     /**
      * @param S
      */
-sealed interface ValueReference<S>
+    sealed interface ValueReference<S>
 
     /**
      * @param S

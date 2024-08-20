@@ -10,9 +10,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
+import com.mongodb.jbplugin.dialects.DialectFormatter
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.i18n.InspectionsAndInlaysMessages
 import com.mongodb.jbplugin.inspections.MongoDbInspection
+import com.mongodb.jbplugin.inspections.isProblemAlreadyRegistered
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
@@ -26,6 +28,7 @@ object FieldCheckLinterInspection : MongoDbInspection {
         dataSource: LocalDataSource?,
         problems: ProblemsHolder,
         query: Node<PsiElement>,
+        formatter: DialectFormatter,
     ) {
         if (dataSource == null || !dataSource.isConnected()) {
             return registerNoConnectionProblem(problems, query.source)
@@ -43,6 +46,7 @@ object FieldCheckLinterInspection : MongoDbInspection {
         result.warnings.forEach {
             when (it) {
                 is FieldCheckWarning.FieldDoesNotExist -> registerFieldDoesNotExistProblem(problems, it)
+                is FieldCheckWarning.FieldValueTypeMismatch -> registerFieldValueTypeMismatch(problems, it, formatter)
             }
         }
     }
@@ -51,13 +55,15 @@ object FieldCheckLinterInspection : MongoDbInspection {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.connection",
         )
-        if (problems.results.none { it.descriptionTemplate == problemDescription }) {
+        if (!problems.isProblemAlreadyRegistered(problemDescription, source)) {
             problems.registerProblem(
                 source,
                 problemDescription,
                 ProblemHighlightType.WARNING,
                 OpenConnectionChooserQuickFix(
-                    InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+                    InspectionsAndInlaysMessages.message(
+                        "inspection.field.checking.quickfix.choose.new.connection"
+                    ),
                 ),
             )
         }
@@ -67,18 +73,44 @@ object FieldCheckLinterInspection : MongoDbInspection {
         problems: ProblemsHolder,
         warningInfo: FieldCheckWarning.FieldDoesNotExist<PsiElement>,
     ) {
-        problems.registerProblem(
-            warningInfo.source,
-            InspectionsAndInlaysMessages.message(
-                "inspection.field.checking.error.message",
-                warningInfo.field,
-                warningInfo.namespace,
-            ),
-            ProblemHighlightType.WARNING,
-            OpenConnectionChooserQuickFix(
-                InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
-            ),
+        val problemDescription = InspectionsAndInlaysMessages.message(
+            "inspection.field.checking.error.message",
+            warningInfo.field,
+            warningInfo.namespace,
         )
+        if (!problems.isProblemAlreadyRegistered(problemDescription, warningInfo.source)) {
+            problems.registerProblem(
+                warningInfo.source,
+                problemDescription,
+                ProblemHighlightType.WARNING,
+                OpenConnectionChooserQuickFix(
+                    InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+                ),
+            )
+        }
+    }
+
+    private fun registerFieldValueTypeMismatch(
+        problems: ProblemsHolder,
+        warningInfo: FieldCheckWarning.FieldValueTypeMismatch<PsiElement>,
+        formatter: DialectFormatter,
+    ) {
+        val problemDescription = InspectionsAndInlaysMessages.message(
+            "inspection.field.checking.error.message.value.type.mismatch",
+            formatter.formatType(warningInfo.valueType),
+            formatter.formatType(warningInfo.fieldType),
+            warningInfo.field,
+        )
+        if (!problems.isProblemAlreadyRegistered(problemDescription, warningInfo.valueSource)) {
+            problems.registerProblem(
+                warningInfo.valueSource,
+                problemDescription,
+                ProblemHighlightType.WARNING,
+                OpenConnectionChooserQuickFix(
+                    InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+                ),
+            )
+        }
     }
 
     /**

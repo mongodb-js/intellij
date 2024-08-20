@@ -3,6 +3,7 @@ package com.mongodb.jbplugin.inspections
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.psi.PsiElement
+import com.mongodb.jbplugin.dialects.DialectFormatter
 import com.mongodb.jbplugin.mql.Node
 
 /**
@@ -17,5 +18,6 @@ interface MongoDbInspection {
         dataSource: LocalDataSource?,
         problems: ProblemsHolder,
         query: Node<PsiElement>,
+        formatter: DialectFormatter,
     )
 }

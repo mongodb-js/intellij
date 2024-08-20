@@ -241,8 +241,10 @@ public class Repository {
             BsonAnyOf(BsonNull, BsonBoolean),
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(true,
- (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            true,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
     }
 
     @ParsingTest(

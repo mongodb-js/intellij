@@ -15,6 +15,7 @@ import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.mockDataSource
 import com.mongodb.jbplugin.inspections.bridge.FieldExistenceCheckInspectionBridge
+import com.mongodb.jbplugin.mql.BsonDouble
 import com.mongodb.jbplugin.mql.BsonObject
 import com.mongodb.jbplugin.mql.CollectionSchema
 import com.mongodb.jbplugin.mql.Namespace
@@ -114,6 +115,75 @@ public class Repository {
 
         `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
             GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
+        )
+
+        application.withMockedService(dbConnectionManager)
+        project.withMockedService(readModelProvider)
+        project.withMockedService(dbPsiFacade)
+
+        fixture.enableInspections(FieldExistenceCheckInspectionBridge::class.java)
+        fixture.testHighlighting()
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> exampleFind() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(eq(<warning descr="A \"String\"(type of provided value) can not be assigned to \"double\"(type of \"thisIsDouble\")">"thisIsDouble"</warning>, "123"));
+    }
+}
+        """,
+    )
+    fun `shows an inspection when a provided value cannot be assigned to a field because of detected type mismatch`(
+        project: Project,
+        psiFile: PsiFile,
+        fixture: CodeInsightTestFixture,
+    ) {
+        val dbPsiFacade = mock<DbPsiFacade>()
+        val dbDataSource = mock<DbDataSource>()
+        val dataSource = mockDataSource()
+        val application = ApplicationManager.getApplication()
+        val realConnectionManager = DatabaseConnectionManager.getInstance()
+        val dbConnectionManager =
+            mock<DatabaseConnectionManager>().also { cm ->
+                `when`(cm.build(any(), any())).thenAnswer {
+                    realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
+                }
+            }
+        val connection = mockDatabaseConnection(dataSource)
+        val readModelProvider = mock<DataGripBasedReadModelProvider>()
+
+        `when`(dbDataSource.localDataSource).thenReturn(dataSource)
+        `when`(dbPsiFacade.findDataSource(any())).thenReturn(dbDataSource)
+        `when`(dbConnectionManager.activeConnections).thenReturn(listOf(connection))
+
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
+            dataSource,
+        )
+
+        `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    Namespace("", ""), BsonObject(mapOf("thisIsDouble" to BsonDouble))
+                )
+            ),
         )
 
         application.withMockedService(dbConnectionManager)
