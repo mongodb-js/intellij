@@ -49,7 +49,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             val hasChildren =
                 HasChildren(
                     parseAllFiltersFromCurrentCall(currentCall) +
-                        parseAllUpdatesFromCurrentCall(currentCall),
+                            parseAllUpdatesFromCurrentCall(currentCall),
                 )
 
             return Node(
@@ -126,7 +126,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         } else if (method.parameters.size == 2) {
-// If it has two parameters, it's field/value.
+            // If it has two parameters, it's field/value.
             val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
             val valueReference = resolveValueFromExpression(filter.argumentList.expressions[1])
 
@@ -261,12 +261,13 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return fieldReference
     }
 
-    private fun resolveValueFromExpression(expression: PsiExpression): HasValueReference.ValueReference {
+    private fun resolveValueFromExpression(expression: PsiExpression): HasValueReference.ValueReference<PsiElement> {
         val (wasResolvedAtCompileTime, resolvedValue) = expression.tryToResolveAsConstant()
 
         val valueReference =
             if (wasResolvedAtCompileTime) {
                 HasValueReference.Constant(
+                    expression,
                     resolvedValue,
                     resolvedValue?.javaClass.toBsonType()
                 )
@@ -276,10 +277,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         .type
                         ?.toBsonType()
                 psiTypeOfValue?.let {
-                    HasValueReference.Runtime(it)
+                    HasValueReference.Runtime(expression, it)
                 } ?: HasValueReference.Unknown
             }
-        return valueReference
+        return valueReference as HasValueReference.ValueReference<PsiElement>
     }
 
     private fun namespaceComponent(namespace: Namespace?): HasCollectionReference =

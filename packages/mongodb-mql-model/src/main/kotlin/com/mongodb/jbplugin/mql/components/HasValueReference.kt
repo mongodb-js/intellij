@@ -4,28 +4,38 @@ import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Component
 
 /**
+ * @param S
  * @property reference
  */
-data class HasValueReference(
-    val reference: ValueReference,
+data class HasValueReference<S>(
+    val reference: ValueReference<S>,
 ) : Component {
-    data object Unknown : ValueReference
-
-    sealed interface ValueReference
+    data object Unknown : ValueReference<Any>
 
     /**
+     * @param S
+     */
+sealed interface ValueReference<S>
+
+    /**
+     * @param S
      * @property value
      * @property type
-     */
-    data class Constant(
+     * @property source
+    */
+    data class Constant<S>(
+        val source: S,
         val value: Any?,
         val type: BsonType,
-    ) : ValueReference
+    ) : ValueReference<S>
 
     /**
+     * @param S
      * @property type
-     */
-    data class Runtime(
+     * @property source
+    */
+    data class Runtime<S>(
+        val source: S,
         val type: BsonType,
-    ) : ValueReference
+    ) : ValueReference<S>
 }

@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.util.PsiTreeUtil
@@ -196,7 +197,7 @@ public final class Repository {
         assertEquals("_id", (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName)
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
     }
 
@@ -238,9 +239,10 @@ public class Repository {
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(true, (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(true,
+ (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value)
     }
 
     @ParsingTest(
@@ -281,9 +283,12 @@ public class Repository {
         )
         assertEquals(
             BsonNull,
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(null, (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            null,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
     }
 
     @ParsingTest(
@@ -309,6 +314,10 @@ public class Repository {
 }
         """,
     )
+    // ktlint complains about this method being too long but no real 
+    // benefit in splitting this up as that would make reading test
+    // cases difficult
+    @Suppress("ktlint")
     fun `supports vararg operators`(psiFile: PsiFile) {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
@@ -327,9 +336,12 @@ public class Repository {
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
-            (firstEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (firstEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(true, (firstEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            true,
+            (firstEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
 
         val secondEq = andChildren.children[1]
         assertEquals(
@@ -338,9 +350,12 @@ public class Repository {
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
-            (secondEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (secondEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(false, (secondEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            false,
+            (secondEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
     }
 
     @ParsingTest(
@@ -382,9 +397,12 @@ public class Repository {
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(true, (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            true,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
     }
 
     @ParsingTest(
@@ -429,9 +447,12 @@ public class Repository {
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(true, (eq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            true,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
     }
 
     @ParsingTest(
@@ -476,7 +497,7 @@ public class Repository {
         )
         assertEquals(
             BsonBoolean,
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
     }
 
@@ -528,9 +549,12 @@ public class Repository {
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
-            (firstEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (firstEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(true, (firstEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            true,
+            (firstEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
 
         val secondEq = andChildren.children[1]
         assertEquals(
@@ -539,9 +563,12 @@ public class Repository {
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
-            (secondEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).type,
+            (secondEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
         )
-        assertEquals(false, (secondEq.component<HasValueReference>()!!.reference as HasValueReference.Constant).value)
+        assertEquals(
+            false,
+            (secondEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
     }
 
     @ParsingTest(
@@ -587,7 +614,7 @@ public class Repository {
         )
         assertEquals(
             BsonBoolean,
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
 
         val unset = hasChildren.children[1]
@@ -641,7 +668,7 @@ public class Repository {
         )
         assertEquals(
             BsonBoolean,
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
 
         val unset = hasChildren.children[1]
@@ -652,7 +679,7 @@ public class Repository {
         )
         assertEquals(
             1,
-            (unset.component<HasValueReference>()!!.reference as HasValueReference.Constant).value,
+            (unset.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value,
         )
     }
 
@@ -699,7 +726,7 @@ public class Repository {
         )
         assertEquals(
             BsonBoolean,
-            (eq.component<HasValueReference>()!!.reference as HasValueReference.Runtime).type,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
 
         val combine = hasChildren.children[1]
