@@ -268,8 +268,8 @@ fun PsiElement.findMongoDbCollectionReference(): PsiExpression? {
 }
 
 /**
- * Resolves to the value of the expression if it can be known at compile time
- * or null if it can only be known at runtime.
+ * Resolves to a pair of the resolved value in the expression and whether it was possible to
+ * resolve the value or not.
  *
  * @return Pair<Boolean, Any?> A pair where the first component represents whether
  * the value was resolved during compile time or not and the second component
