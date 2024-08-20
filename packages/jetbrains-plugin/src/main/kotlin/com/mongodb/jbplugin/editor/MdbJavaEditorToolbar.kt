@@ -21,17 +21,20 @@ import com.mongodb.jbplugin.editor.inputs.DataSourceComboBox
 import com.mongodb.jbplugin.editor.inputs.DatabaseComboBox
 import com.mongodb.jbplugin.editor.inputs.DatabaseSelectedListener
 import com.mongodb.jbplugin.editor.inputs.DatabaseUnselectedListener
-import kotlinx.coroutines.CoroutineScope
+
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
 import javax.swing.JComponent
 import javax.swing.JDialog
 import javax.swing.JPanel
 
+import kotlinx.coroutines.CoroutineScope
+
+private val log = logger<MdbJavaEditorToolbar>()
+
 typealias OnConnectedListener = (LocalDataSource) -> Unit
 typealias OnDisconnectedListener = () -> Unit
 
-private val log = logger<MdbJavaEditorToolbar>()
 /**
  * Represents the toolbar that will be inserted into an active Java editor.
  *
@@ -216,11 +219,11 @@ class MdbJavaEditorToolbar(
 }
 
 private fun runGracefullyFailing(lambda: () -> Unit) {
-    val r = runCatching {
+    val result = runCatching {
         lambda()
     }
 
-    r.onFailure {
+    result.onFailure {
         log.info("Ignoring error because we are in a gracefully fallback block.", it)
     }
 }

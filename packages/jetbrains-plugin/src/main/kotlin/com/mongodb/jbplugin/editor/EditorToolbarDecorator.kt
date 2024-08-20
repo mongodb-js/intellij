@@ -28,6 +28,7 @@ import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
 import kotlinx.coroutines.CoroutineScope
 
 private val log = logger<EditorToolbarDecorator>()
+
 /**
  * This decorator listens to an IntelliJ Editor lifecycle
  * and attaches our toolbar if necessary.
