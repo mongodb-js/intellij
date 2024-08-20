@@ -280,7 +280,7 @@ fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
         val varRef = this.resolve()!!
         return varRef.tryToResolveAsConstant()
     } else if (this is PsiLocalVariable && this.initializer != null) {
-        this.initializer!!.tryToResolveAsConstant()
+        return this.initializer!!.tryToResolveAsConstant()
     } else if (this is PsiLiteralValue) {
         val facade = JavaPsiFacade.getInstance(this.project)
         val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(this)
