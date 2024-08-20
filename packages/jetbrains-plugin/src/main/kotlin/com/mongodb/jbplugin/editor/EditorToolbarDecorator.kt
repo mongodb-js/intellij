@@ -10,6 +10,7 @@ import com.intellij.database.psi.DataSourceManager
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
@@ -26,6 +27,7 @@ import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
 import kotlinx.coroutines.CoroutineScope
 
+private val log = logger<EditorToolbarDecorator>()
 /**
  * This decorator listens to an IntelliJ Editor lifecycle
  * and attaches our toolbar if necessary.
@@ -77,6 +79,7 @@ class EditorToolbarDecorator(
         (event.newEditor as? TextEditor)?.editor?.let {
             editor = it
             ensureToolbarIsVisibleIfNecessary()
+            toolbar.reloadDatabases()
         }
     }
 
@@ -132,7 +135,11 @@ class EditorToolbarDecorator(
             return false
         }
 
-        val psiFile = psiFileResult.getOrThrow()!!
+        psiFileResult.onFailure {
+            log.info("Could not find virtual file for current editor", it)
+        }
+
+        val psiFile = psiFileResult.getOrNull() ?: return false
 
         if (psiFile.language != JavaLanguage.INSTANCE) {
             return false
