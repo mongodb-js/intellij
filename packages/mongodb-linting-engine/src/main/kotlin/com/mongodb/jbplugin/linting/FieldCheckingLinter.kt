@@ -6,10 +6,7 @@ package com.mongodb.jbplugin.linting
 
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
-import com.mongodb.jbplugin.mql.BsonNull
-import com.mongodb.jbplugin.mql.BsonType
-import com.mongodb.jbplugin.mql.Namespace
-import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.*
 import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
@@ -17,7 +14,7 @@ import com.mongodb.jbplugin.mql.components.HasValueReference
 
 private typealias FieldCheckWarnings<S> = List<FieldCheckWarning<S>>
 
-private typealias FieldAndReferences<S> = List<FieldValueTypeAndReference<S>>
+private typealias FieldAndReferences<S> = List<References<S>>
 
 /**
  * Marker type for the result of the type.
@@ -96,13 +93,11 @@ object FieldCheckingLinter {
 
         val warnings =
             allFieldReferences.mapNotNull {
-                val fieldType = collection.typeOf(it.field)
-                if (fieldType == BsonNull) {
-                    FieldCheckWarning.FieldDoesNotExist(it.fieldReference, it.field, namespace)
-                } else if (it.valueType != null && !it.valueType.isAssignableTo(fieldType)) {
-                    FieldCheckWarning.FieldValueTypeMismatch(it.field, fieldType, it.valueReference, it.valueType)
-                } else {
-                    null
+                when (it) {
+                    is References.FieldReferences -> it.toFieldExistenceWarning(collection, namespace)
+                    is References.FieldValueReferences ->
+                        it.toFieldExistenceWarning(collection, namespace)
+                            ?: it.toFieldValueTypeMismatchWarning(collection)
                 }
             }
 
@@ -112,37 +107,88 @@ object FieldCheckingLinter {
 
 /**
  * @param S
- * @property fieldReference
- * @property field
- * @property valueReference
+ */
+sealed interface References<S> {
+    /**
+ * @param S
+ * @property fieldSource
+ * @property fieldName
+ */
+data class FieldReferences<S>(val fieldSource: S, val fieldName: String) : References<S> {
+        fun toFieldExistenceWarning(
+            collectionSchema: CollectionSchema,
+            namespace: Namespace,
+        ): FieldCheckWarning.FieldDoesNotExist<S>? {
+            val fieldType = collectionSchema.typeOf(fieldName)
+            return FieldCheckWarning.FieldDoesNotExist(
+                fieldSource,
+                fieldName,
+                namespace
+            ).takeIf { fieldType == BsonNull }
+        }
+    }
+
+    /**
+ * @param S
+ * @property fieldSource
+ * @property fieldName
+ * @property valueSource
  * @property valueType
  */
-private data class FieldValueTypeAndReference<S>(
-    val fieldReference: S,
-    val field: String,
-    val valueReference: S,
-    val valueType: BsonType?,
-)
+data class FieldValueReferences<S>(
+        val fieldSource: S,
+ val fieldName: String,
+ val valueSource: S,
+ val valueType: BsonType
+    ) : References<S> {
+        fun toFieldExistenceWarning(
+            collectionSchema: CollectionSchema,
+            namespace: Namespace,
+        ): FieldCheckWarning.FieldDoesNotExist<S>? {
+            val fieldType = collectionSchema.typeOf(fieldName)
+            return FieldCheckWarning.FieldDoesNotExist(
+                fieldSource,
+                fieldName,
+                namespace
+            ).takeIf { fieldType == BsonNull }
+        }
+
+        fun toFieldValueTypeMismatchWarning(
+            collectionSchema: CollectionSchema,
+        ): FieldCheckWarning.FieldValueTypeMismatch<S>? {
+            val fieldType = collectionSchema.typeOf(fieldName)
+            return FieldCheckWarning.FieldValueTypeMismatch(
+                fieldName,
+                fieldType,
+                valueSource,
+                valueType
+            ).takeIf { !valueType.isAssignableTo(fieldType) }
+        }
+    }
+}
 
 private fun <S> Node<S>.getAllFieldValueTypeAndReferences(): FieldAndReferences<S> {
     val hasChildren = component<HasChildren<S>>()
     val otherRefs = hasChildren?.children?.flatMap { it.getAllFieldValueTypeAndReferences() } ?: emptyList()
     val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
+    val valueRef = component<HasValueReference<S>>()?.reference
     return if (fieldRef is HasFieldReference.Known) {
-        val (valueSource, valueType) = component<HasValueReference<S>>()?.reference?.let {
-            when (it) {
-                is HasValueReference.Constant -> it.source to it.type
-                is HasValueReference.Runtime -> it.source to it.type
-                else -> return otherRefs
-            }
-        } ?: return otherRefs
+        otherRefs + (valueRef?.let { reference ->
+            when (reference) {
+                is HasValueReference.Constant<S> -> References.FieldValueReferences(
+                    fieldRef.source, fieldRef.fieldName, reference.source, reference.type
+                )
 
-        otherRefs + FieldValueTypeAndReference(
+                is HasValueReference.Runtime<S> -> References.FieldValueReferences(
+                    fieldRef.source, fieldRef.fieldName, reference.source, reference.type
+                )
+
+                else -> null
+            }
+        } ?: References.FieldReferences(
             fieldRef.source,
             fieldRef.fieldName,
-            valueSource,
-            valueType
-        )
+        ))
     } else {
         otherRefs
     }

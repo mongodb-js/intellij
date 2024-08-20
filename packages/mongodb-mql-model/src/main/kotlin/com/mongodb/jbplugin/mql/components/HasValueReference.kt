@@ -22,7 +22,7 @@ data class HasValueReference<S>(
      * @property value
      * @property type
      * @property source
-    */
+     */
     data class Constant<S>(
         val source: S,
         val value: Any?,
@@ -33,7 +33,7 @@ data class HasValueReference<S>(
      * @param S
      * @property type
      * @property source
-    */
+     */
     data class Runtime<S>(
         val source: S,
         val type: BsonType,
