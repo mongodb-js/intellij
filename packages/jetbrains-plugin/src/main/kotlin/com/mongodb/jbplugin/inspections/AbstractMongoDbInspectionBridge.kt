@@ -63,17 +63,36 @@ abstract class AbstractMongoDbInspectionBridge(
                     cachedValue?.let {
                         val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java)
                         if (fileInExpression == null || fileInExpression.virtualFile == null) {
-                            inspection.visitMongoDbQuery(null, holder, cachedValue!!.value)
+                            inspection.visitMongoDbQuery(null, holder, cachedValue!!.value, dialect.formatter)
                         } else {
                             val dataSource =
                                 MongoDbVirtualFileDataSourceProvider().getDataSource(
                                     expression.project,
                                     fileInExpression.virtualFile,
                                 )
-                            inspection.visitMongoDbQuery(dataSource?.localDataSource, holder, cachedValue!!.value)
+                            inspection.visitMongoDbQuery(
+                                dataSource?.localDataSource,
+                                holder,
+                                cachedValue!!.value,
+                                dialect.formatter,
+                            )
                         }
                     }
                 }
             }
         }
+}
+
+/**
+ * Checks whether a provided problem description has already been registered with the ProblemsHolder for a given
+ * PsiElement
+ * Warning: Instead of using this, we should get around fixing the "possible" underlying issue highlighted by
+ * INTELLIJ-60
+ *
+ * @param problem - Description of the problem
+ * @param source - PsiElement for which the problem is to be checked
+ * @return Boolean
+ */
+fun ProblemsHolder.isProblemAlreadyRegistered(problem: String, source: PsiElement): Boolean = this.results.any {
+    it.psiElement == source && it.descriptionTemplate == problem
 }

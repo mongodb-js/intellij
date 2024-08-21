@@ -103,8 +103,9 @@ class NodeTest {
                 arrayOf(HasFieldReference(HasFieldReference.Known(null, "abc")), HasFieldReference::class.java),
                 arrayOf(HasFilter<Unit?>(Node(null, emptyList())), HasFilter::class.java),
                 arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
-                arrayOf(HasValueReference(HasValueReference.Constant(123, BsonInt32)), HasValueReference::class.java),
-                arrayOf(HasValueReference(HasValueReference.Runtime(BsonInt32)), HasValueReference::class.java),
+                arrayOf(HasValueReference(HasValueReference.Constant(null, 123, BsonInt32)),
+ HasValueReference::class.java),
+                arrayOf(HasValueReference(HasValueReference.Runtime(null, BsonInt32)), HasValueReference::class.java),
                 arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
                 arrayOf(Named("abc"), Named::class.java),
             )

@@ -12,15 +12,15 @@ data class HasFieldReference<S>(
     data object Unknown : FieldReference<Any>
 
     /**
- * @param S
- */
-sealed interface FieldReference<S>
+     * @param S
+     */
+    sealed interface FieldReference<S>
 
     /**
      * @param S
      * @property fieldName
- * @property source
- */
+     * @property source
+     */
     data class Known<S>(
         val source: S,
         val fieldName: String,

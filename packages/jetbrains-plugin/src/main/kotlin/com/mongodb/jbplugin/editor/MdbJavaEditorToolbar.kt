@@ -219,11 +219,9 @@ class MdbJavaEditorToolbar(
 }
 
 private fun runGracefullyFailing(lambda: () -> Unit) {
-    val result = runCatching {
+    runCatching {
         lambda()
-    }
-
-    result.onFailure {
+    }.onFailure {
         log.info("Ignoring error because we are in a gracefully fallback block.", it)
     }
 }

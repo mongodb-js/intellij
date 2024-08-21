@@ -268,26 +268,32 @@ fun PsiElement.findMongoDbCollectionReference(): PsiExpression? {
 }
 
 /**
- * Resolves to the value of the expression if it can be known at compile time
- * or null if it can only be known at runtime.
+ * Resolves to a pair of the resolved value in the expression and whether it was possible to
+ * resolve the value or not.
+ *
+ * @return Pair<Boolean, Any?> A pair where the first component represents whether
+ * the value was resolved during compile time or not and the second component
+ * represents the resolved value itself
  */
-fun PsiElement.tryToResolveAsConstant(): Any? {
+fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
     if (this is PsiReferenceExpression) {
         val varRef = this.resolve()!!
         return varRef.tryToResolveAsConstant()
-    } else if (this is PsiLocalVariable) {
-        return this.initializer?.tryToResolveAsConstant()
+    } else if (this is PsiLocalVariable && this.initializer != null) {
+        return this.initializer!!.tryToResolveAsConstant()
     } else if (this is PsiLiteralValue) {
         val facade = JavaPsiFacade.getInstance(this.project)
-        return facade.constantEvaluationHelper.computeConstantExpression(this)
+        val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(this)
+        return true to resolvedValue
     } else if (this is PsiLiteralExpression) {
         val facade = JavaPsiFacade.getInstance(this.project)
-        return facade.constantEvaluationHelper.computeConstantExpression(this)
-    } else if (this is PsiField && this.hasModifier(JvmModifier.FINAL)) {
-        return this.initializer?.tryToResolveAsConstant()
+        val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(this)
+        return true to resolvedValue
+    } else if (this is PsiField && this.initializer != null && this.hasModifier(JvmModifier.FINAL)) {
+        return this.initializer!!.tryToResolveAsConstant()
     }
 
-    return null
+    return false to null
 }
 
 /**
@@ -296,7 +302,8 @@ fun PsiElement.tryToResolveAsConstant(): Any? {
  *
  * @return
  */
-fun PsiElement.tryToResolveAsConstantString(): String? = tryToResolveAsConstant()?.toString()
+fun PsiElement.tryToResolveAsConstantString(): String? =
+    tryToResolveAsConstant().takeIf { it.first }?.second?.toString()
 
 /**
  * Maps a PsiType to its BSON counterpart.
