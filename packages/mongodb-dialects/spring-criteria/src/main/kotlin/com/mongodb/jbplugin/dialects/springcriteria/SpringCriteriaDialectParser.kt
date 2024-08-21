@@ -25,7 +25,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     }
 
     private fun parseQueryRecursively(fieldNameCall: PsiMethodCallExpression): List<Node<PsiElement>> {
-        if (!fieldNameCall.isACriteriaQueryMethod()) {
+        if (!fieldNameCall.isCriteriaQueryMethod()) {
             return emptyList()
         }
 
@@ -40,7 +40,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         )
 
         val valueReference = HasValueReference(
-            HasValueReference.Constant(value, value.javaClass.toBsonType(value))
+            HasValueReference.Constant(valueCall, value, value.javaClass.toBsonType(value))
         )
 
         val predicate = Node<PsiElement>(fieldNameCall, listOf(
@@ -73,7 +73,7 @@ private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
     return bottomLevel
 }
 
-private fun PsiMethodCallExpression.isAcriteriaQueryMethod(): Boolean {
+private fun PsiMethodCallExpression.isCriteriaQueryMethod(): Boolean {
     val method = resolveMethod() ?: return false
     return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
 }
