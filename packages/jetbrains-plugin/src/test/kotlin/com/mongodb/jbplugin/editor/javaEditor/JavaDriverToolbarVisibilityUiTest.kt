@@ -100,11 +100,13 @@ class JavaDriverToolbarVisibilityUiTest {
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.hasDatabasesComboBox)
 
-        // when we select a cluster, it will connect asynchronously
-        toolbar.dataSources.selectItem(javaClass.simpleName)
-        // it can take a few seconds, we will retry every few milliseconds
-        // but wait at least for a minute if we can't select a database
         eventually(1.minutes.toJavaDuration()) {
+            // when we select a cluster, it will connect asynchronously
+            toolbar.dataSources.selectItem(javaClass.simpleName)
+        }
+        eventually(1.minutes.toJavaDuration()) {
+            // it can take a few seconds, we will retry every few milliseconds
+            // but wait at least for a minute if we can't select a database
             toolbar.databases.selectItem("admin")
         }
     }
