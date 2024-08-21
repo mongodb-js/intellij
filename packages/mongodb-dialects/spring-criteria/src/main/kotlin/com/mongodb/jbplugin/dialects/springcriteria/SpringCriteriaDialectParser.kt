@@ -45,16 +45,20 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             if (isResolved) {
                 HasValueReference.Constant(valueCall, value, value!!.javaClass.toBsonType(value))
             } else {
-                HasValueReference.Runtime(valueCall,
- valueCall.argumentList.expressions[0].type?.toBsonType() ?: BsonAny)
+                HasValueReference.Runtime(
+                    valueCall,
+                    valueCall.argumentList.expressions[0].type?.toBsonType() ?: BsonAny
+                )
             }
         )
 
-        val predicate = Node<PsiElement>(fieldNameCall, listOf(
-            Named(name),
-            fieldReference,
-            valueReference
-        ))
+        val predicate = Node<PsiElement>(
+            fieldNameCall, listOf(
+                Named(name),
+                fieldReference,
+                valueReference
+            )
+        )
 
         if (valueCall.parent.parent is PsiMethodCallExpression) {
             val nextField = valueCall.parent.parent as PsiMethodCallExpression
