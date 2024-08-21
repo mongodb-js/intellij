@@ -27,6 +27,7 @@ object JavaDriverDialectFormatter : DialectFormatter {
                         .sorted()
                         .joinToString(" | ")
                 }
+
             else -> "any"
         }
 
@@ -49,6 +50,7 @@ object JavaDriverDialectFormatter : DialectFormatter {
                     .map { formatTypeNullable(it) }
                     .sorted()
                     .joinToString(" | ")
+
             else -> "any"
         }
 }

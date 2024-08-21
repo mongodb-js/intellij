@@ -17,6 +17,7 @@ class JavaDriverDialectFormatterTest {
             JavaDriverDialectFormatter.formatType(bsonType),
         )
     }
+
     companion object {
         @JvmStatic
         fun bsonTypesToJava(): Array<Array<Any>> =
