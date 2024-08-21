@@ -3,8 +3,10 @@ package com.mongodb.jbplugin.dialects.springcriteria
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethodCallExpression
 import com.mongodb.jbplugin.dialects.DialectParser
+import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
+import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasFieldReference
@@ -32,7 +34,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val valueCall = fieldNameCall.parent.parent as? PsiMethodCallExpression ?: return emptyList()
 
         val fieldName = fieldNameCall.argumentList.expressions[0].tryToResolveAsConstantString()!!
-        val value = valueCall.argumentList.expressions[0].tryToResolveAsConstant()!!
+        val (isResolved, value) = valueCall.argumentList.expressions[0].tryToResolveAsConstant()
         val name = valueCall.resolveMethod()?.name!!
 
         val fieldReference = HasFieldReference(
@@ -40,7 +42,12 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         )
 
         val valueReference = HasValueReference(
-            HasValueReference.Constant(valueCall, value, value.javaClass.toBsonType(value))
+            if (isResolved) {
+                HasValueReference.Constant(valueCall, value, value!!.javaClass.toBsonType(value))
+            } else {
+                HasValueReference.Runtime(valueCall,
+ valueCall.argumentList.expressions[0].type?.toBsonType() ?: BsonAny)
+            }
         )
 
         val predicate = Node<PsiElement>(fieldNameCall, listOf(

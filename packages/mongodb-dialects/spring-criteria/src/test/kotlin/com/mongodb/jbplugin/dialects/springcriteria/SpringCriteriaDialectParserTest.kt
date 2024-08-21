@@ -44,7 +44,7 @@ class Repository {
 
         val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
         val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val valueReference = whereReleasedIsTrue.component<HasValueReference>()!!.reference
+        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
 
         fieldNameReference as HasFieldReference.Known<PsiElement>
         valueReference as HasValueReference.Constant
@@ -90,11 +90,11 @@ class Repository {
 
         val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
         val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToTrue = whereReleasedIsTrue.component<HasValueReference>()!!.reference
+        val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
 
         val whereHiddenIs0 = node.component<HasChildren<PsiElement>>()!!.children[1]
         val referenceToHidden = whereHiddenIs0.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceTo0 = whereHiddenIs0.component<HasValueReference>()!!.reference
+        val referenceTo0 = whereHiddenIs0.component<HasValueReference<PsiElement>>()!!.reference
 
         referenceToReleased as HasFieldReference.Known<PsiElement>
         referenceToTrue as HasValueReference.Constant
