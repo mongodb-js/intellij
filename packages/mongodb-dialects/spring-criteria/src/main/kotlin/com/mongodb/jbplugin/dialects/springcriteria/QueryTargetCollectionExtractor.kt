@@ -28,11 +28,21 @@ object QueryTargetCollectionExtractor {
     }
 }
 
-private fun <T> PsiExpression.findAllChildrenOfType(type: Class<T>): List<T> {
-    val allChildren = this.children.flatMap { (it as? PsiExpression)?.findAllChildrenOfType(type) ?: emptyList() }
+/**
+ * Returns all children of type in a list. Order is not guaranteed between calls.
+ * It also takes into consideration in method calls, the parameters of the method call.
+ *
+ * @param type
+ */
+fun <T> PsiElement.findAllChildrenOfType(type: Class<T>): List<T> {
+    var allChildren = this.children.flatMap { (it as? PsiExpression)?.findAllChildrenOfType(type) ?: emptyList() }
+
+    if (this is PsiMethodCallExpression) {
+        allChildren += this.argumentList.expressions.flatMap { it.findAllChildrenOfType(type) }
+    }
 
     if (type.isInstance(this)) {
-        return allChildren + listOf(this as T)
+        allChildren += listOf(this as T)
     }
 
     return allChildren
