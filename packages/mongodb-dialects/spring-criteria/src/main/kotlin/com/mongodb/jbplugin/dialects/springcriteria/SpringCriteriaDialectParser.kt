@@ -2,6 +2,7 @@ package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
+import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
@@ -29,8 +30,8 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
 
         return Node(source, listOf(
             HasCollectionReference(targetCollection?.let {
-HasCollectionReference.OnlyCollection(targetCollection)
-} ?: HasCollectionReference.Unknown),
+                HasCollectionReference.OnlyCollection(targetCollection)
+            } ?: HasCollectionReference.Unknown),
             HasChildren(parseQueryRecursively(criteriaChain))
         ))
     }
@@ -53,9 +54,10 @@ HasCollectionReference.OnlyCollection(targetCollection)
                 .flatMap { parseQueryRecursively(it, fieldNameCall) }
 
             if (fieldNameCall.parent.parent is PsiMethodCallExpression) {
+                val named = operatorName(currentCriteriaMethod)
                 val nextField = fieldNameCall.parent.parent as PsiMethodCallExpression
-                return listOf(Node<PsiElement>(fieldNameCall, listOf(HasChildren(allSubQueries)))) +
- parseQueryRecursively(nextField, until)
+                return listOf(Node<PsiElement>(fieldNameCall, listOf(named, HasChildren(allSubQueries)))) +
+                        parseQueryRecursively(nextField, until)
             }
         }
 
@@ -92,6 +94,12 @@ HasCollectionReference.OnlyCollection(targetCollection)
         }
 
         return listOf(predicate)
+    }
+
+    private fun operatorName(currentCriteriaMethod: PsiMethod): Named {
+        val name = currentCriteriaMethod.name.replace("Operator", "")
+        val named = Named(name)
+        return named
     }
 }
 
