@@ -8,7 +8,7 @@ import java.util.List;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
-@Document
+@Document("movies")
 record Movie() {
 
 }
@@ -22,7 +22,7 @@ public class SpringCriteriaRepository {
 
     private List<Movie> allMoviesWithRatingAtLeast(int rating) {
         return template.find(
-                query(where("tomatoes.viewer.rating").gte(rating)),
+                query(where( "tomatoes.viewer.rating").gte(rating)),
                 Movie.class
         );
     }
