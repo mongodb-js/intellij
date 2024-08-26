@@ -15,7 +15,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
 /**
  * @param dialect
@@ -93,15 +92,7 @@ abstract class AbstractMongoDbInspectionBridge(
             private fun queryWithCollectionReference(query: Node<PsiElement>, virtualFile: VirtualFile) =
                 MongoDbVirtualFileDataSourceProvider().getDatabase(
                     virtualFile,
-                )?.let { database ->
-                    query.copy { component ->
-                        if (component is HasCollectionReference) {
-                            component.copy(database = database)
-                        } else {
-                            component
-                        }
-                    }
-                } ?: query
+                )?.let { Node.queryWithOverwrittenDatabase(query, it) } ?: query
         }
 }
 
