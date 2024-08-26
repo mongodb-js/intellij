@@ -68,6 +68,33 @@ class NodeTest {
         assertFalse(hasNamedComponent)
     }
 
+    @Test
+    fun `it copies the Node by correctly mapping the underlying components`() {
+        val node = Node<Unit?>(
+            null,
+            listOf(
+                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
+                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
+            )
+        )
+
+        val copiedNode = node.copy {
+            HasCollectionReference(
+                HasCollectionReference.Unknown
+            )
+        }
+
+        // Does not modify the original node
+        assertTrue(
+            node.components<HasCollectionReference>()
+                .all { collection -> collection.reference is HasCollectionReference.OnlyCollection })
+
+        // creates a copy with the modified components as per our logic
+        assertTrue(
+            copiedNode.components<HasCollectionReference>()
+                .all { collection -> collection.reference is HasCollectionReference.Unknown })
+    }
+
     @MethodSource("validComponents")
     @ParameterizedTest
     fun `does support the following component`(

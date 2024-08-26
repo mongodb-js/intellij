@@ -18,10 +18,11 @@ data class HasCollectionReference(
      * @param database
      */
     fun copy(database: String): HasCollectionReference = when (reference) {
-            is Known -> copy(reference = Known(Namespace(database, reference.namespace.collection)))
-            is OnlyCollection -> copy(reference = Known(Namespace(database, reference.collection)))
-            is Unknown -> copy(reference = reference)
-        }
+        is Known -> copy(reference = Known(Namespace(database, reference.namespace.collection)))
+        is OnlyCollection -> copy(reference = Known(Namespace(database, reference.collection)))
+        is Unknown -> copy(reference = reference)
+    }
+
     sealed interface CollectionReference
 
     /**
