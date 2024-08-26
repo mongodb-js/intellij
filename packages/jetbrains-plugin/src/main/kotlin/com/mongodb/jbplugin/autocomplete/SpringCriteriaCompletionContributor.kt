@@ -56,8 +56,7 @@ class SpringCriteriaCompletionContributor : CompletionContributor() {
                     ) as? AutocompletionResult.Successful
 
                 val lookupEntries = completions?.entries?.map { it.toLookupElement(SpringCriteriaDialect) }
-                    ?: emptyList()
-                result.addAllElements(lookupEntries)
+                result.addAllElements(lookupEntries ?: emptyList())
             }
         }
 
