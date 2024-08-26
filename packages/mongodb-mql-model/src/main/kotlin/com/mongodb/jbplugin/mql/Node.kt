@@ -46,6 +46,21 @@ data class Node<S>(
     inline fun <reified C : Component> hasComponent(): Boolean = component<C>() != null
 
     /**
+     * Creates a copy of the query and modifies the database reference in every HasCollectionReference component
+     * with the provided database
+     *
+     * @param database
+     * @return
+     */
+    fun queryWithOverwrittenDatabase(database: String) = this.copy { component ->
+        if (component is HasCollectionReference) {
+            component.copy(database = database)
+        } else {
+            component
+        }
+    }
+
+    /**
      * Creates a copy of the Node by modifying the underlying component list
      *
      * @param componentModifier A mapper function that is provided with a component (one at a time) from the Node's
@@ -54,22 +69,4 @@ data class Node<S>(
      */
     fun copy(componentModifier: (component: Component) -> Component): Node<S> =
         copy(source = source, components = components.map(componentModifier))
-
-    companion object {
-        /**
-         * Creates a copy of the query and modifies the database reference in every HasCollectionReference component
-         * with the provided database
-         *
-         * @param query
-         * @param database
-         * @return
-         */
-        fun <S> queryWithOverwrittenDatabase(query: Node<S>, database: String) = query.copy { component ->
-            if (component is HasCollectionReference) {
-                component.copy(database = database)
-            } else {
-                component
-            }
-        }
-    }
 }

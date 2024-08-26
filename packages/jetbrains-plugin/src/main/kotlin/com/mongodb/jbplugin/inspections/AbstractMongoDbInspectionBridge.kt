@@ -92,7 +92,7 @@ abstract class AbstractMongoDbInspectionBridge(
             private fun queryWithCollectionReference(query: Node<PsiElement>, virtualFile: VirtualFile) =
                 MongoDbVirtualFileDataSourceProvider().getDatabase(
                     virtualFile,
-                )?.let { Node.queryWithOverwrittenDatabase(query, it) } ?: query
+                )?.let { query.queryWithOverwrittenDatabase(it) } ?: query
         }
 }
 
