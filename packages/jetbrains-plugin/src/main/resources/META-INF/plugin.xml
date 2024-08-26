@@ -44,7 +44,7 @@
                            displayType="BALLOON"
                            bundle="messages.TelemetryBundle"
                            key="notification.group.name"
-                           />
+        />
         <codeInsight.declarativeInlayProvider
                 group="com.mongodb.jbplugin"
                 implementationClass="com.mongodb.jbplugin.inlays.JavaDriverQueryNamespaceInlay"
@@ -61,9 +61,18 @@
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
                          level="WARNING"
-                         implementationClass="com.mongodb.jbplugin.inspections.bridge.FieldExistenceCheckInspectionBridge"/>
+                         implementationClass="com.mongodb.jbplugin.inspections.bridge.JavaDriverFieldCheckInspectionBridge"/>
+        <localInspection language="JAVA"
+                         bundle="messages.InspectionsAndInlaysBundle"
+                         key="inspection.field.checking"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsAndInlaysBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.mongodb.jbplugin.inspections.bridge.SpringCriteriaFieldCheckInspectionBridge"/>
         <database.virtualFileDataSourceProvider
-            implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
+                implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider"/>
         <completion.contributor language="JAVA"
                                 implementationClass="com.mongodb.jbplugin.autocomplete.JavaDriverCompletionContributor" />
     </extensions>

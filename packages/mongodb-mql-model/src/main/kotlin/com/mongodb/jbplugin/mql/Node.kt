@@ -42,4 +42,14 @@ data class Node<S>(
     inline fun <reified C : Component> components(): List<C> = components.filterIsInstance<C>()
 
     inline fun <reified C : Component> hasComponent(): Boolean = component<C>() != null
+
+    /**
+     * Creates a copy of the Node by modifying the underlying component list
+     *
+     * @param componentModifier A mapper function that is provided with a component (one at a time) from the Node's
+     * component list and is expected to either provide a modified component or the same component. The return value of
+     * this function is used to create a new component list for the copied Node
+     */
+    fun copy(componentModifier: (component: Component) -> Component): Node<S> =
+        copy(source = source, components = components.map(componentModifier))
 }

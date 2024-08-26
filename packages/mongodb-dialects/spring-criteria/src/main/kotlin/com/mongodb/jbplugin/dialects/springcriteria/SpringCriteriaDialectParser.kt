@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiMethodCallExpression
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
@@ -8,10 +9,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.HasChildren
-import com.mongodb.jbplugin.mql.components.HasFieldReference
-import com.mongodb.jbplugin.mql.components.HasValueReference
-import com.mongodb.jbplugin.mql.components.Named
+import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val CRITERIA_CLASS_FQN = "org.springframework.data.mongodb.core.query.Criteria"
@@ -22,8 +20,23 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     override fun attachment(source: PsiElement): PsiElement = source.findCriteriaWhereExpression()!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
+        if (source !is PsiExpression) {
+            return Node(source, emptyList())
+        }
+
         val criteriaChain = source.findCriteriaWhereExpression() ?: return Node(source, emptyList())
-        return Node(source, listOf(HasChildren(parseQueryRecursively(criteriaChain))))
+        val collectionReference = HasCollectionReference(
+            QueryTargetCollectionExtractor.extractCollection(criteriaChain)?.let {
+                HasCollectionReference.OnlyCollection(it)
+            } ?: HasCollectionReference.Unknown
+        )
+        return Node(
+            source,
+            listOf(
+                collectionReference,
+                HasChildren(parseQueryRecursively(criteriaChain))
+            )
+        )
     }
 
     private fun parseQueryRecursively(fieldNameCall: PsiMethodCallExpression): List<Node<PsiElement>> {
