@@ -15,6 +15,7 @@ import com.mongodb.jbplugin.autocomplete.MongoDbElementPatterns.isConnected
 import com.mongodb.jbplugin.autocomplete.MongoDbElementPatterns.toLookupElement
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
 import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor
+import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
 import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.editor.database
 import com.mongodb.jbplugin.mql.Namespace
@@ -54,7 +55,8 @@ class SpringCriteriaCompletionContributor : CompletionContributor() {
                         Namespace(database, collection),
                     ) as? AutocompletionResult.Successful
 
-                val lookupEntries = completions?.entries?.map { it.toLookupElement() } ?: emptyList()
+                val lookupEntries = completions?.entries?.map { it.toLookupElement(SpringCriteriaDialect) }
+                    ?: emptyList()
                 result.addAllElements(lookupEntries)
             }
         }
@@ -88,7 +90,7 @@ class SpringCriteriaCompletionContributor : CompletionContributor() {
         val place: ElementPattern<PsiElement> =
             psiElement()
                 .and(isConnected())
-                .and(canBeACollectionName())
+                .and(canBeCollection())
 
         object Provider : CompletionProvider<CompletionParameters>() {
             override fun addCompletions(
@@ -111,12 +113,12 @@ class SpringCriteriaCompletionContributor : CompletionContributor() {
                         database,
                     ) as? AutocompletionResult.Successful
 
-                val lookupEntries = completions?.entries?.map { it.toLookupElement() } ?: emptyList()
-                result.addAllElements(lookupEntries)
+                val lookupEntries = completions?.entries?.map { it.toLookupElement(SpringCriteriaDialect) }
+                result.addAllElements(lookupEntries ?: emptyList())
             }
         }
 
-        fun canBeAcollectionName(): ElementPattern<PsiElement> =
+        fun canBeCollection(): ElementPattern<PsiElement> =
             object : ElementPattern<PsiElement> {
                 override fun accepts(element: Any?) = isCollectionName((element as? PsiElement))
 

@@ -61,7 +61,7 @@ private object Database {
                     readModelProvider,
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries = completions?.entries?.map { it.toLookupElement() } ?: emptyList()
+            val lookupEntries = completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -92,7 +92,7 @@ private object Collection {
                     database,
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries = completions?.entries?.map { it.toLookupElement() } ?: emptyList()
+            val lookupEntries = completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -125,7 +125,7 @@ private object Field {
                     namespace,
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries = completions?.entries?.map { it.toLookupElement() } ?: emptyList()
+            val lookupEntries = completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }

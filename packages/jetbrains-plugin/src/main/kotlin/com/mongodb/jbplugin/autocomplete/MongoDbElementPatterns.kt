@@ -13,7 +13,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.util.ProcessingContext
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
-import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
+import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.observability.probe.AutocompleteSuggestionAcceptedProbe
@@ -48,7 +48,7 @@ object MongoDbElementPatterns {
             }
         }
 
-    fun AutocompletionEntry.toLookupElement(): LookupElement {
+    fun AutocompletionEntry.toLookupElement(dialect: Dialect<PsiElement>): LookupElement {
         val lookupElement =
             LookupElementBuilder
                 .create(entry)
@@ -58,13 +58,13 @@ object MongoDbElementPatterns {
 
                     when (this.type) {
                         AutocompletionEntry.AutocompletionEntryType.DATABASE ->
-                            probe.databaseCompletionAccepted(JavaDriverDialect)
+                            probe.databaseCompletionAccepted(dialect)
 
                         AutocompletionEntry.AutocompletionEntryType.COLLECTION ->
-                            probe.collectionCompletionAccepted(JavaDriverDialect)
+                            probe.collectionCompletionAccepted(dialect)
 
                         AutocompletionEntry.AutocompletionEntryType.FIELD ->
-                            probe.fieldCompletionAccepted(JavaDriverDialect)
+                            probe.fieldCompletionAccepted(dialect)
                     }
                 }
                 .withIcon(
@@ -76,7 +76,7 @@ object MongoDbElementPatterns {
                 )
                 .withTypeText(
                     if (type == AutocompletionEntry.AutocompletionEntryType.FIELD) {
-                        JavaDriverDialect.formatter.formatType(bsonType!!)
+                        dialect.formatter.formatType(bsonType!!)
                     } else {
                         type.presentableName
                     },
