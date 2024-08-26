@@ -253,8 +253,7 @@ class Repository {
     public List<Book> allReleasedBooks() {
         return template.query(Book.class)
                        .matching(where("released").is(true).orOperator(
-                            where("hidden").is(false),
-                            where("valid").is(true)
+                            where("hidden").is(false).and("valid").is(true)
                         ))
                        .all();
     }

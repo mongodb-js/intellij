@@ -40,7 +40,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         fieldNameCall: PsiMethodCallExpression,
         until: PsiElement? = null
     ): List<Node<PsiElement>> {
-        val valueCall = fieldNameCall.parent.parent as? PsiMethodCallExpression ?: return emptyList()
+        val valueCall = fieldNameCall.parentMethodCallExpression() ?: return emptyList()
 
         if (!fieldNameCall.isCriteriaQueryMethod() || fieldNameCall == until || valueCall == until) {
             return emptyList()
@@ -50,7 +50,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         if (currentCriteriaMethod.isVarArgs) {
             val allSubQueries = fieldNameCall.argumentList.expressions
                 .filterIsInstance<PsiMethodCallExpression>()
-                .mapNotNull { it.children[0].children[0] as? PsiMethodCallExpression }
+                .mapNotNull { it.innerMethodCallExpression() }
                 .flatMap { parseQueryRecursively(it, fieldNameCall) }
 
             if (fieldNameCall.parent.parent is PsiMethodCallExpression) {
@@ -88,10 +88,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             )
         )
 
-        if (valueCall.parent.parent is PsiMethodCallExpression) {
-            val nextField = valueCall.parent.parent as PsiMethodCallExpression
-            return listOf(predicate) + parseQueryRecursively(nextField, until)
-        }
+        val nextField = valueCall.parentMethodCallExpression()
+        nextField?.let {
+return listOf(predicate) + parseQueryRecursively(nextField, until)
+}
 
         return listOf(predicate)
     }
@@ -121,4 +121,30 @@ private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
 private fun PsiMethodCallExpression.isCriteriaQueryMethod(): Boolean {
     val method = resolveMethod() ?: return false
     return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
+}
+
+private fun PsiMethodCallExpression.parentMethodCallExpression(): PsiMethodCallExpression? {
+    // In this function, we have an expression similar to:
+    // a().b()
+    // ^  ^ ^ this is B, the current method call expression
+    // |  | this is one parent (a reference to the current method)
+    // | this is parent.parent (the previous call expression)
+    return parent.parent as? PsiMethodCallExpression
+}
+
+private fun PsiMethodCallExpression.innerMethodCallExpression(): PsiMethodCallExpression {
+    // Navigates downwards until the end of the query chain:
+    // a().b()
+    // ^   ^ ^
+    // |   | this is children[0].children[0]
+    // |   | this is children[0]
+    // | this is the current method call expression
+    // we do it recursively because there is an indeterminate amount of chains
+    var ref = this
+    while (isCriteriaQueryMethod()) {
+        val next = ref.children[0].children[0] as? PsiMethodCallExpression ?: return ref
+        ref = next
+    }
+
+    return ref
 }
