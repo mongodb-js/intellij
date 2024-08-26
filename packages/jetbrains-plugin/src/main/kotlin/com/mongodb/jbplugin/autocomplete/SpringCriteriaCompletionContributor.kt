@@ -8,6 +8,7 @@ import com.intellij.patterns.PsiJavaPatterns.psiElement
 import com.intellij.psi.PsiAnnotation
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLiteralExpression
+import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
@@ -16,6 +17,7 @@ import com.mongodb.jbplugin.autocomplete.MongoDbElementPatterns.toLookupElement
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
 import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor
 import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
+import com.mongodb.jbplugin.dialects.springcriteria.isCriteriaExpression
 import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.editor.database
 import com.mongodb.jbplugin.mql.Namespace
@@ -78,8 +80,9 @@ class SpringCriteriaCompletionContributor : CompletionContributor() {
                 private fun isFieldName(element: PsiElement?): Boolean {
                     element ?: return false
                     val isString = element.parentOfType<PsiLiteralExpression>()?.tryToResolveAsConstantString() != null
+                    val methodCall = element.parentOfType<PsiMethodCallExpression>() ?: return false
 
-                    return isString
+                    return isString && methodCall.isCriteriaExpression()
                 }
             }
     }
