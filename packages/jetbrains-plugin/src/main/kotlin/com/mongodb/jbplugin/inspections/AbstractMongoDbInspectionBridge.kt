@@ -34,7 +34,7 @@ abstract class AbstractMongoDbInspectionBridge(
      * Ktlint complains about buildVisitor being longer than 50 lines but because it is just an object implementation
      * it should be fine to keep it like this to favor readability
      */
-    @Suppress("ktlint")
+    @Suppress("TOO_LONG_FUNCTION")
     override fun buildVisitor(
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
@@ -97,7 +97,9 @@ abstract class AbstractMongoDbInspectionBridge(
                     query.copy { component ->
                         if (component is HasCollectionReference) {
                             component.copy(database = database)
-                        } else component
+                        } else {
+                            component
+                        }
                     }
                 } ?: query
         }
