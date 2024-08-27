@@ -75,6 +75,8 @@
                 implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider"/>
         <completion.contributor language="JAVA"
                                 implementationClass="com.mongodb.jbplugin.autocomplete.JavaDriverCompletionContributor" />
+        <completion.contributor language="JAVA"
+                                implementationClass="com.mongodb.jbplugin.autocomplete.SpringCriteriaCompletionContributor" />
     </extensions>
     <applicationListeners>
     </applicationListeners>
