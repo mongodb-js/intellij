@@ -23,6 +23,7 @@ import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
+import org.springframework.data.mongodb.core.MongoTemplate
 
 import java.lang.reflect.Method
 import java.net.URI
@@ -68,6 +69,9 @@ internal class CodeInsightTestExtension :
     private val namespace = ExtensionContext.Namespace.create(CodeInsightTestExtension::class.java)
     private val testFixtureKey = "TESTFIXTURE"
 
+    // This function is probably gonna grow as we keep adding libraries for our test fixtures hence disabling this
+    // lint warning here
+    @Suppress("TOO_LONG_FUNCTION")
     override fun beforeEach(context: ExtensionContext) {
         val projectFixture =
             IdeaTestFixtureFactory
@@ -106,6 +110,12 @@ internal class CodeInsightTestExtension :
                         module,
                         "org.mongodb:bson:5.1.0",
                         listOf(pathToClassJarFile(ObjectId::class.java)),
+                    )
+
+                    PsiTestUtil.addProjectLibrary(
+                        module,
+                        "org.springframework.data.mongodb.core:5.1.0",
+                        listOf(pathToClassJarFile(MongoTemplate::class.java)),
                     )
                 }
             }
