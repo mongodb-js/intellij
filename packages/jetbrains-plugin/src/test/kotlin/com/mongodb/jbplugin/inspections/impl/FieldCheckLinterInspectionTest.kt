@@ -55,7 +55,7 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.enableInspections(FieldExistenceCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -120,7 +120,7 @@ public class Repository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(FieldExistenceCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -189,7 +189,7 @@ public class Repository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(FieldExistenceCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 }

@@ -23,7 +23,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.messages.MessageBusConnection
-import com.mongodb.jbplugin.dialects.ConnectionMetadataRequirement
+import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
@@ -33,7 +33,7 @@ import kotlinx.coroutines.CoroutineScope
 
 private val log = logger<EditorToolbarDecorator>()
 
-private val ALL_DIALECTS = listOf(
+private val allDialects = listOf(
     JavaDriverDialect,
     SpringCriteriaDialect
 )
@@ -51,11 +51,11 @@ class EditorToolbarDecorator(
     DataSourceManager.Listener,
     JdbcDriverManager.Listener,
     PsiModificationTracker.Listener {
+    internal var inferredDatabase: String? = null
+    internal var guessedDialect: Dialect<PsiElement, Project>? = null
     internal lateinit var toolbar: MdbJavaEditorToolbar
     internal lateinit var editor: Editor
     internal lateinit var messageBusConnection: MessageBusConnection
-    internal var inferredDatabase: String? = null
-    internal var guessedDialect: Dialect<PsiElement, Project>? = null
 
     fun onConnected(dataSource: LocalDataSource) {
         editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
@@ -67,9 +67,9 @@ class EditorToolbarDecorator(
             val probe = NewConnectionActivatedProbe()
             probe.connected(session)
 
-            if (inferredDatabase != null) {
-                toolbar.databaseComboBox.selectedDatabase = inferredDatabase
-            }
+            inferredDatabase?.let {
+toolbar.databaseComboBox.selectedDatabase = inferredDatabase
+}
 
             analyzeFileFromScratch()
         }
@@ -122,11 +122,9 @@ class EditorToolbarDecorator(
             toolbar.reloadDataSources(localDataSourceManager.dataSources)
 
             guessedDialect = guessDialect()
-            if (guessedDialect != null) {
-                editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
-            } else {
-                editor.virtualFile?.removeUserData(Keys.attachedDialect)
-            }
+            guessedDialect?.let {
+editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
+} ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
             val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
             inferredDatabase = metadata?.database
 
@@ -139,23 +137,21 @@ class EditorToolbarDecorator(
     }
 
     private fun ensureToolbarIsVisibleIfNecessary() {
-        if (guessedDialect != null) {
-            ensureSetupToolbarRequirements()
-            (editor as EditorEx?)?.permanentHeaderComponent = toolbar
-            editor.headerComponent = toolbar
-        } else {
-            (editor as EditorEx?)?.permanentHeaderComponent = null
-            editor.headerComponent = null
-        }
+        guessedDialect?.let {
+ensureSetupToolbarRequirements()
+(editor as EditorEx?)?.permanentHeaderComponent = toolbar
+editor.headerComponent = toolbar
+} ?: run {
+(editor as EditorEx?)?.permanentHeaderComponent = null
+editor.headerComponent = null
+}
     }
 
     private fun ensureSetupToolbarRequirements() {
-        if (guessedDialect == null) {
-            return
-        }
+        guessedDialect ?: return
 
         val requirements = guessedDialect?.connectionContextExtractor?.requirements() ?: emptySet()
-        if (requirements.contains(ConnectionMetadataRequirement.DATABASE)) {
+        if (requirements.contains(ConnectionContextRequirement.DATABASE)) {
             toolbar.showDatabaseSelector()
         } else {
             toolbar.hideDatabaseSelector()
@@ -175,7 +171,7 @@ class EditorToolbarDecorator(
         }
 
         val psiFile = psiFileResult.getOrNull() ?: return null
-        return ALL_DIALECTS.find { it.isUsableForSource(psiFile) }
+        return allDialects.find { it.isUsableForSource(psiFile) }
     }
 
     override fun <T : RawDataSource?> dataSourceAdded(

@@ -18,16 +18,28 @@ import com.mongodb.jbplugin.editor.dialect
 import com.mongodb.jbplugin.mql.Node
 
 /**
+ * This class is used to connect a MongoDB inspection to IntelliJ.
+ * It's responsible for getting the dialect of the current file and
+ * do the necessary dependency injection to make the inspection work.
+ *
+ * Usually you won't reimplement methods, just create a new empty class
+ * that provides the inspection implementation, in the same file.
+ *
+ * @see com.mongodb.jbplugin.inspections.impl.FieldCheckInspectionBridge as an example
+ *
  * @param inspection
  */
+@Suppress("TOO_LONG_FUNCTION")
 abstract class AbstractMongoDbInspectionBridge(
     private val inspection: MongoDbInspection,
 ) : AbstractBaseJavaLocalInspectionTool() {
     private val queryKeysByDialect = mutableMapOf<Dialect<PsiElement, Project>, Key<CachedValue<Node<PsiElement>>>>()
     private fun queryKey(dialect: Dialect<PsiElement, Project>) =
-        queryKeysByDialect.getOrPut(dialect) { Key.create(
+        queryKeysByDialect.getOrPut(dialect) {
+ Key.create(
             "QueryForDialect${dialect.javaClass.name}"
-        ) }
+        )
+}
 
     override fun buildVisitor(
         holder: ProblemsHolder,

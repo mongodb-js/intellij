@@ -15,7 +15,6 @@ private const val CRITERIA_CLASS_FQN = "org.springframework.data.mongodb.core.qu
 private const val DOCUMENT_FQN = "org.springframework.data.mongodb.core.mapping.Document"
 
 object SpringCriteriaDialectParser : DialectParser<PsiElement> {
-
     override fun isCandidateForQuery(source: PsiElement) = source.findCriteriaWhereExpression() != null
 
     override fun attachment(source: PsiElement): PsiElement = source.findCriteriaWhereExpression()!!
@@ -41,12 +40,13 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     }
 
     override fun isReferenceToCollection(source: PsiElement): Boolean {
-        val docAnnotation = source  .parentOfType<PsiAnnotation>() ?: return false
+        val docAnnotation = source.parentOfType<PsiAnnotation>() ?: return false
         return docAnnotation.hasQualifiedName(DOCUMENT_FQN)
     }
 
     override fun isReferenceToField(source: PsiElement): Boolean {
-        val isString = source.parentOfType<PsiLiteralExpression>(withSelf = true)?.tryToResolveAsConstantString() != null
+        val isString = source.parentOfType<PsiLiteralExpression>(withSelf = true)?.tryToResolveAsConstantString() !=
+ null
         val methodCall = source.parentOfType<PsiMethodCallExpression>() ?: return false
 
         return isString && methodCall.isCriteriaExpression()

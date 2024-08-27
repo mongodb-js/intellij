@@ -14,12 +14,32 @@ import com.mongodb.jbplugin.mql.Node
  * S = PsiElement.
  *
  * @param S
+ * @param C
  */
 interface Dialect<S, C> {
-    fun isUsableForSource(source: S): Boolean
+    /**
+     * The parser for queries. This is mandatory.
+     */
     val parser: DialectParser<S>
+
+    /**
+     * The formatter for queries and types. This is mandatory.
+     */
     val formatter: DialectFormatter
+
+    /**
+     * The context extractor. Only useful if we need additional information for the query, and it's
+     * not part of the source code. Can be null otherwise.
+     */
     val connectionContextExtractor: ConnectionContextExtractor<C>?
+
+/**
+     * Checks if the source S contains references to this dialect.
+     *
+     * @param source
+     * @return
+     */
+    fun isUsableForSource(source: S): Boolean
 }
 
 /**
@@ -40,7 +60,6 @@ interface DialectParser<S> {
     fun isReferenceToCollection(source: S): Boolean
 
     fun isReferenceToField(source: S): Boolean
-
 }
 
 /**
@@ -51,15 +70,41 @@ interface DialectFormatter {
     fun formatType(type: BsonType): String
 }
 
+/**
+ * This class represents external context that is attached to a connection. For example,
+ * in Spring Data, the database is specified outside the source code, in a properties or
+ * yaml file.
+ *
+ * @property database
+ */
 data class ConnectionContext(
     val database: String?
 )
 
-enum class ConnectionMetadataRequirement {
+/**
+ * This enum specifies what requirements we have in terms of a context. So for example, Spring Data
+ * lets you specify the database in an external file, so this would be a DATABASE requirement. The UI
+ * will build the toolbar based on the set of requirements defined in the ConnectionContextExtractor.
+ *
+ * @see ConnectionContextExtractor
+ * @see com.mongodb.jbplugin.editor.EditorToolbarDecorator
+ */
+enum class ConnectionContextRequirement {
     DATABASE
 }
 
+/**
+ * This is an optional class that can be implemented to get connection information from outside the
+ * source code where the code is.
+ *
+ * `C` is an opaque type that represents the Context holder (or the content root) of a dialect.
+ * For example, for dialects that depend on IntelliJ, this will be the Project class.
+ *
+ * @see com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaContextExtractor
+ *
+ * @param C
+ */
 interface ConnectionContextExtractor<C> {
-    fun requirements(): Set<ConnectionMetadataRequirement>
+    fun requirements(): Set<ConnectionContextRequirement>
     fun gatherContext(contentRoot: C): ConnectionContext
 }

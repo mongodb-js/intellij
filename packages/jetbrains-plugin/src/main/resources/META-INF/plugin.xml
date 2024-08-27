@@ -61,7 +61,7 @@
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
                          level="WARNING"
-                         implementationClass="com.mongodb.jbplugin.inspections.impl.FieldExistenceCheckInspectionBridge"/>
+                         implementationClass="com.mongodb.jbplugin.inspections.impl.FieldCheckInspectionBridge"/>
         <database.virtualFileDataSourceProvider
             implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
         <completion.contributor language="JAVA"

@@ -96,9 +96,7 @@ private object Collection {
             val dataSource = parameters.originalFile.dataSource!!
             val (database, _) = guessDatabaseAndCollection(parameters.originalPosition!!)
 
-            if (database == null) {
-                return
-            }
+            database ?: return
 
             val readModelProvider =
                 parameters.originalFile.project.getService(
@@ -115,8 +113,6 @@ private object Collection {
             val lookupEntries = completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
-
-
     }
 }
 
@@ -293,21 +289,6 @@ private object MongoDbElementPatterns {
         }
 
     fun guessDatabaseAndCollection(source: PsiElement): Pair<String?, String?> {
-        fun extractCollection(reference: HasCollectionReference): String? {
-            return when (val innerRef = reference.reference) {
-                is HasCollectionReference.Known -> innerRef.namespace.collection
-                is HasCollectionReference.OnlyCollection -> innerRef.collection
-                else -> null
-            }
-        }
-
-        fun extractDatabase(reference: HasCollectionReference?): String? {
-            return when (val innerRef = reference?.reference) {
-                is HasCollectionReference.Known -> innerRef.namespace.database
-                else -> null
-            }
-        }
-
         val dialect = source.containingFile?.originalFile?.dialect ?: return null to null
         val queryRoot = runCatching { dialect.parser.attachment(source) }.getOrElse {
             source.parentOfType<PsiMethod>()?.let { dialect.parser.attachment(it) }
@@ -322,4 +303,17 @@ private object MongoDbElementPatterns {
 
         return database to queryCollection
     }
+
+    private fun extractCollection(reference: HasCollectionReference): String? = when (val innerRef =
+ reference.reference) {
+            is HasCollectionReference.Known -> innerRef.namespace.collection
+            is HasCollectionReference.OnlyCollection -> innerRef.collection
+            else -> null
+        }
+
+    private fun extractDatabase(reference: HasCollectionReference?): String? = when (val innerRef =
+ reference?.reference) {
+            is HasCollectionReference.Known -> innerRef.namespace.database
+            else -> null
+        }
 }

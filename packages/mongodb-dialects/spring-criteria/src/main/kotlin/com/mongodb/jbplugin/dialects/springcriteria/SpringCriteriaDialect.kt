@@ -10,14 +10,6 @@ import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialectFormatter
 
 object SpringCriteriaDialect : Dialect<PsiElement, Project> {
-    override fun isUsableForSource(source: PsiElement): Boolean {
-        val psiFile = source.containingFile as? PsiJavaFile ?: return false
-        val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
-        return importStatements.any {
-            return@any it.importReference?.canonicalText?.startsWith("org.springframework.data.mongodb") == true
-        }
-    }
-
     override val parser: DialectParser<PsiElement>
         get() = SpringCriteriaDialectParser
 
@@ -26,4 +18,11 @@ object SpringCriteriaDialect : Dialect<PsiElement, Project> {
 
     override val connectionContextExtractor: ConnectionContextExtractor<Project>
         get() = SpringCriteriaContextExtractor
+    override fun isUsableForSource(source: PsiElement): Boolean {
+        val psiFile = source.containingFile as? PsiJavaFile ?: return false
+        val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
+        return importStatements.any {
+            return@any it.importReference?.canonicalText?.startsWith("org.springframework.data.mongodb") == true
+        }
+    }
 }

@@ -1,3 +1,8 @@
+/**
+ * This inspection is used for type checking. It also warns if a field is referenced in a
+ * query but doesn't exist in the MongoDB schema.
+ */
+
 package com.mongodb.jbplugin.inspections.impl
 
 import com.intellij.codeInspection.LocalQuickFix
@@ -20,10 +25,8 @@ import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
 
-/**
- * Connects the inspection to IntelliJ
- */
-class FieldExistenceCheckInspectionBridge :
+@Suppress("MISSING_KDOC_TOP_LEVEL")
+class FieldCheckInspectionBridge :
     AbstractMongoDbInspectionBridge(
         FieldCheckLinterInspection,
     )
@@ -32,7 +35,7 @@ class FieldExistenceCheckInspectionBridge :
  * This inspection object calls the linting engine and transforms the result so they can be rendered in the IntelliJ
  * editor.
  */
-object FieldCheckLinterInspection : MongoDbInspection {
+internal object FieldCheckLinterInspection : MongoDbInspection {
     override fun visitMongoDbQuery(
         dataSource: LocalDataSource?,
         problems: ProblemsHolder,
