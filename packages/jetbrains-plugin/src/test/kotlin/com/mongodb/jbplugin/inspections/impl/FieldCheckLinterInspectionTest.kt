@@ -14,7 +14,6 @@ import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.mockDataSource
-import com.mongodb.jbplugin.inspections.bridge.FieldExistenceCheckInspectionBridge
 import com.mongodb.jbplugin.mql.BsonDouble
 import com.mongodb.jbplugin.mql.BsonObject
 import com.mongodb.jbplugin.mql.CollectionSchema

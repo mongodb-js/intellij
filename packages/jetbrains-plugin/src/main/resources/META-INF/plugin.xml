@@ -61,13 +61,11 @@
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
                          level="WARNING"
-                         implementationClass="com.mongodb.jbplugin.inspections.bridge.FieldExistenceCheckInspectionBridge"/>
+                         implementationClass="com.mongodb.jbplugin.inspections.impl.FieldExistenceCheckInspectionBridge"/>
         <database.virtualFileDataSourceProvider
             implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
         <completion.contributor language="JAVA"
-                                implementationClass="com.mongodb.jbplugin.autocomplete.JavaDriverCompletionContributor" />
-        <completion.contributor language="JAVA"
-                                implementationClass="com.mongodb.jbplugin.autocomplete.SpringCriteriaCompletionContributor" />
+                                implementationClass="com.mongodb.jbplugin.autocomplete.MongoDbCompletionContributor" />
     </extensions>
     <applicationListeners>
     </applicationListeners>

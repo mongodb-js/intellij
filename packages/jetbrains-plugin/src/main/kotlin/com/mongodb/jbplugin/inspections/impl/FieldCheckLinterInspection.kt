@@ -13,11 +13,20 @@ import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.dialects.DialectFormatter
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.i18n.InspectionsAndInlaysMessages
+import com.mongodb.jbplugin.inspections.AbstractMongoDbInspectionBridge
 import com.mongodb.jbplugin.inspections.MongoDbInspection
 import com.mongodb.jbplugin.inspections.isProblemAlreadyRegistered
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
+
+/**
+ * Connects the inspection to IntelliJ
+ */
+class FieldExistenceCheckInspectionBridge :
+    AbstractMongoDbInspectionBridge(
+        FieldCheckLinterInspection,
+    )
 
 /**
  * This inspection object calls the linting engine and transforms the result so they can be rendered in the IntelliJ

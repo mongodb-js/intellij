@@ -5,6 +5,7 @@ import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.database.dataSource.localDataSource
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.psi.*
 import com.intellij.psi.util.CachedValue
@@ -13,20 +14,20 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
+import com.mongodb.jbplugin.editor.dialect
 import com.mongodb.jbplugin.mql.Node
 
 /**
- * @param dialect
  * @param inspection
  */
 abstract class AbstractMongoDbInspectionBridge(
-    private val dialect: Dialect<PsiElement>,
     private val inspection: MongoDbInspection,
 ) : AbstractBaseJavaLocalInspectionTool() {
-    private val queryKey: Key<CachedValue<Node<PsiElement>>> =
-        Key.create(
-            "QueryForDialect${dialect.javaClass.name}",
-        )
+    private val queryKeysByDialect = mutableMapOf<Dialect<PsiElement, Project>, Key<CachedValue<Node<PsiElement>>>>()
+    private fun queryKey(dialect: Dialect<PsiElement, Project>) =
+        queryKeysByDialect.getOrPut(dialect) { Key.create(
+            "QueryForDialect${dialect.javaClass.name}"
+        ) }
 
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -44,6 +45,9 @@ abstract class AbstractMongoDbInspectionBridge(
 
             private fun dispatchIfValidMongoDbQuery(expression: PsiElement) {
                 ApplicationManager.getApplication().runReadAction {
+                    val dialect = expression.containingFile.dialect ?: return@runReadAction
+                    val queryKey = queryKey(dialect)
+
                     var cachedValue: CachedValue<Node<PsiElement>>? = null
                     if (dialect.parser.isCandidateForQuery(expression)) {
                         val attachment = dialect.parser.attachment(expression)

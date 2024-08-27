@@ -15,9 +15,11 @@ import com.mongodb.jbplugin.mql.Node
  *
  * @param S
  */
-interface Dialect<S> {
+interface Dialect<S, C> {
+    fun isUsableForSource(source: S): Boolean
     val parser: DialectParser<S>
     val formatter: DialectFormatter
+    val connectionContextExtractor: ConnectionContextExtractor<C>?
 }
 
 /**
@@ -32,6 +34,13 @@ interface DialectParser<S> {
     fun attachment(source: S): S
 
     fun parse(source: S): Node<S>
+
+    fun isReferenceToDatabase(source: S): Boolean
+
+    fun isReferenceToCollection(source: S): Boolean
+
+    fun isReferenceToField(source: S): Boolean
+
 }
 
 /**
@@ -40,4 +49,18 @@ interface DialectParser<S> {
  */
 interface DialectFormatter {
     fun formatType(type: BsonType): String
+}
+
+data class ConnectionContext(
+    val database: String?
+)
+
+enum class ConnectionMetadataRequirement {
+    DATABASE
+}
+
+interface ConnectionContextExtractor<C> {
+    fun requirements(): Set<ConnectionMetadataRequirement>
+    fun hasContextToGather(contentRoot: C): Boolean
+    fun gatherContext(contentRoot: C): ConnectionContext
 }

@@ -9,11 +9,9 @@ import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
-
-import java.util.concurrent.CopyOnWriteArrayList
-
-import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.*
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.time.Duration.Companion.hours
 
 private val logger: Logger = logger<AutocompleteSuggestionAcceptedProbe>()
 
@@ -50,15 +48,15 @@ class AutocompleteSuggestionAcceptedProbe(
         sendEvents()
     }
 
-    fun databaseCompletionAccepted(dialect: Dialect<*>) {
+    fun databaseCompletionAccepted(dialect: Dialect<*, *>) {
         events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.DATABASE))
     }
 
-    fun collectionCompletionAccepted(dialect: Dialect<*>) {
+    fun collectionCompletionAccepted(dialect: Dialect<*, *>) {
         events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.COLLECTION))
     }
 
-    fun fieldCompletionAccepted(dialect: Dialect<*>) {
+    fun fieldCompletionAccepted(dialect: Dialect<*, *>) {
         events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.FIELD))
     }
 
@@ -84,8 +82,7 @@ class AutocompleteSuggestionAcceptedProbe(
         listCopy
             .groupingBy {
                 Pair(it.dialect, it.type)
-            }
-.eachCount()
+            }.eachCount()
             .map { TelemetryEvent.AutocompleteGroupEvent(it.key.first, it.key.second.publicName, it.value) }
             .sortedBy { it.name }
             .forEach {
@@ -105,7 +102,7 @@ class AutocompleteSuggestionAcceptedProbe(
      * @property type
      */
     private data class SuggestionEvent(
-        val dialect: Dialect<*>,
+        val dialect: Dialect<*, *>,
         val type: SuggestionEventType,
     ) {
         /**
