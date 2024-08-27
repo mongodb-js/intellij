@@ -148,8 +148,6 @@ class EditorToolbarDecorator(
     }
 
     private fun ensureSetupToolbarRequirements() {
-        guessedDialect ?: return
-
         val requirements = guessedDialect?.connectionContextExtractor?.requirements() ?: emptySet()
         if (requirements.contains(ConnectionContextRequirement.DATABASE)) {
             toolbar.showDatabaseSelector()
