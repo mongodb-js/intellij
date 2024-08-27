@@ -103,6 +103,16 @@ return listOf(predicate) + parseQueryRecursively(nextField, until)
     }
 }
 
+/**
+ * Returns whether the current method is a criteria method.
+ *
+ * @return
+ */
+fun PsiMethodCallExpression.isCriteriaExpression(): Boolean {
+    val method = resolveMethod() ?: return false
+    return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
+}
+
 private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
     val methodCalls = findAllChildrenOfType(PsiMethodCallExpression::class.java)
     var bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
