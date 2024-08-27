@@ -61,6 +61,5 @@ enum class ConnectionMetadataRequirement {
 
 interface ConnectionContextExtractor<C> {
     fun requirements(): Set<ConnectionMetadataRequirement>
-    fun hasContextToGather(contentRoot: C): Boolean
     fun gatherContext(contentRoot: C): ConnectionContext
 }

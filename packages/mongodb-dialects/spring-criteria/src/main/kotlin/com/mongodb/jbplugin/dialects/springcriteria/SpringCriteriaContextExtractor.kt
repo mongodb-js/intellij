@@ -13,13 +13,6 @@ object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
         return setOf(ConnectionMetadataRequirement.DATABASE)
     }
 
-    override fun hasContextToGather(contentRoot: Project): Boolean {
-        val rootManager = ProjectRootManager.getInstance(contentRoot)
-        return rootManager.contentSourceRoots.any {
-            it.findChild("application.properties") != null
-        }
-    }
-
     override fun gatherContext(contentRoot: Project): ConnectionContext {
         val database = extractDatabase(contentRoot)
         return ConnectionContext(
