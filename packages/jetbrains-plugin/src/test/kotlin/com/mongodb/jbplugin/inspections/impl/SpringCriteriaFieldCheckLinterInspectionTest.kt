@@ -22,6 +22,11 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 
+// Suppressing
+// - LONG_LINE because the complaint is about the templated error description which needs to be in the same line for the
+// match to happen correctly
+// - TOO_LONG_FUNCTION because it is better to keep test logic within the tests and not make them "too smart" otherwise
+// reading through them becomes a task in its own
 @Suppress("LONG_LINE", "TOO_LONG_FUNCTION")
 @CodeInsightTest
 class SpringCriteriaFieldCheckLinterInspectionTest {
