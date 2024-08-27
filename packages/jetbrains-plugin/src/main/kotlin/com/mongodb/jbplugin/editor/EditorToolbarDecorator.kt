@@ -170,8 +170,9 @@ class EditorToolbarDecorator(
             log.info("Could not find virtual file for current editor", it)
         }
 
-        val psiFile = psiFileResult.getOrNull() ?: return null
-        return allDialects.find { it.isUsableForSource(psiFile) }
+        return psiFileResult.getOrNull()?.let { file ->
+            allDialects.find { it.isUsableForSource(file) }
+        }
     }
 
     override fun <T : RawDataSource?> dataSourceAdded(

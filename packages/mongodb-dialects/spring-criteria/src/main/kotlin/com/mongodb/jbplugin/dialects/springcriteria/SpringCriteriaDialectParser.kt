@@ -45,8 +45,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     }
 
     override fun isReferenceToField(source: PsiElement): Boolean {
-        val isString = source.parentOfType<PsiLiteralExpression>(withSelf = true)?.tryToResolveAsConstantString() !=
- null
+        val isString = source.parentOfType<PsiLiteralExpression>(true)?.tryToResolveAsConstantString() != null
         val methodCall = source.parentOfType<PsiMethodCallExpression>() ?: return false
 
         return isString && methodCall.isCriteriaExpression()
@@ -104,9 +103,8 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             )
         )
 
-        val nextField = valueCall.parentMethodCallExpression()
-        nextField?.let {
-            return listOf(predicate) + parseQueryRecursively(nextField, until)
+        valueCall.parentMethodCallExpression()?.let {
+            return listOf(predicate) + parseQueryRecursively(it, until)
         }
 
         return listOf(predicate)

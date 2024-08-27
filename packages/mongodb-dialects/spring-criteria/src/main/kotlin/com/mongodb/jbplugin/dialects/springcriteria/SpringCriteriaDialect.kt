@@ -18,6 +18,7 @@ object SpringCriteriaDialect : Dialect<PsiElement, Project> {
 
     override val connectionContextExtractor: ConnectionContextExtractor<Project>
         get() = SpringCriteriaContextExtractor
+
     override fun isUsableForSource(source: PsiElement): Boolean {
         val psiFile = source.containingFile as? PsiJavaFile ?: return false
         val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()

@@ -17,6 +17,7 @@ object JavaDriverDialect : Dialect<PsiElement, Project> {
 
     override val connectionContextExtractor: ConnectionContextExtractor<Project>?
         get() = null
+
     override fun isUsableForSource(source: PsiElement): Boolean {
         val psiFile = source.containingFile as? PsiJavaFile ?: return false
         val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()

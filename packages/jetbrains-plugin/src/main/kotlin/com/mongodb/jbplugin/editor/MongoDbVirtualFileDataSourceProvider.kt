@@ -12,6 +12,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.mongodb.jbplugin.dialects.Dialect
 
+private const val KEY_PREFIX = "com.mongodb.jbplugin"
+
 val PsiFile.dataSource: LocalDataSource?
     get() = runCatching {
         MongoDbVirtualFileDataSourceProvider()
@@ -42,11 +44,9 @@ val PsiFile.dialect: Dialect<PsiElement, Project>?
  */
 class MongoDbVirtualFileDataSourceProvider : VirtualFileDataSourceProvider() {
     object Keys {
-        internal val attachedDataSource: Key<LocalDataSource> = Key.create("com.mongodb.jbplugin.AttachedDataSource")
-        internal val attachedDatabase: Key<String> = Key.create("com.mongodb.jbplugin.AttachedDatabase")
-        internal val attachedDialect: Key<Dialect<PsiElement, Project>> = Key.create(
-"com.mongodb.jbplugin.AttachedDialect"
-)
+        internal val attachedDataSource: Key<LocalDataSource> = Key.create("$keyPrefix.AttachedDataSource")
+        internal val attachedDatabase: Key<String> = Key.create("$keyPrefix.AttachedDatabase")
+        internal val attachedDialect: Key<Dialect<PsiElement, Project>> = Key.create("$keyPrefix.AttachedDialect")
     }
 
     override fun getDataSource(

@@ -304,15 +304,15 @@ private object MongoDbElementPatterns {
         return database to queryCollection
     }
 
-    private fun extractCollection(reference: HasCollectionReference): String? = when (val innerRef =
- reference.reference) {
+    private fun extractCollection(reference: HasCollectionReference): String? =
+        when (val innerRef = reference.reference) {
             is HasCollectionReference.Known -> innerRef.namespace.collection
             is HasCollectionReference.OnlyCollection -> innerRef.collection
             else -> null
         }
 
-    private fun extractDatabase(reference: HasCollectionReference?): String? = when (val innerRef =
- reference?.reference) {
+    private fun extractDatabase(reference: HasCollectionReference?): String? =
+        when (val innerRef = reference?.reference) {
             is HasCollectionReference.Known -> innerRef.namespace.database
             else -> null
         }
