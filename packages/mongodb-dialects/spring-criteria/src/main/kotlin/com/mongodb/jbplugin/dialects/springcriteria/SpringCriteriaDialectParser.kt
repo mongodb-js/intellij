@@ -26,18 +26,14 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         }
 
         val criteriaChain = source.findCriteriaWhereExpression() ?: return Node(source, emptyList())
-        val collectionReference = HasCollectionReference(
-            QueryTargetCollectionExtractor.extractCollection(criteriaChain)?.let {
-                HasCollectionReference.OnlyCollection(it)
-            } ?: HasCollectionReference.Unknown
-        )
-        return Node(
-            source,
-            listOf(
-                collectionReference,
-                HasChildren(parseQueryRecursively(criteriaChain))
-            )
-        )
+        val targetCollection = QueryTargetCollectionExtractor.extractCollection(source)
+
+        return Node(source, listOf(
+            HasCollectionReference(targetCollection?.let {
+                HasCollectionReference.OnlyCollection(targetCollection)
+            } ?: HasCollectionReference.Unknown),
+            HasChildren(parseQueryRecursively(criteriaChain))
+        ))
     }
 
     private fun parseQueryRecursively(
