@@ -7,6 +7,8 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
+import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
+import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.mql.BsonObject
 import com.mongodb.jbplugin.mql.BsonString
@@ -17,6 +19,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 
+@Suppress("TOO_LONG_FUNCTION")
 @CodeInsightTest
 class JavaDriverCompletionContributorTest {
     @ParsingTest(
@@ -47,6 +50,11 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
+        )
+
         val (dataSource, readModelProvider) = fixture.setupConnection()
 
         `when`(readModelProvider.slice(eq(dataSource), any<ListDatabases.Slice>())).thenReturn(
@@ -100,6 +108,11 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
+        )
+
         val (dataSource, readModelProvider) = fixture.setupConnection()
 
         `when`(readModelProvider.slice(eq(dataSource), eq(ListCollections.Slice("myDatabase")))).thenReturn(
@@ -148,6 +161,11 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
+        )
+
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
 
@@ -203,6 +221,11 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
+        )
+
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
 
@@ -258,6 +281,11 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
+        )
+
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
 

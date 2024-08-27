@@ -11,6 +11,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
+import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.mockDataSource
@@ -55,6 +56,11 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
+        )
+
         fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
@@ -110,6 +116,10 @@ public class Repository {
         fixture.file.virtualFile.putUserData(
             MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
             dataSource,
+        )
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
         )
 
         `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
@@ -175,6 +185,11 @@ public class Repository {
         fixture.file.virtualFile.putUserData(
             MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
             dataSource,
+        )
+
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            JavaDriverDialect,
         )
 
         `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(

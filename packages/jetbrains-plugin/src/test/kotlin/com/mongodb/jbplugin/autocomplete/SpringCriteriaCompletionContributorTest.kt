@@ -6,6 +6,8 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
+import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
+import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.CodeInsightTest
 import com.mongodb.jbplugin.fixtures.ParsingTest
 import com.mongodb.jbplugin.fixtures.setupConnection
@@ -34,6 +36,11 @@ record Book() {}
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            SpringCriteriaDialect,
+        )
+
         val (dataSource, readModelProvider) = fixture.setupConnection()
         fixture.specifyDatabase("myDatabase")
 
@@ -94,6 +101,11 @@ class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
+        fixture.file.virtualFile.putUserData(
+            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+            SpringCriteriaDialect,
+        )
+
         val (dataSource, readModelProvider) = fixture.setupConnection()
         fixture.specifyDatabase("myDatabase")
 
