@@ -68,8 +68,8 @@ class EditorToolbarDecorator(
             probe.connected(session)
 
             inferredDatabase?.let {
-toolbar.databaseComboBox.selectedDatabase = inferredDatabase
-}
+                toolbar.databaseComboBox.selectedDatabase = inferredDatabase
+            }
 
             analyzeFileFromScratch()
         }
@@ -123,8 +123,8 @@ toolbar.databaseComboBox.selectedDatabase = inferredDatabase
 
             guessedDialect = guessDialect()
             guessedDialect?.let {
-editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
-} ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
+                editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
+            } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
             val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
             inferredDatabase = metadata?.database
 
@@ -138,13 +138,13 @@ editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
 
     private fun ensureToolbarIsVisibleIfNecessary() {
         guessedDialect?.let {
-ensureSetupToolbarRequirements()
-(editor as EditorEx?)?.permanentHeaderComponent = toolbar
-editor.headerComponent = toolbar
-} ?: run {
-(editor as EditorEx?)?.permanentHeaderComponent = null
-editor.headerComponent = null
-}
+            ensureSetupToolbarRequirements()
+            (editor as EditorEx?)?.permanentHeaderComponent = toolbar
+            editor.headerComponent = toolbar
+        } ?: run {
+            (editor as EditorEx?)?.permanentHeaderComponent = null
+            editor.headerComponent = null
+        }
     }
 
     private fun ensureSetupToolbarRequirements() {
