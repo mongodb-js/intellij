@@ -19,13 +19,16 @@ object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
     }
 
     private fun extractDatabase(project: Project): String? {
-        val allVirtualFiles = FilenameIndex.getVirtualFilesByName("application.properties",
- GlobalSearchScope.projectScope(project))
+        val allVirtualFiles = FilenameIndex.getVirtualFilesByName(
+            "application.properties",
+            GlobalSearchScope.projectScope(project)
+        )
+
         if (allVirtualFiles.isEmpty()) {
             return null
         }
 
-        val propertiesFile = allVirtualFiles.first()!!
+        val propertiesFile = allVirtualFiles.first()
         val properties = Properties()
         properties.load(propertiesFile.inputStream)
         return tryResolveConstantString(properties["spring.data.mongodb.database"])

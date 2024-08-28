@@ -10,10 +10,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.psi.JavaPsiFacade
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiExpression
-import com.intellij.psi.PsiFile
+import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.PsiTestUtil
@@ -225,3 +223,8 @@ fun PsiFile.getQueryAtMethod(
     val returnExpr = PsiUtil.findReturnStatements(method).last()
     return returnExpr.returnValue!!
 }
+
+fun PsiFile.caret(): PsiElement = PsiTreeUtil.findChildrenOfType(this, PsiLiteralExpression::class.java)
+        .first {
+            it.textMatches(""""|"""")
+        }

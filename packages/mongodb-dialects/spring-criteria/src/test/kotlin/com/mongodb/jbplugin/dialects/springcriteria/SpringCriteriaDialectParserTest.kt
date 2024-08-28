@@ -4,7 +4,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.mongodb.jbplugin.mql.BsonBoolean
 import com.mongodb.jbplugin.mql.components.*
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.*
 
 @IntegrationTest
 class SpringCriteriaDialectParserTest {
@@ -371,5 +371,59 @@ class Repository {
 
         assertEquals("valid", referenceToValid.fieldName)
         assertEquals(true, referenceToValidTrue.value)
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+        """
+    )
+    fun `can not refer to databases`(psiFile: PsiFile) {
+        assertFalse(SpringCriteriaDialectParser.isReferenceToDatabase(psiFile))
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document("|")
+record Book() {}
+        """
+    )
+    fun `can refer to a collection in a @Document annotation`(psiFile: PsiFile) {
+        assertTrue(SpringCriteriaDialectParser.isReferenceToCollection(psiFile.caret()))
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public List<Book> allReleasedBooks() {
+        return template.query(Book.class)
+                       .matching(where("|";
+    }
+}
+        """
+    )
+    fun `can refer to a field in a criteria chain`(psiFile: PsiFile) {
+        assertTrue(SpringCriteriaDialectParser.isReferenceToField(psiFile.caret()))
     }
 }
