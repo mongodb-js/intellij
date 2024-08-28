@@ -68,6 +68,61 @@ class NodeTest {
         assertFalse(hasNamedComponent)
     }
 
+    @Test
+    fun `it copies the Node by correctly mapping the underlying components`() {
+        val node = Node<Unit?>(
+            null,
+            listOf(
+                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
+                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
+            )
+        )
+
+        val copiedNode = node.copy {
+            HasCollectionReference(
+                HasCollectionReference.Unknown
+            )
+        }
+
+        // Does not modify the original node
+        assertTrue(
+            node.components<HasCollectionReference>()
+                .all { collection -> collection.reference is HasCollectionReference.OnlyCollection })
+
+        // creates a copy with the modified components as per our logic
+        assertTrue(
+            copiedNode.components<HasCollectionReference>()
+                .all { collection -> collection.reference is HasCollectionReference.Unknown })
+    }
+
+    @Test
+    fun `it creates a copy of the query with overwritten database in the components`() {
+        val node = Node<Unit?>(
+            null,
+            listOf(
+                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
+            )
+        )
+
+        val modifiedNode = node.queryWithOverwrittenDatabase("foo")
+        val nodeReference = modifiedNode.component<HasCollectionReference>()
+        // Does not modify the original node
+        assertTrue(
+            node.component<HasCollectionReference>()?.let { it.reference is HasCollectionReference.OnlyCollection }
+                ?: false)
+
+        assertTrue(
+            nodeReference
+                ?.let {
+                    it.reference is HasCollectionReference.Known
+                }
+                ?: false)
+        assertEquals(
+            (nodeReference?.reference as HasCollectionReference.Known).namespace.database,
+            "foo"
+        )
+    }
+
     @MethodSource("validComponents")
     @ParameterizedTest
     fun `does support the following component`(

@@ -78,6 +78,8 @@ internal class CodeInsightTestExtension :
     private val namespace = ExtensionContext.Namespace.create(CodeInsightTestExtension::class.java)
     private val testFixtureKey = "TESTFIXTURE"
 
+    // This function is probably gonna grow as we keep adding libraries for our test fixtures hence disabling this
+    // lint warning here
     @Suppress("TOO_LONG_FUNCTION")
     override fun beforeEach(context: ExtensionContext) {
         val projectFixture =

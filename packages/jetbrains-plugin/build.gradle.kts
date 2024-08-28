@@ -106,6 +106,10 @@ tasks {
         useJUnitPlatform {
             excludeTags("UI")
         }
+        // TODO: Disabling the parallel execution here because our tests are not working with isolated states
+        // which pushes flakes in our test runs. We probably should fix the underlying issue by isolating test
+        // states
+        maxParallelForks = 1
     }
 
     register("uiTest", Test::class) {
