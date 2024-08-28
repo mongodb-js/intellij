@@ -7,14 +7,14 @@ import com.intellij.database.dataSource.localDataSource
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.Dialect
-import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
+import com.mongodb.jbplugin.editor.dataSource
+import com.mongodb.jbplugin.editor.database
 import com.mongodb.jbplugin.editor.dialect
 import com.mongodb.jbplugin.mql.Node
 
@@ -93,16 +93,12 @@ abstract class AbstractMongoDbInspectionBridge(
                             inspection.visitMongoDbQuery(null, holder, cachedValue!!.value, dialect.formatter)
                         } else {
                             val cachedQuery = cachedValue!!.value
-                            val dataSource =
-                                MongoDbVirtualFileDataSourceProvider().getDataSource(
-                                    expression.project,
-                                    fileInExpression.virtualFile,
-                                )
+                            val dataSource = fileInExpression.dataSource
 
                             inspection.visitMongoDbQuery(
                                 dataSource?.localDataSource,
                                 holder,
-                                queryWithCollectionReference(cachedQuery, fileInExpression.virtualFile),
+                                queryWithCollectionReference(cachedQuery, fileInExpression),
                                 dialect.formatter,
                             )
                         }
@@ -110,9 +106,7 @@ abstract class AbstractMongoDbInspectionBridge(
                 }
             }
 
-            private fun queryWithCollectionReference(query: Node<PsiElement>, virtualFile: VirtualFile) =
-                MongoDbVirtualFileDataSourceProvider().getDatabase(
-                    virtualFile,
-                )?.let { query.queryWithOverwrittenDatabase(it) } ?: query
+            private fun queryWithCollectionReference(query: Node<PsiElement>, psiFile: PsiFile) =
+                psiFile.database?.let { query.queryWithOverwrittenDatabase(it) } ?: query
         }
 }

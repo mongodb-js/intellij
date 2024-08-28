@@ -26,7 +26,7 @@ import org.mockito.kotlin.eq
 
 @CodeInsightTest
 @Suppress("TOO_LONG_FUNCTION", "LONG_LINE")
-class FieldCheckLinterInspectionTest {
+class JavaDriverFieldCheckLinterInspectionTest {
     @ParsingTest(
         fileName = "Repository.java",
         value = """
