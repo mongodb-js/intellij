@@ -11,11 +11,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
+import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.mockDataSource
 import com.mongodb.jbplugin.fixtures.mockDatabaseConnection
-import com.mongodb.jbplugin.inspections.bridge.SpringCriteriaFieldCheckInspectionBridge
 import com.mongodb.jbplugin.mql.*
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
@@ -66,7 +66,8 @@ class BookRepository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.enableInspections(SpringCriteriaFieldCheckInspectionBridge::class.java)
+        fixture.specifyDialect(SpringCriteriaDialect)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -128,6 +129,8 @@ class BookRepository {
             dataSource,
         )
 
+        fixture.specifyDialect(SpringCriteriaDialect)
+
         `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
             GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
         )
@@ -136,7 +139,7 @@ class BookRepository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(SpringCriteriaFieldCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -198,6 +201,8 @@ class BookRepository {
             dataSource,
         )
 
+        fixture.specifyDialect(SpringCriteriaDialect)
+
         fixture.file.virtualFile.putUserData(
             MongoDbVirtualFileDataSourceProvider.Keys.attachedDatabase,
             "bad_db",
@@ -211,7 +216,7 @@ class BookRepository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(SpringCriteriaFieldCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -273,6 +278,8 @@ class BookRepository {
             dataSource,
         )
 
+        fixture.specifyDialect(SpringCriteriaDialect)
+
         fixture.file.virtualFile.putUserData(
             MongoDbVirtualFileDataSourceProvider.Keys.attachedDatabase,
             "sample_books",
@@ -291,7 +298,7 @@ class BookRepository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(SpringCriteriaFieldCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -353,6 +360,8 @@ class BookRepository {
             dataSource,
         )
 
+        fixture.specifyDialect(SpringCriteriaDialect)
+
         fixture.file.virtualFile.putUserData(
             MongoDbVirtualFileDataSourceProvider.Keys.attachedDatabase,
             "sample_books",
@@ -371,7 +380,7 @@ class BookRepository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(SpringCriteriaFieldCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 }

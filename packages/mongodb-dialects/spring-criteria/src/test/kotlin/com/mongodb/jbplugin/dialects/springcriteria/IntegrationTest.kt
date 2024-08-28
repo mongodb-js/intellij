@@ -44,6 +44,13 @@ annotation class ParsingTest(
     @Language("java") val value: String,
 )
 
+@Retention(AnnotationRetention.RUNTIME)
+@Test
+annotation class AdditionalFile(
+    val fileName: String,
+    val value: String,
+)
+
 /**
  * Annotation to be used in the test, at the class level.
  *
@@ -117,6 +124,10 @@ internal class IntegrationTestExtension :
 
         // Configure an editor with the source code from @ParsingTest
         ApplicationManager.getApplication().invokeAndWait {
+            context.requiredTestMethod.getAnnotationsByType(AdditionalFile::class.java).forEach {
+                fixture.addFileToProject(it.fileName, it.value)
+            }
+
             val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java) ?: return@invokeAndWait
 
             val fileName = Path(modulePath, "src", "main", "java", parsingTest.fileName).absolutePathString()

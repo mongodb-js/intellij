@@ -1,7 +1,8 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScope
 import com.mongodb.jbplugin.dialects.ConnectionContext
 import com.mongodb.jbplugin.dialects.ConnectionContextExtractor
 import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
@@ -18,12 +19,13 @@ object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
     }
 
     private fun extractDatabase(project: Project): String? {
-        val rootManager = ProjectRootManager.getInstance(project)
-        val propertiesFile = rootManager.contentSourceRoots
-            .firstNotNullOfOrNull {
-                it.findChild("application.properties")
-            } ?: return null
+        val allVirtualFiles = FilenameIndex.getVirtualFilesByName("application.properties",
+ GlobalSearchScope.projectScope(project))
+        if (allVirtualFiles.isEmpty()) {
+            return null
+        }
 
+        val propertiesFile = allVirtualFiles.first()!!
         val properties = Properties()
         properties.load(propertiesFile.inputStream)
         return tryResolveConstantString(properties["spring.data.mongodb.database"])

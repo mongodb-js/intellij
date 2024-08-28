@@ -87,7 +87,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.database",
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, source)) {
             problems.registerProblem(
                 source,
                 problemDescription,
@@ -98,7 +97,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                     ),
                 ),
             )
-        }
     }
 
     private fun registerFieldDoesNotExistProblem(
