@@ -14,30 +14,12 @@ private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun isCandidateForQuery(source: PsiElement): Boolean {
-        if (source !is PsiMethodCallExpression) {
-// if it's not a method call, like .find(), it's not a query
-            return false
-        }
-        val sourceMethod = source.resolveMethod() ?: return false
-
-        if ( // if the method is of MongoCollection, then we are in a query
-            sourceMethod.containingClass?.isMongoDbCollectionClass(source.project) == true
-        ) {
-            return true
-        }
-
-        if ( // if it's any driver class, check inner calls
-            sourceMethod.containingClass?.isMongoDbClass(source.project) == true ||
-            sourceMethod.containingClass?.isMongoDbCursorClass(source.project) == true
-        ) {
-            val allChildrenCandidates = PsiTreeUtil.findChildrenOfType(source, PsiMethodCallExpression::class.java)
-            return allChildrenCandidates.any { isCandidateForQuery(it) }
-        }
-
-        return false
+        return runCatching { findStartOfQuery(source) }.getOrNull() != null
     }
 
-    override fun attachment(source: PsiElement): PsiElement = source.findMongoDbCollectionReference()!!
+    override fun attachment(source: PsiElement): PsiElement {
+        return findStartOfQuery(source)!!
+    }
 
     override fun parse(source: PsiElement): Node<PsiElement> {
         val namespace = NamespaceExtractor.extractNamespace(source)
@@ -61,8 +43,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         } else {
-            calledMethod?.let {
-// if it's another class, try to resolve the query from the method body
+            calledMethod?.let { // if it's another class, try to resolve the query from the method body
                 val allReturns = PsiTreeUtil.findChildrenOfType(calledMethod.body, PsiReturnStatement::class.java)
                 return allReturns
                     .mapNotNull { it.returnValue }
@@ -322,4 +303,14 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         namespace?.let {
             HasCollectionReference(HasCollectionReference.Known(it))
         } ?: HasCollectionReference(HasCollectionReference.Unknown)
+
+    private fun findStartOfQuery(element: PsiElement): PsiMethodCallExpression? {
+        val methodCalls = element.findAllChildrenOfType(PsiMethodCallExpression::class.java)
+        val bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
+            val method = methodCall.resolveMethod() ?: return@find false
+            method.containingClass?.isMongoDbCollectionClass(method.project) == true
+        } ?: return null
+
+        return bottomLevel
+    }
 }

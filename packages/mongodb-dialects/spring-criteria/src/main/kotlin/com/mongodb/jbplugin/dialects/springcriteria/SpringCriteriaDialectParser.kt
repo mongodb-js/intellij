@@ -3,6 +3,7 @@ package com.mongodb.jbplugin.dialects.springcriteria
 import com.intellij.psi.*
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
+import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString

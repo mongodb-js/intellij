@@ -47,7 +47,7 @@
                            />
         <codeInsight.declarativeInlayProvider
                 group="com.mongodb.jbplugin"
-                implementationClass="com.mongodb.jbplugin.inlays.JavaDriverQueryNamespaceInlay"
+                implementationClass="com.mongodb.jbplugin.inlays.MongoDbQueryNamespaceInlay"
                 isEnabledByDefault="true"
                 language="JAVA"
                 nameKey="inlay.namespace.name"

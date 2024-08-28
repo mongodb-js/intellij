@@ -7,7 +7,7 @@ import com.mongodb.jbplugin.fixtures.ParsingTest
 import org.junit.jupiter.api.Assertions.*
 
 @CodeInsightTest
-class JavaDriverQueryNamespaceInlayTest {
+class MongoDbQueryNamespaceInlayTest {
     @ParsingTest(
         fileName = "Repository.java",
         value = """

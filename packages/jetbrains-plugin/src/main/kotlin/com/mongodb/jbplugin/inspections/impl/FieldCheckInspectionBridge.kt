@@ -20,7 +20,6 @@ import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.i18n.InspectionsAndInlaysMessages
 import com.mongodb.jbplugin.inspections.AbstractMongoDbInspectionBridge
 import com.mongodb.jbplugin.inspections.MongoDbInspection
-import com.mongodb.jbplugin.inspections.isProblemAlreadyRegistered
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
@@ -67,7 +66,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.connection",
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, source)) {
             problems.registerProblem(
                 source,
                 problemDescription,
@@ -78,7 +76,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                     ),
                 ),
             )
-        }
     }
 
     private fun registerFieldDoesNotExistProblem(
@@ -90,7 +87,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             warningInfo.field,
             warningInfo.namespace,
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, warningInfo.source)) {
             problems.registerProblem(
                 warningInfo.source,
                 problemDescription,
@@ -99,7 +95,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                     InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
                 ),
             )
-        }
     }
 
     private fun registerFieldValueTypeMismatch(
@@ -113,7 +108,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             formatter.formatType(warningInfo.fieldType),
             warningInfo.field,
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, warningInfo.valueSource)) {
             problems.registerProblem(
                 warningInfo.valueSource,
                 problemDescription,
@@ -122,7 +116,6 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                     InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
                 ),
             )
-        }
     }
 
     /**

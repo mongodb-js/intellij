@@ -63,6 +63,11 @@ abstract class AbstractMongoDbInspectionBridge(
                     var cachedValue: CachedValue<Node<PsiElement>>? = null
                     if (dialect.parser.isCandidateForQuery(expression)) {
                         val attachment = dialect.parser.attachment(expression)
+                        val psiManager = PsiManager.getInstance(expression.project)
+                        if (!psiManager.areElementsEquivalent(expression, attachment)) {
+                            return@runReadAction
+                        }
+
                         attachment.getUserData(queryKey)?.let {
                             cachedValue = attachment.getUserData(queryKey)!!
                         } ?: run {
@@ -97,18 +102,4 @@ abstract class AbstractMongoDbInspectionBridge(
                 }
             }
         }
-}
-
-/**
- * Checks whether a provided problem description has already been registered with the ProblemsHolder for a given
- * PsiElement
- * Warning: Instead of using this, we should get around fixing the "possible" underlying issue highlighted by
- * INTELLIJ-60
- *
- * @param problem - Description of the problem
- * @param source - PsiElement for which the problem is to be checked
- * @return Boolean
- */
-fun ProblemsHolder.isProblemAlreadyRegistered(problem: String, source: PsiElement): Boolean = this.results.any {
-    it.psiElement == source && it.descriptionTemplate == problem
 }

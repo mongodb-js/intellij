@@ -340,3 +340,24 @@ fun PsiType.toBsonType(): BsonType {
 
     return BsonAny
 }
+
+
+/**
+ * Returns all children of type in a list. Order is not guaranteed between calls.
+ * It also takes into consideration in method calls, the parameters of the method call.
+ *
+ * @param type
+ */
+fun <T> PsiElement.findAllChildrenOfType(type: Class<T>): List<T> {
+    var allChildren = this.children.flatMap { it.findAllChildrenOfType(type) }
+
+    if (this is PsiMethodCallExpression) {
+        allChildren += this.argumentList.expressions.flatMap { it.findAllChildrenOfType(type) }
+    }
+
+    if (type.isInstance(this)) {
+        allChildren += listOf(this as T)
+    }
+
+    return allChildren
+}

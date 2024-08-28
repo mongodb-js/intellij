@@ -2,7 +2,7 @@ package com.mongodb.jbplugin.dialects.javadriver.glossary
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiReferenceExpression
+import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.javadriver.IntegrationTest
 import com.mongodb.jbplugin.dialects.javadriver.ParsingTest
@@ -93,11 +93,11 @@ public final class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
         val collectionReference =
             PsiTreeUtil
-                .findChildrenOfType(query, PsiReferenceExpression::class.java)
-                .first { it.text.endsWith("collection") }
+                .findChildrenOfType(query, PsiMethodCallExpression::class.java)
+                .first { it.text.endsWith("id))") }
 
-        assertTrue(JavaDriverDialectParser.isCandidateForQuery(query))
-        assertEquals(collectionReference, JavaDriverDialectParser.attachment(query))
+            assertTrue(JavaDriverDialectParser.isCandidateForQuery(query))
+            assertEquals(collectionReference, JavaDriverDialectParser.attachment(query))
     }
 
     @ParsingTest(
