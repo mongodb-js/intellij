@@ -13,13 +13,10 @@ private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
-    override fun isCandidateForQuery(source: PsiElement): Boolean {
-        return runCatching { findStartOfQuery(source) }.getOrNull() != null
-    }
+    override fun isCandidateForQuery(source: PsiElement): Boolean =
+ runCatching { findStartOfQuery(source) }.getOrNull() != null
 
-    override fun attachment(source: PsiElement): PsiElement {
-        return findStartOfQuery(source)!!
-    }
+    override fun attachment(source: PsiElement): PsiElement = findStartOfQuery(source)!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
         val namespace = NamespaceExtractor.extractNamespace(source)
@@ -43,7 +40,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         } else {
-            calledMethod?.let { // if it's another class, try to resolve the query from the method body
+            calledMethod?.let {
+ // if it's another class, try to resolve the query from the method body
                 val allReturns = PsiTreeUtil.findChildrenOfType(calledMethod.body, PsiReturnStatement::class.java)
                 return allReturns
                     .mapNotNull { it.returnValue }

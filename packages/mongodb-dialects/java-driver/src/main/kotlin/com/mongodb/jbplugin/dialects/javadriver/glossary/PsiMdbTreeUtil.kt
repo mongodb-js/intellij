@@ -341,7 +341,6 @@ fun PsiType.toBsonType(): BsonType {
     return BsonAny
 }
 
-
 /**
  * Returns all children of type in a list. Order is not guaranteed between calls.
  * It also takes into consideration in method calls, the parameters of the method call.
