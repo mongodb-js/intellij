@@ -7,6 +7,7 @@ import com.intellij.database.dataSource.localDataSource
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
@@ -41,6 +42,11 @@ abstract class AbstractMongoDbInspectionBridge(
         )
 }
 
+    /**
+     * Ktlint complains about buildVisitor being longer than 50 lines but because it is just an object implementation
+     * it should be fine to keep it like this to favor readability
+     */
+    @Suppress("TOO_LONG_FUNCTION")
     override fun buildVisitor(
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
@@ -86,20 +92,27 @@ abstract class AbstractMongoDbInspectionBridge(
                         if (fileInExpression == null || fileInExpression.virtualFile == null) {
                             inspection.visitMongoDbQuery(null, holder, cachedValue!!.value, dialect.formatter)
                         } else {
+                            val cachedQuery = cachedValue!!.value
                             val dataSource =
                                 MongoDbVirtualFileDataSourceProvider().getDataSource(
                                     expression.project,
                                     fileInExpression.virtualFile,
                                 )
+
                             inspection.visitMongoDbQuery(
                                 dataSource?.localDataSource,
                                 holder,
-                                cachedValue!!.value,
+                                queryWithCollectionReference(cachedQuery, fileInExpression.virtualFile),
                                 dialect.formatter,
                             )
                         }
                     }
                 }
             }
+
+            private fun queryWithCollectionReference(query: Node<PsiElement>, virtualFile: VirtualFile) =
+                MongoDbVirtualFileDataSourceProvider().getDatabase(
+                    virtualFile,
+                )?.let { query.queryWithOverwrittenDatabase(it) } ?: query
         }
 }

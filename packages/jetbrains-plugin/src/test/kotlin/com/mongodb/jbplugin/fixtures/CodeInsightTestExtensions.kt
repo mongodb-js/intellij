@@ -29,27 +29,25 @@ import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.mapping.Document
-
 import java.lang.reflect.Method
 import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
-
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Annotation to add to the test function.
@@ -80,6 +78,8 @@ internal class CodeInsightTestExtension :
     private val namespace = ExtensionContext.Namespace.create(CodeInsightTestExtension::class.java)
     private val testFixtureKey = "TESTFIXTURE"
 
+    // This function is probably gonna grow as we keep adding libraries for our test fixtures hence disabling this
+    // lint warning here
     @Suppress("TOO_LONG_FUNCTION")
     override fun beforeEach(context: ExtensionContext) {
         val projectFixture =
