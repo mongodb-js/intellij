@@ -18,6 +18,13 @@ val PsiFile.dataSource: LocalDataSource?
                 virtualFile,
             )?.localDataSource
 
+val PsiFile.database: String?
+    get() =
+        MongoDbVirtualFileDataSourceProvider()
+            .getDatabase(
+                virtualFile,
+            )
+
 /**
  * Returns the data source, if attached to the editor through the MongoDB Plugin.
  */

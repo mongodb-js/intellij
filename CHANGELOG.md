@@ -5,6 +5,14 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-51](https://jira.mongodb.org/browse/INTELLIJ-51): Add an inline warning when querying a field that does not
+  exist in the target collection in a Spring Criteria project.
+* [INTELLIJ-53](https://jira.mongodb.org/browse/INTELLIJ-53): Add an inline warning when the type of the provided value
+  for a field in a filter / update query does not match the expected type of the field in a Spring Criteria project.
+* [INTELLIJ-23](https://jira.mongodb.org/browse/INTELLIJ-23): Add an inline warning when the type of the provided value
+  for a field in a filter / update query does not match the expected type of the field.
+* [INTELLIJ-52](https://jira.mongodb.org/browse/INTELLIJ-52): Support for autocomplete for collections specified with 
+`@Document` and fields in Criteria chains.  
 * [INTELLIJ-24](https://jira.mongodb.org/browse/INTELLIJ-30): Supports for autocompletion in database names, collections and fields on queries. Requires 
 a connection to a MongoDB cluster set up in the editor.
 * [INTELLIJ-30](https://jira.mongodb.org/browse/INTELLIJ-30): Add an inline warning when querying a field that does not exist in the target

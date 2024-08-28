@@ -14,7 +14,7 @@ import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.mockDataSource
-import com.mongodb.jbplugin.inspections.bridge.FieldExistenceCheckInspectionBridge
+import com.mongodb.jbplugin.inspections.bridge.JavaDriverFieldCheckInspectionBridge
 import com.mongodb.jbplugin.mql.BsonDouble
 import com.mongodb.jbplugin.mql.BsonObject
 import com.mongodb.jbplugin.mql.CollectionSchema
@@ -26,7 +26,7 @@ import org.mockito.kotlin.eq
 
 @CodeInsightTest
 @Suppress("TOO_LONG_FUNCTION", "LONG_LINE")
-class FieldCheckLinterInspectionTest {
+class JavaDriverFieldCheckLinterInspectionTest {
     @ParsingTest(
         fileName = "Repository.java",
         value = """
@@ -56,7 +56,7 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.enableInspections(FieldExistenceCheckInspectionBridge::class.java)
+        fixture.enableInspections(JavaDriverFieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -121,7 +121,7 @@ public class Repository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(FieldExistenceCheckInspectionBridge::class.java)
+        fixture.enableInspections(JavaDriverFieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -190,7 +190,7 @@ public class Repository {
         project.withMockedService(readModelProvider)
         project.withMockedService(dbPsiFacade)
 
-        fixture.enableInspections(FieldExistenceCheckInspectionBridge::class.java)
+        fixture.enableInspections(JavaDriverFieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 }

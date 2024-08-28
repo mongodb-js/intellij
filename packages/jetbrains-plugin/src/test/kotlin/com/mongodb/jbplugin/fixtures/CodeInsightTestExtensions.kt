@@ -5,6 +5,12 @@
 
 package com.mongodb.jbplugin.fixtures
 
+import com.intellij.database.dataSource.DatabaseConnectionManager
+import com.intellij.database.dataSource.DatabaseConnectionPoint
+import com.intellij.database.dataSource.LocalDataSource
+import com.intellij.database.dataSource.localDataSource
+import com.intellij.database.psi.DbDataSource
+import com.intellij.database.psi.DbPsiFacade
 import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -19,25 +25,29 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.mongodb.client.MongoClient
 import com.mongodb.client.model.Filters
+import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
+import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
+import org.mockito.kotlin.any
+import org.springframework.data.mongodb.core.MongoTemplate
+import org.springframework.data.mongodb.core.mapping.Document
 
 import java.lang.reflect.Method
 import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Annotation to add to the test function.
@@ -68,6 +78,9 @@ internal class CodeInsightTestExtension :
     private val namespace = ExtensionContext.Namespace.create(CodeInsightTestExtension::class.java)
     private val testFixtureKey = "TESTFIXTURE"
 
+    // This function is probably gonna grow as we keep adding libraries for our test fixtures hence disabling this
+    // lint warning here
+    @Suppress("TOO_LONG_FUNCTION")
     override fun beforeEach(context: ExtensionContext) {
         val projectFixture =
             IdeaTestFixtureFactory
@@ -107,6 +120,18 @@ internal class CodeInsightTestExtension :
                         "org.mongodb:bson:5.1.0",
                         listOf(pathToClassJarFile(ObjectId::class.java)),
                     )
+
+                    PsiTestUtil.addProjectLibrary(
+                        module,
+                        "org.springframework.data:spring-data-mongodb:4.3.2",
+                        listOf(pathToClassJarFile(MongoTemplate::class.java)),
+                    )
+
+                    PsiTestUtil.addProjectLibrary(
+                        module,
+                        "org.springframework.data:spring-data-mongodb-mapping:4.3.2",
+                        listOf(pathToClassJarFile(Document::class.java)),
+                    )
                 }
             }
         }
@@ -133,41 +158,20 @@ internal class CodeInsightTestExtension :
         invocationContext: ReflectiveInvocationContext<Method>,
         extensionContext: ExtensionContext,
     ) {
-        val throwable: AtomicReference<Throwable?> = AtomicReference(null)
-        val finished = AtomicBoolean(false)
-
         val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
-        val dumbService = fixture.project.getService(DumbService::class.java)
-        dumbService.runWhenSmart {
-            ApplicationManager.getApplication().invokeAndWait {
-                val result =
-                    runCatching {
-                        invocation.proceed()
-                    }
+        val dumbService = DumbService.getInstance(fixture.project)
 
-                result.onSuccess {
-                    finished.set(true)
-                }
-
-                result.onFailure {
-                    throwable.set(it)
-                    finished.set(true)
-                }
-            }
-        }
-
+        // Run only when the code has been analysed
         runBlocking {
-            withTimeout(10.seconds) {
-                while (!finished.get()) {
-                    delay(50.milliseconds)
+            suspendCancellableCoroutine { callback ->
+                dumbService.runWhenSmart {
+                    runCatching {
+                        callback.resume(invocation.proceed())
+                    }.onFailure {
+                        callback.resumeWithException(it)
+                    }
                 }
             }
-        }
-
-        throwable.get()?.let {
-            System.err.println(it.message)
-            it.printStackTrace(System.err)
-            throw it
         }
     }
 
@@ -229,4 +233,53 @@ internal class CodeInsightTestExtension :
         }
         throw RuntimeException("Invalid Jar File URL String")
     }
+}
+
+/**
+ * Setups a connection that can be configured to return specific results for queries.
+ *
+ * @return
+ */
+@Suppress("TOO_LONG_FUNCTION")
+fun CodeInsightTestFixture.setupConnection(): Pair<LocalDataSource, DataGripBasedReadModelProvider> {
+    val dbPsiFacade = mock<DbPsiFacade>()
+    val dbDataSource = mock<DbDataSource>()
+    val dataSource = mockDataSource()
+    val application = ApplicationManager.getApplication()
+    val realConnectionManager = DatabaseConnectionManager.getInstance()
+    val dbConnectionManager =
+        mock<DatabaseConnectionManager>().also { cm ->
+            `when`(cm.build(any(), any())).thenAnswer {
+                realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
+            }
+        }
+    val connection = mockDatabaseConnection(dataSource)
+    val readModelProvider = mock<DataGripBasedReadModelProvider>()
+
+    `when`(dbDataSource.localDataSource).thenReturn(dataSource)
+    `when`(dbPsiFacade.findDataSource(any())).thenReturn(dbDataSource)
+    `when`(dbConnectionManager.activeConnections).thenReturn(listOf(connection))
+
+    file.virtualFile.putUserData(
+        MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
+        dataSource,
+    )
+
+    application.withMockedService(dbConnectionManager)
+    project.withMockedService(readModelProvider)
+    project.withMockedService(dbPsiFacade)
+
+    return Pair(dataSource, readModelProvider)
+}
+
+/**
+ * Set the current database name into the file.
+ *
+ * @param name
+ */
+fun CodeInsightTestFixture.specifyDatabase(name: String) {
+    file.virtualFile.putUserData(
+        MongoDbVirtualFileDataSourceProvider.Keys.attachedDatabase,
+        name
+    )
 }

@@ -18,6 +18,7 @@ import com.mongodb.jbplugin.inspections.isProblemAlreadyRegistered
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
 /**
  * This inspection object calls the linting engine and transforms the result so they can be rendered in the IntelliJ
@@ -32,6 +33,10 @@ object FieldCheckLinterInspection : MongoDbInspection {
     ) {
         if (dataSource == null || !dataSource.isConnected()) {
             return registerNoConnectionProblem(problems, query.source)
+        }
+
+        if (query.component<HasCollectionReference>()?.reference is HasCollectionReference.OnlyCollection) {
+            return registerNoDatabaseSelectedProblem(problems, query.source)
         }
 
         val readModelProvider = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
@@ -54,6 +59,24 @@ object FieldCheckLinterInspection : MongoDbInspection {
     private fun registerNoConnectionProblem(problems: ProblemsHolder, source: PsiElement) {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.connection",
+        )
+        if (!problems.isProblemAlreadyRegistered(problemDescription, source)) {
+            problems.registerProblem(
+                source,
+                problemDescription,
+                ProblemHighlightType.WARNING,
+                OpenConnectionChooserQuickFix(
+                    InspectionsAndInlaysMessages.message(
+                        "inspection.field.checking.quickfix.choose.new.connection"
+                    ),
+                ),
+            )
+        }
+    }
+
+    private fun registerNoDatabaseSelectedProblem(problems: ProblemsHolder, source: PsiElement) {
+        val problemDescription = InspectionsAndInlaysMessages.message(
+            "inspection.field.checking.error.message.no.database",
         )
         if (!problems.isProblemAlreadyRegistered(problemDescription, source)) {
             problems.registerProblem(
