@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
@@ -129,7 +130,8 @@ fun PsiMethodCallExpression.isCriteriaExpression(): Boolean {
 }
 
 private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
-    val methodCalls = findAllChildrenOfType(PsiMethodCallExpression::class.java)
+    val parentStatement = PsiTreeUtil.getParentOfType(this, PsiStatement::class.java) ?: return null
+    val methodCalls = parentStatement.findAllChildrenOfType(PsiMethodCallExpression::class.java)
     var bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
         val method = methodCall.resolveMethod() ?: return@find false
         method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN &&

@@ -139,10 +139,10 @@ class EditorToolbarDecorator(
     private fun ensureToolbarIsVisibleIfNecessary() {
         guessedDialect?.let {
             ensureSetupToolbarRequirements()
-            (editor as EditorEx?)?.permanentHeaderComponent = toolbar
+            (editor as? EditorEx)?.permanentHeaderComponent = toolbar
             editor.headerComponent = toolbar
         } ?: run {
-            (editor as EditorEx?)?.permanentHeaderComponent = null
+            (editor as? EditorEx)?.permanentHeaderComponent = null
             editor.headerComponent = null
         }
     }

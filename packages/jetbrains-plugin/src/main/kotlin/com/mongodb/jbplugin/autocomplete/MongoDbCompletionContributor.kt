@@ -32,6 +32,7 @@ import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.editor.dataSource
+import com.mongodb.jbplugin.editor.database
 import com.mongodb.jbplugin.editor.dialect
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.mql.Namespace
@@ -299,7 +300,8 @@ private object MongoDbElementPatterns {
         val queryCollection = collectionReference?.let { extractCollection(it) }
 
         val database = extractDatabase(collectionReference)
-            ?: dialect.connectionContextExtractor?.gatherContext(source.project)?.database
+            ?: extractFromFileMetadata(source)
+            ?: extractFromDialectContext(dialect, source)
 
         return database to queryCollection
     }
@@ -316,4 +318,10 @@ private object MongoDbElementPatterns {
             is HasCollectionReference.Known -> innerRef.namespace.database
             else -> null
         }
+
+    private fun extractFromFileMetadata(source: PsiElement): String? =
+        source.containingFile.database
+
+    private fun extractFromDialectContext(dialect: Dialect<PsiElement, Project>, source: PsiElement): String? =
+        dialect.connectionContextExtractor?.gatherContext(source.project)?.database
 }

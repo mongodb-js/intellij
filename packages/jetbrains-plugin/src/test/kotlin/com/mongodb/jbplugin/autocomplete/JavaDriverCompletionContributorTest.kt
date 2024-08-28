@@ -8,7 +8,6 @@ import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
-import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.mql.BsonObject
 import com.mongodb.jbplugin.mql.BsonString
@@ -50,10 +49,7 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.file.virtualFile.putUserData(
-            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
-            JavaDriverDialect,
-        )
+        fixture.specifyDialect(JavaDriverDialect)
 
         val (dataSource, readModelProvider) = fixture.setupConnection()
 
@@ -108,10 +104,7 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.file.virtualFile.putUserData(
-            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
-            JavaDriverDialect,
-        )
+        fixture.specifyDialect(JavaDriverDialect)
 
         val (dataSource, readModelProvider) = fixture.setupConnection()
 
@@ -161,10 +154,7 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.file.virtualFile.putUserData(
-            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
-            JavaDriverDialect,
-        )
+        fixture.specifyDialect(JavaDriverDialect)
 
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
@@ -221,10 +211,7 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.file.virtualFile.putUserData(
-            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
-            JavaDriverDialect,
-        )
+        fixture.specifyDialect(JavaDriverDialect)
 
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
@@ -281,10 +268,7 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.file.virtualFile.putUserData(
-            MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
-            JavaDriverDialect,
-        )
+        fixture.specifyDialect(JavaDriverDialect)
 
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
