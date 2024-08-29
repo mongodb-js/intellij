@@ -92,8 +92,11 @@ class EditorToolbarDecorator(
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        (event.newEditor as? TextEditor)?.editor?.let {
-            editor = it
+        (event.newEditor as? TextEditor)?.editor?.let { newEditor ->
+            editor = newEditor
+            editor.project?.let { project ->
+                guessAndStoreDialect(project)
+            }
             ensureToolbarIsVisibleIfNecessary()
             toolbar.reloadDatabases()
         }
@@ -121,15 +124,18 @@ class EditorToolbarDecorator(
             val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
             toolbar.reloadDataSources(localDataSourceManager.dataSources)
 
-            guessedDialect = guessDialect()
-            guessedDialect?.let {
-                editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
-            } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
-            val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
-            inferredDatabase = metadata?.database
-
+            guessAndStoreDialect(project)
             ensureToolbarIsVisibleIfNecessary()
         }
+    }
+
+    private fun guessAndStoreDialect(project: Project) {
+        guessedDialect = guessDialect()
+        guessedDialect?.let {
+            editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
+        } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
+        val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
+        inferredDatabase = metadata?.database
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {
