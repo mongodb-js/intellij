@@ -6,6 +6,7 @@ package com.mongodb.jbplugin.accessadapter.slice
 
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import org.bson.Document
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * @property collections
@@ -32,6 +33,10 @@ data class ListCollections(
             get() = "${javaClass.canonicalName}::$database"
 
         override suspend fun queryUsingDriver(from: MongoDbDriver): ListCollections {
+            if (database.isBlank()) {
+                return ListCollections(emptyList())
+            }
+
             val result =
                 from.runCommand(
                     database,
@@ -42,6 +47,7 @@ data class ListCollections(
                         ),
                     ),
                     Document::class,
+                    1.seconds
                 )
 
             val collectionMetadata = result.get("cursor", Map::class.java)

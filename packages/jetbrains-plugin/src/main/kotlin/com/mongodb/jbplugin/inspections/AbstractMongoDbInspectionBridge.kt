@@ -17,6 +17,7 @@ import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.editor.database
 import com.mongodb.jbplugin.editor.dialect
 import com.mongodb.jbplugin.mql.Node
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * This class is used to connect a MongoDB inspection to IntelliJ.
@@ -29,9 +30,11 @@ import com.mongodb.jbplugin.mql.Node
  * @see com.mongodb.jbplugin.inspections.impl.FieldCheckInspectionBridge as an example
  *
  * @param inspection
+ * @param coroutineScope
  */
 @Suppress("TOO_LONG_FUNCTION")
 abstract class AbstractMongoDbInspectionBridge(
+    private val coroutineScope: CoroutineScope,
     private val inspection: MongoDbInspection,
 ) : AbstractBaseJavaLocalInspectionTool() {
     private val queryKeysByDialect = mutableMapOf<Dialect<PsiElement, Project>, Key<CachedValue<Node<PsiElement>>>>()
@@ -90,12 +93,14 @@ abstract class AbstractMongoDbInspectionBridge(
                     cachedValue?.let {
                         val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java)
                         if (fileInExpression == null || fileInExpression.virtualFile == null) {
-                            inspection.visitMongoDbQuery(null, holder, cachedValue!!.value, dialect.formatter)
+                            inspection.visitMongoDbQuery(coroutineScope, null, holder, cachedValue!!.value,
+ dialect.formatter)
                         } else {
                             val cachedQuery = cachedValue!!.value
                             val dataSource = fileInExpression.dataSource
 
                             inspection.visitMongoDbQuery(
+                                coroutineScope,
                                 dataSource?.localDataSource,
                                 holder,
                                 queryWithCollectionReference(cachedQuery, fileInExpression),

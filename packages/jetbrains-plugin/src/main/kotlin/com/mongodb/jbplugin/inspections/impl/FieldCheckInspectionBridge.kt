@@ -24,10 +24,15 @@ import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import kotlinx.coroutines.CoroutineScope
 
+/**
+ * @param coroutineScope
+ */
 @Suppress("MISSING_KDOC_TOP_LEVEL")
-class FieldCheckInspectionBridge :
+class FieldCheckInspectionBridge(coroutineScope: CoroutineScope) :
     AbstractMongoDbInspectionBridge(
+        coroutineScope,
         FieldCheckLinterInspection,
     )
 
@@ -37,17 +42,18 @@ class FieldCheckInspectionBridge :
  */
 internal object FieldCheckLinterInspection : MongoDbInspection {
     override fun visitMongoDbQuery(
+        coroutineScope: CoroutineScope,
         dataSource: LocalDataSource?,
         problems: ProblemsHolder,
         query: Node<PsiElement>,
         formatter: DialectFormatter,
     ) {
         if (dataSource == null || !dataSource.isConnected()) {
-            return registerNoConnectionProblem(problems, query.source)
+            return registerNoConnectionProblem(coroutineScope, problems, query.source)
         }
 
         if (query.component<HasCollectionReference>()?.reference is HasCollectionReference.OnlyCollection) {
-            return registerNoDatabaseSelectedProblem(problems, query.source)
+            return registerNoDatabaseSelectedProblem(coroutineScope, problems, query.source)
         }
 
         val readModelProvider = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
@@ -61,13 +67,18 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
 
         result.warnings.forEach {
             when (it) {
-                is FieldCheckWarning.FieldDoesNotExist -> registerFieldDoesNotExistProblem(problems, it)
-                is FieldCheckWarning.FieldValueTypeMismatch -> registerFieldValueTypeMismatch(problems, it, formatter)
+                is FieldCheckWarning.FieldDoesNotExist -> registerFieldDoesNotExistProblem(coroutineScope, problems, it)
+                is FieldCheckWarning.FieldValueTypeMismatch ->
+ registerFieldValueTypeMismatch(coroutineScope, problems, it, formatter)
             }
         }
     }
 
-    private fun registerNoConnectionProblem(problems: ProblemsHolder, source: PsiElement) {
+    private fun registerNoConnectionProblem(
+coroutineScope: CoroutineScope,
+ problems: ProblemsHolder,
+ source: PsiElement
+) {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.connection",
         )
@@ -76,6 +87,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                 problemDescription,
                 ProblemHighlightType.WARNING,
                 OpenConnectionChooserQuickFix(
+                    coroutineScope,
                     InspectionsAndInlaysMessages.message(
                         "inspection.field.checking.quickfix.choose.new.connection"
                     ),
@@ -83,7 +95,11 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             )
     }
 
-    private fun registerNoDatabaseSelectedProblem(problems: ProblemsHolder, source: PsiElement) {
+    private fun registerNoDatabaseSelectedProblem(
+coroutineScope: CoroutineScope,
+ problems: ProblemsHolder,
+ source: PsiElement
+) {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.database",
         )
@@ -92,6 +108,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                 problemDescription,
                 ProblemHighlightType.WARNING,
                 OpenConnectionChooserQuickFix(
+                    coroutineScope,
                     InspectionsAndInlaysMessages.message(
                         "inspection.field.checking.quickfix.choose.new.connection"
                     ),
@@ -100,6 +117,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
     }
 
     private fun registerFieldDoesNotExistProblem(
+        coroutineScope: CoroutineScope,
         problems: ProblemsHolder,
         warningInfo: FieldCheckWarning.FieldDoesNotExist<PsiElement>,
     ) {
@@ -113,12 +131,14 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                 problemDescription,
                 ProblemHighlightType.WARNING,
                 OpenConnectionChooserQuickFix(
+                    coroutineScope,
                     InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
                 ),
             )
     }
 
     private fun registerFieldValueTypeMismatch(
+        coroutineScope: CoroutineScope,
         problems: ProblemsHolder,
         warningInfo: FieldCheckWarning.FieldValueTypeMismatch<PsiElement>,
         formatter: DialectFormatter,
@@ -134,6 +154,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                 problemDescription,
                 ProblemHighlightType.WARNING,
                 OpenConnectionChooserQuickFix(
+                    coroutineScope,
                     InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
                 ),
             )
@@ -143,8 +164,10 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
      * This quickfix opens a modal with the connection chooser.
      *
      * @param message
-     */
+     * @param coroutineScope
+ */
     private class OpenConnectionChooserQuickFix(
+        private val coroutineScope: CoroutineScope,
         private val message: String,
     ) : LocalQuickFix {
         override fun getFamilyName(): String = message
@@ -154,7 +177,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             descriptor: ProblemDescriptor,
         ) {
             val editor = FileEditorManager.getInstance(project).selectedTextEditorWithRemotes[0] ?: return
-            MdbJavaEditorToolbar.showModalForSelection(editor, project.coroutineScope)
+            MdbJavaEditorToolbar.showModalForSelection(editor, coroutineScope)
         }
     }
 }
