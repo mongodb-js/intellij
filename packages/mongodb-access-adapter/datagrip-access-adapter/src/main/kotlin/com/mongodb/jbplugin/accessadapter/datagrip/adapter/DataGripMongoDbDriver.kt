@@ -15,7 +15,13 @@ import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
+import com.mongodb.jbplugin.dialects.mongosh.MongoshDialect
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.bson.BsonReader
 import org.bson.BsonWriter
 import org.bson.Document
@@ -29,13 +35,9 @@ import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
 import org.jetbrains.annotations.VisibleForTesting
 import org.owasp.encoder.Encode
-
 import kotlin.reflect.KClass
 import kotlin.time.Duration
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration.Companion.seconds
 
 private const val TIMEOUT = 5
 
@@ -78,6 +80,17 @@ internal class DataGripMongoDbDriver(
             .encodeForJs()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
+
+    override suspend fun <S> explain(query: Node<S>): Bson = withContext(Dispatchers.IO) {
+        val queryString = MongoshDialect.formatter.formatQuery(query, explain = true)
+        runQuery(
+            """
+                    EJSON.serialize($queryString)
+                """.trimIndent(),
+            Bson::class,
+            timeout = 1.seconds
+        )[0]
+    }
 
     override suspend fun <T : Any> runCommand(
         database: String,

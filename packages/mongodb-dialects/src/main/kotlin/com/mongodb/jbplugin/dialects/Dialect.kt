@@ -67,6 +67,10 @@ interface DialectParser<S> {
  * for a user given the Dialect.
  */
 interface DialectFormatter {
+    fun <S> formatQuery(query: Node<S>, explain: Boolean): String = throw UnsupportedOperationException(
+        "Formatting queries is not supported in this dialect."
+    )
+
     fun formatType(type: BsonType): String
 }
 

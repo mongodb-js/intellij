@@ -13,6 +13,8 @@ import com.mongodb.client.MongoClients
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
+import kotlinx.coroutines.withTimeout
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.junit.jupiter.api.extension.*
@@ -21,12 +23,9 @@ import org.mockito.kotlin.mock
 import org.testcontainers.containers.DockerComposeContainer
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.lifecycle.Startable
-
 import java.io.File
-
 import kotlin.reflect.KClass
 import kotlin.time.Duration
-import kotlinx.coroutines.withTimeout
 
 /**
  * Test environment.
@@ -143,7 +142,9 @@ internal class DirectMongoDbDriver(
     val gson = Gson()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(uri)
-
+    override suspend fun <S> explain(query: Node<S>): Bson {
+        return Document()
+    }
     override suspend fun <T : Any> runCommand(
         database: String,
         command: Bson,

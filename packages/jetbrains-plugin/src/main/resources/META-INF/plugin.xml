@@ -62,6 +62,7 @@
                          enabledByDefault="true"
                          level="WARNING"
                          implementationClass="com.mongodb.jbplugin.inspections.impl.FieldCheckInspectionBridge"/>
+        <codeInsight.lineMarkerProvider language="JAVA" implementationClass="com.mongodb.jbplugin.codeActions.impl.RunQueryCodeActionBridge" />
         <database.virtualFileDataSourceProvider
             implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
         <completion.contributor language="JAVA"

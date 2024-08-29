@@ -11,6 +11,7 @@ package com.mongodb.jbplugin.accessadapter
 
 import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
 import org.bson.conversions.Bson
 import java.util.*
 import kotlin.reflect.KClass
@@ -29,6 +30,9 @@ interface MongoDbDriver {
     val connected: Boolean
 
     suspend fun connectionString(): ConnectionString
+
+    // probably we want a better result type
+    suspend fun <S> explain(query: Node<S>): Bson
 
     suspend fun <T : Any> runCommand(
         database: String,
