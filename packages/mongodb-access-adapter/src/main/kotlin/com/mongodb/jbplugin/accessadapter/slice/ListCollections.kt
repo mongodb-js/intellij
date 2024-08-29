@@ -32,6 +32,10 @@ data class ListCollections(
             get() = "${javaClass.canonicalName}::$database"
 
         override suspend fun queryUsingDriver(from: MongoDbDriver): ListCollections {
+            if (database.isBlank()) {
+                return ListCollections(emptyList())
+            }
+
             val result =
                 from.runCommand(
                     database,
@@ -41,11 +45,11 @@ data class ListCollections(
                             "authorizedCollections" to true,
                         ),
                     ),
-                    Document::class,
+                    Document::class
                 )
 
             val collectionMetadata = result.get("cursor", Map::class.java)
-            val collections = collectionMetadata.get("firstBatch") as List<Map<String, *>>
+            val collections = collectionMetadata["firstBatch"] as List<Map<String, *>>
 
             return ListCollections(
                 collections.map {
