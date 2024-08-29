@@ -4,14 +4,54 @@ import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.mql.*
 import org.bson.Document
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 
 import kotlinx.coroutines.runBlocking
 
 class GetCollectionSchemaTest {
+    @Test
+    fun `returns an empty schema if the database is not provided`() {
+        runBlocking {
+            val namespace = Namespace("", "myColl")
+            val driver = mock<MongoDbDriver>()
+            val result = GetCollectionSchema.Slice(namespace).queryUsingDriver(driver)
+
+            assertEquals(namespace, result.schema.namespace)
+            assertEquals(
+                BsonObject(
+                    emptyMap(),
+                ),
+                result.schema.schema,
+            )
+
+            verify(driver, never()).findAll(namespace, Filters.empty(), Document::class, 50)
+        }
+    }
+
+    @Test
+    fun `returns an empty schema if the collection is not provided`() {
+        runBlocking {
+            val namespace = Namespace("myDb", "")
+            val driver = mock<MongoDbDriver>()
+            val result = GetCollectionSchema.Slice(namespace).queryUsingDriver(driver)
+
+            assertEquals(namespace, result.schema.namespace)
+            assertEquals(
+                BsonObject(
+                    emptyMap(),
+                ),
+                result.schema.schema,
+            )
+
+            verify(driver, never()).findAll(namespace, Filters.empty(), Document::class, 50)
+        }
+    }
+
     @Test
     fun `should build a schema based on the result of the query`() {
         runBlocking {
@@ -58,12 +98,12 @@ class GetCollectionSchemaTest {
                 BsonObject(
                     mapOf(
                         "book" to
-                            BsonObject(
-                                mapOf(
-                                    "author" to BsonAnyOf(BsonString, BsonNull),
-                                    "isbn" to BsonAnyOf(BsonString, BsonNull),
+                                BsonObject(
+                                    mapOf(
+                                        "author" to BsonAnyOf(BsonString, BsonNull),
+                                        "isbn" to BsonAnyOf(BsonString, BsonNull),
+                                    ),
                                 ),
-                            ),
                     ),
                 ),
                 result.schema.schema,

@@ -22,6 +22,15 @@ data class GetCollectionSchema(
         override val id = "${javaClass.canonicalName}::$namespace"
 
         override suspend fun queryUsingDriver(from: MongoDbDriver): GetCollectionSchema {
+            if (namespace.database.isBlank() || namespace.collection.isBlank()) {
+                return GetCollectionSchema(
+                    CollectionSchema(
+                        namespace,
+                        BsonObject(emptyMap())
+                    )
+                )
+            }
+
             val sampleSomeDocs = from.findAll(namespace, Filters.empty(), Document::class, limit = 50)
             // we need to generate the schema from these docs
             val sampleSchemas = sampleSomeDocs.map(this::recursivelyBuildSchema)
