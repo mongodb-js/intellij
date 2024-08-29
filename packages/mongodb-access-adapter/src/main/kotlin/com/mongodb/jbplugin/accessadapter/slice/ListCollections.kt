@@ -6,7 +6,6 @@ package com.mongodb.jbplugin.accessadapter.slice
 
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import org.bson.Document
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * @property collections
@@ -46,12 +45,11 @@ data class ListCollections(
                             "authorizedCollections" to true,
                         ),
                     ),
-                    Document::class,
-                    1.seconds
+                    Document::class
                 )
 
             val collectionMetadata = result.get("cursor", Map::class.java)
-            val collections = collectionMetadata.get("firstBatch") as List<Map<String, *>>
+            val collections = collectionMetadata["firstBatch"] as List<Map<String, *>>
 
             return ListCollections(
                 collections.map {
