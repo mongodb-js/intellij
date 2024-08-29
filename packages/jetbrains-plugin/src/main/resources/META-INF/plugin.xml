@@ -44,10 +44,10 @@
                            displayType="BALLOON"
                            bundle="messages.TelemetryBundle"
                            key="notification.group.name"
-        />
+                           />
         <codeInsight.declarativeInlayProvider
                 group="com.mongodb.jbplugin"
-                implementationClass="com.mongodb.jbplugin.inlays.JavaDriverQueryNamespaceInlay"
+                implementationClass="com.mongodb.jbplugin.inlays.MongoDbQueryNamespaceInlay"
                 isEnabledByDefault="true"
                 language="JAVA"
                 nameKey="inlay.namespace.name"
@@ -61,22 +61,11 @@
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
                          level="WARNING"
-                         implementationClass="com.mongodb.jbplugin.inspections.bridge.JavaDriverFieldCheckInspectionBridge"/>
-        <localInspection language="JAVA"
-                         bundle="messages.InspectionsAndInlaysBundle"
-                         key="inspection.field.checking"
-                         groupPath="Java"
-                         groupBundle="messages.InspectionsAndInlaysBundle"
-                         groupKey="group.names.probable.bugs"
-                         enabledByDefault="true"
-                         level="WARNING"
-                         implementationClass="com.mongodb.jbplugin.inspections.bridge.SpringCriteriaFieldCheckInspectionBridge"/>
+                         implementationClass="com.mongodb.jbplugin.inspections.impl.FieldCheckInspectionBridge"/>
         <database.virtualFileDataSourceProvider
-                implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider"/>
+            implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
         <completion.contributor language="JAVA"
-                                implementationClass="com.mongodb.jbplugin.autocomplete.JavaDriverCompletionContributor" />
-        <completion.contributor language="JAVA"
-                                implementationClass="com.mongodb.jbplugin.autocomplete.SpringCriteriaCompletionContributor" />
+                                implementationClass="com.mongodb.jbplugin.autocomplete.MongoDbCompletionContributor" />
     </extensions>
     <applicationListeners>
     </applicationListeners>

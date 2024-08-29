@@ -1,26 +1,19 @@
 package com.mongodb.jbplugin.inspections.impl
 
-import com.intellij.database.dataSource.DatabaseConnectionManager
-import com.intellij.database.dataSource.DatabaseConnectionPoint
-import com.intellij.database.dataSource.localDataSource
-import com.intellij.database.psi.DbDataSource
-import com.intellij.database.psi.DbPsiFacade
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
-import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
-import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
-import com.mongodb.jbplugin.fixtures.*
-import com.mongodb.jbplugin.fixtures.mockDataSource
-import com.mongodb.jbplugin.inspections.bridge.JavaDriverFieldCheckInspectionBridge
+import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
+import com.mongodb.jbplugin.fixtures.CodeInsightTest
+import com.mongodb.jbplugin.fixtures.ParsingTest
+import com.mongodb.jbplugin.fixtures.setupConnection
+import com.mongodb.jbplugin.fixtures.specifyDialect
 import com.mongodb.jbplugin.mql.BsonDouble
 import com.mongodb.jbplugin.mql.BsonObject
 import com.mongodb.jbplugin.mql.CollectionSchema
 import com.mongodb.jbplugin.mql.Namespace
 import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 
@@ -56,7 +49,9 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        fixture.enableInspections(JavaDriverFieldCheckInspectionBridge::class.java)
+        fixture.specifyDialect(JavaDriverDialect)
+
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -90,38 +85,14 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        val dbPsiFacade = mock<DbPsiFacade>()
-        val dbDataSource = mock<DbDataSource>()
-        val dataSource = mockDataSource()
-        val application = ApplicationManager.getApplication()
-        val realConnectionManager = DatabaseConnectionManager.getInstance()
-        val dbConnectionManager =
-            mock<DatabaseConnectionManager>().also { cm ->
-                `when`(cm.build(any(), any())).thenAnswer {
-                    realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
-                }
-            }
-        val connection = mockDatabaseConnection(dataSource)
-        val readModelProvider = mock<DataGripBasedReadModelProvider>()
-
-        `when`(dbDataSource.localDataSource).thenReturn(dataSource)
-        `when`(dbPsiFacade.findDataSource(any())).thenReturn(dbDataSource)
-        `when`(dbConnectionManager.activeConnections).thenReturn(listOf(connection))
-
-        fixture.file.virtualFile.putUserData(
-            MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
-            dataSource,
-        )
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
 
         `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
             GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
         )
 
-        application.withMockedService(dbConnectionManager)
-        project.withMockedService(readModelProvider)
-        project.withMockedService(dbPsiFacade)
-
-        fixture.enableInspections(JavaDriverFieldCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 
@@ -155,28 +126,8 @@ public class Repository {
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
-        val dbPsiFacade = mock<DbPsiFacade>()
-        val dbDataSource = mock<DbDataSource>()
-        val dataSource = mockDataSource()
-        val application = ApplicationManager.getApplication()
-        val realConnectionManager = DatabaseConnectionManager.getInstance()
-        val dbConnectionManager =
-            mock<DatabaseConnectionManager>().also { cm ->
-                `when`(cm.build(any(), any())).thenAnswer {
-                    realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
-                }
-            }
-        val connection = mockDatabaseConnection(dataSource)
-        val readModelProvider = mock<DataGripBasedReadModelProvider>()
-
-        `when`(dbDataSource.localDataSource).thenReturn(dataSource)
-        `when`(dbPsiFacade.findDataSource(any())).thenReturn(dbDataSource)
-        `when`(dbConnectionManager.activeConnections).thenReturn(listOf(connection))
-
-        fixture.file.virtualFile.putUserData(
-            MongoDbVirtualFileDataSourceProvider.Keys.attachedDataSource,
-            dataSource,
-        )
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
 
         `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
             GetCollectionSchema(
@@ -186,11 +137,7 @@ public class Repository {
             ),
         )
 
-        application.withMockedService(dbConnectionManager)
-        project.withMockedService(readModelProvider)
-        project.withMockedService(dbPsiFacade)
-
-        fixture.enableInspections(JavaDriverFieldCheckInspectionBridge::class.java)
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
 }

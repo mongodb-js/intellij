@@ -163,7 +163,7 @@ internal sealed class TelemetryEvent(
      * @param count
      */
     class AutocompleteGroupEvent(
-        dialect: Dialect<*>,
+        dialect: Dialect<*, *>,
         autocompleteType: String,
         count: Int,
     ) : TelemetryEvent(

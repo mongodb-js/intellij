@@ -1,10 +1,10 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiExpression
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
+import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
@@ -14,6 +14,7 @@ import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val CRITERIA_CLASS_FQN = "org.springframework.data.mongodb.core.query.Criteria"
+private const val DOCUMENT_FQN = "org.springframework.data.mongodb.core.mapping.Document"
 
 object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     override fun isCandidateForQuery(source: PsiElement) = source.findCriteriaWhereExpression() != null
@@ -36,6 +37,22 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         ))
     }
 
+    override fun isReferenceToDatabase(source: PsiElement): Boolean {
+        return false // databases are in property files and we don't support AC there yet
+    }
+
+    override fun isReferenceToCollection(source: PsiElement): Boolean {
+        val docAnnotation = source.parentOfType<PsiAnnotation>() ?: return false
+        return docAnnotation.hasQualifiedName(DOCUMENT_FQN)
+    }
+
+    override fun isReferenceToField(source: PsiElement): Boolean {
+        val isString = source.parentOfType<PsiLiteralExpression>(true)?.tryToResolveAsConstantString() != null
+        val methodCall = source.parentOfType<PsiMethodCallExpression>() ?: return false
+
+        return isString && methodCall.isCriteriaExpression()
+    }
+
     private fun parseQueryRecursively(
         fieldNameCall: PsiMethodCallExpression,
         until: PsiElement? = null
@@ -50,7 +67,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         if (currentCriteriaMethod.isVarArgs) {
             val allSubQueries = fieldNameCall.argumentList.expressions
                 .filterIsInstance<PsiMethodCallExpression>()
-                .mapNotNull { it.innerMethodCallExpression() }
+                .map { it.innerMethodCallExpression() }
                 .flatMap { parseQueryRecursively(it, fieldNameCall) }
 
             if (fieldNameCall.parent.parent is PsiMethodCallExpression) {
@@ -88,10 +105,9 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             )
         )
 
-        val nextField = valueCall.parentMethodCallExpression()
-        nextField?.let {
-return listOf(predicate) + parseQueryRecursively(nextField, until)
-}
+        valueCall.parentMethodCallExpression()?.let {
+            return listOf(predicate) + parseQueryRecursively(it, until)
+        }
 
         return listOf(predicate)
     }
@@ -114,7 +130,8 @@ fun PsiMethodCallExpression.isCriteriaExpression(): Boolean {
 }
 
 private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
-    val methodCalls = findAllChildrenOfType(PsiMethodCallExpression::class.java)
+    val parentStatement = PsiTreeUtil.getParentOfType(this, PsiStatement::class.java) ?: return null
+    val methodCalls = parentStatement.findAllChildrenOfType(PsiMethodCallExpression::class.java)
     var bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
         val method = methodCall.resolveMethod() ?: return@find false
         method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN &&

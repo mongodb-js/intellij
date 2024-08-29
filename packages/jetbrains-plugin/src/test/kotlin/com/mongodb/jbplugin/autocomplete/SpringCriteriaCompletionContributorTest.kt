@@ -6,10 +6,8 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
-import com.mongodb.jbplugin.fixtures.CodeInsightTest
-import com.mongodb.jbplugin.fixtures.ParsingTest
-import com.mongodb.jbplugin.fixtures.setupConnection
-import com.mongodb.jbplugin.fixtures.specifyDatabase
+import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
+import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.mql.BsonObject
 import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.CollectionSchema
@@ -18,9 +16,9 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.eq
 
+@Suppress("TOO_LONG_FUNCTION")
 @CodeInsightTest
 class SpringCriteriaCompletionContributorTest {
-    @Suppress("TOO_LONG_FUNCTION")
     @ParsingTest(
         fileName = "Repository.java",
         value = """
@@ -36,6 +34,7 @@ record Book() {}
     ) {
         val (dataSource, readModelProvider) = fixture.setupConnection()
         fixture.specifyDatabase("myDatabase")
+        fixture.specifyDialect(SpringCriteriaDialect)
 
         `when`(readModelProvider.slice(eq(dataSource), eq(ListCollections.Slice("myDatabase")))).thenReturn(
             ListCollections(
@@ -96,6 +95,7 @@ class Repository {
     ) {
         val (dataSource, readModelProvider) = fixture.setupConnection()
         fixture.specifyDatabase("myDatabase")
+        fixture.specifyDialect(SpringCriteriaDialect)
 
         val namespace = Namespace("myDatabase", "book")
 

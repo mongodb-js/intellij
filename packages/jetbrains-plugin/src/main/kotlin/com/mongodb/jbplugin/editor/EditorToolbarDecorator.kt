@@ -8,7 +8,6 @@ import com.intellij.database.dataSource.LocalDataSourceManager
 import com.intellij.database.model.RawDataSource
 import com.intellij.database.psi.DataSourceManager
 import com.intellij.database.run.ConsoleRunConfiguration
-import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
@@ -18,16 +17,26 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.removeUserData
-import com.intellij.psi.PsiJavaFile
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.messages.MessageBusConnection
+import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
+import com.mongodb.jbplugin.dialects.Dialect
+import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
+import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
 import kotlinx.coroutines.CoroutineScope
 
 private val log = logger<EditorToolbarDecorator>()
+
+private val allDialects = listOf(
+    JavaDriverDialect,
+    SpringCriteriaDialect
+)
 
 /**
  * This decorator listens to an IntelliJ Editor lifecycle
@@ -42,6 +51,8 @@ class EditorToolbarDecorator(
     DataSourceManager.Listener,
     JdbcDriverManager.Listener,
     PsiModificationTracker.Listener {
+    internal var inferredDatabase: String? = null
+    internal var guessedDialect: Dialect<PsiElement, Project>? = null
     internal lateinit var toolbar: MdbJavaEditorToolbar
     internal lateinit var editor: Editor
     internal lateinit var messageBusConnection: MessageBusConnection
@@ -55,6 +66,10 @@ class EditorToolbarDecorator(
             val session = DatabaseSessionManager.openSession(project, dataSource, null)
             val probe = NewConnectionActivatedProbe()
             probe.connected(session)
+
+            inferredDatabase?.let {
+                toolbar.databaseComboBox.selectedDatabase = inferredDatabase
+            }
 
             analyzeFileFromScratch()
         }
@@ -77,8 +92,11 @@ class EditorToolbarDecorator(
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        (event.newEditor as? TextEditor)?.editor?.let {
-            editor = it
+        (event.newEditor as? TextEditor)?.editor?.let { newEditor ->
+            editor = newEditor
+            editor.project?.let { project ->
+                guessAndStoreDialect(project)
+            }
             ensureToolbarIsVisibleIfNecessary()
             toolbar.reloadDatabases()
         }
@@ -106,8 +124,18 @@ class EditorToolbarDecorator(
             val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
             toolbar.reloadDataSources(localDataSourceManager.dataSources)
 
+            guessAndStoreDialect(project)
             ensureToolbarIsVisibleIfNecessary()
         }
+    }
+
+    private fun guessAndStoreDialect(project: Project) {
+        guessedDialect = guessDialect()
+        guessedDialect?.let {
+            editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
+        } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
+        val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
+        inferredDatabase = metadata?.database
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {
@@ -115,62 +143,39 @@ class EditorToolbarDecorator(
     }
 
     private fun ensureToolbarIsVisibleIfNecessary() {
-        if (!editor.hasHeaderComponent()) {
-            if (isToolbarSetUpForCurrentFile()) {
-                (editor as EditorEx?)?.permanentHeaderComponent = toolbar
-                editor.headerComponent = toolbar
-            }
-        } else {
-            if (!isToolbarSetUpForCurrentFile()) {
-                (editor as EditorEx?)?.permanentHeaderComponent = null
-                editor.headerComponent = null
-            }
+        guessedDialect?.let {
+            ensureSetupToolbarRequirements()
+            (editor as? EditorEx)?.permanentHeaderComponent = toolbar
+            editor.headerComponent = toolbar
+        } ?: run {
+            (editor as? EditorEx)?.permanentHeaderComponent = null
+            editor.headerComponent = null
         }
     }
 
-    private fun isToolbarSetUpForCurrentFile(): Boolean {
-        val project = editor.project ?: return false
+    private fun ensureSetupToolbarRequirements() {
+        val requirements = guessedDialect?.connectionContextExtractor?.requirements() ?: emptySet()
+        if (requirements.contains(ConnectionContextRequirement.DATABASE)) {
+            toolbar.showDatabaseSelector()
+        } else {
+            toolbar.hideDatabaseSelector()
+        }
+    }
+
+    private fun guessDialect(): Dialect<PsiElement, Project>? {
+        val project = editor.project ?: return null
         val psiFileResult = runCatching { PsiManager.getInstance(project).findFile(editor.virtualFile) }
 
         if (psiFileResult.isFailure) {
-            return false
+            return null
         }
 
         psiFileResult.onFailure {
             log.info("Could not find virtual file for current editor", it)
         }
 
-        val psiFile = psiFileResult.getOrNull() ?: return false
-
-        if (psiFile.language != JavaLanguage.INSTANCE) {
-            return false
-        }
-
-        val javaPsiFile = psiFile as PsiJavaFile
-        if (isUsingSpringDataMongoDb(javaPsiFile)) {
-            toolbar.showDatabaseSelector()
-            return true
-        }
-
-        if (isUsingTheJavaDriver(javaPsiFile)) {
-            toolbar.hideDatabaseSelector()
-            return true
-        }
-
-        return false
-    }
-
-    private fun isUsingTheJavaDriver(psiFile: PsiJavaFile): Boolean {
-        val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
-        return importStatements.any {
-            return@any it.importReference?.canonicalText?.startsWith("com.mongodb") == true
-        }
-    }
-
-    private fun isUsingSpringDataMongoDb(psiFile: PsiJavaFile): Boolean {
-        val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
-        return importStatements.any {
-            return@any it.importReference?.canonicalText?.startsWith("org.springframework.data.mongodb") == true
+        return psiFileResult.getOrNull()?.let { file ->
+            allDialects.find { it.isUsableForSource(file) }
         }
     }
 

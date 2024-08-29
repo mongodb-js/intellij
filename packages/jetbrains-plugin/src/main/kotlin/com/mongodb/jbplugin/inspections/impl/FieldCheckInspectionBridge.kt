@@ -1,3 +1,8 @@
+/**
+ * This inspection is used for type checking. It also warns if a field is referenced in a
+ * query but doesn't exist in the MongoDB schema.
+ */
+
 package com.mongodb.jbplugin.inspections.impl
 
 import com.intellij.codeInspection.LocalQuickFix
@@ -13,18 +18,24 @@ import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.dialects.DialectFormatter
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.i18n.InspectionsAndInlaysMessages
+import com.mongodb.jbplugin.inspections.AbstractMongoDbInspectionBridge
 import com.mongodb.jbplugin.inspections.MongoDbInspection
-import com.mongodb.jbplugin.inspections.isProblemAlreadyRegistered
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
+@Suppress("MISSING_KDOC_TOP_LEVEL")
+class FieldCheckInspectionBridge :
+    AbstractMongoDbInspectionBridge(
+        FieldCheckLinterInspection,
+    )
+
 /**
  * This inspection object calls the linting engine and transforms the result so they can be rendered in the IntelliJ
  * editor.
  */
-object FieldCheckLinterInspection : MongoDbInspection {
+internal object FieldCheckLinterInspection : MongoDbInspection {
     override fun visitMongoDbQuery(
         dataSource: LocalDataSource?,
         problems: ProblemsHolder,
@@ -60,7 +71,6 @@ object FieldCheckLinterInspection : MongoDbInspection {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.connection",
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, source)) {
             problems.registerProblem(
                 source,
                 problemDescription,
@@ -71,14 +81,12 @@ object FieldCheckLinterInspection : MongoDbInspection {
                     ),
                 ),
             )
-        }
     }
 
     private fun registerNoDatabaseSelectedProblem(problems: ProblemsHolder, source: PsiElement) {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.database",
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, source)) {
             problems.registerProblem(
                 source,
                 problemDescription,
@@ -89,7 +97,6 @@ object FieldCheckLinterInspection : MongoDbInspection {
                     ),
                 ),
             )
-        }
     }
 
     private fun registerFieldDoesNotExistProblem(
@@ -101,7 +108,6 @@ object FieldCheckLinterInspection : MongoDbInspection {
             warningInfo.field,
             warningInfo.namespace,
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, warningInfo.source)) {
             problems.registerProblem(
                 warningInfo.source,
                 problemDescription,
@@ -110,7 +116,6 @@ object FieldCheckLinterInspection : MongoDbInspection {
                     InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
                 ),
             )
-        }
     }
 
     private fun registerFieldValueTypeMismatch(
@@ -124,7 +129,6 @@ object FieldCheckLinterInspection : MongoDbInspection {
             formatter.formatType(warningInfo.fieldType),
             warningInfo.field,
         )
-        if (!problems.isProblemAlreadyRegistered(problemDescription, warningInfo.valueSource)) {
             problems.registerProblem(
                 warningInfo.valueSource,
                 problemDescription,
@@ -133,7 +137,6 @@ object FieldCheckLinterInspection : MongoDbInspection {
                     InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
                 ),
             )
-        }
     }
 
     /**
