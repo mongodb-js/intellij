@@ -12,6 +12,9 @@ plugins {
     alias(libs.plugins.jmh)
     alias(libs.plugins.jmhreport)
     alias(libs.plugins.changelog)
+
+    id("org.gradle.test-retry") version "1.5.10"
+
 }
 
 intellij {
@@ -116,6 +119,15 @@ tasks {
         group = "verification"
         useJUnitPlatform {
             includeTags("UI")
+        }
+
+        maxParallelForks = 1
+
+        retry {
+            failOnPassedAfterRetry.set(false)
+            maxFailures.set(3)
+            maxRetries.set(3)
+            maxParallelForks = 1
         }
 
         extensions.configure(JacocoTaskExtension::class) {

@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-43](https://jira.mongodb.org/browse/INTELLIJ-43): Extract the configured database from application.properties
+in projects with Spring Boot.
 * [INTELLIJ-51](https://jira.mongodb.org/browse/INTELLIJ-51): Add an inline warning when querying a field that does not
   exist in the target collection in a Spring Criteria project.
 * [INTELLIJ-53](https://jira.mongodb.org/browse/INTELLIJ-53): Add an inline warning when the type of the provided value

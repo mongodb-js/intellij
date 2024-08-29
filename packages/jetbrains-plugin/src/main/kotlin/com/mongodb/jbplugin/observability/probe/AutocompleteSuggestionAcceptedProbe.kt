@@ -50,15 +50,15 @@ class AutocompleteSuggestionAcceptedProbe(
         sendEvents()
     }
 
-    fun databaseCompletionAccepted(dialect: Dialect<*>) {
+    fun databaseCompletionAccepted(dialect: Dialect<*, *>) {
         events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.DATABASE))
     }
 
-    fun collectionCompletionAccepted(dialect: Dialect<*>) {
+    fun collectionCompletionAccepted(dialect: Dialect<*, *>) {
         events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.COLLECTION))
     }
 
-    fun fieldCompletionAccepted(dialect: Dialect<*>) {
+    fun fieldCompletionAccepted(dialect: Dialect<*, *>) {
         events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.FIELD))
     }
 
@@ -105,7 +105,7 @@ class AutocompleteSuggestionAcceptedProbe(
      * @property type
      */
     private data class SuggestionEvent(
-        val dialect: Dialect<*>,
+        val dialect: Dialect<*, *>,
         val type: SuggestionEventType,
     ) {
         /**

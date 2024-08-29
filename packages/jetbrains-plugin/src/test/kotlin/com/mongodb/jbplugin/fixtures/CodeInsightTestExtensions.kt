@@ -19,6 +19,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
@@ -26,6 +27,7 @@ import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.mongodb.client.MongoClient
 import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
+import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
@@ -281,5 +283,17 @@ fun CodeInsightTestFixture.specifyDatabase(name: String) {
     file.virtualFile.putUserData(
         MongoDbVirtualFileDataSourceProvider.Keys.attachedDatabase,
         name
+    )
+}
+
+/**
+ * Sets the current dialect into the file.
+ *
+ * @param dialect
+ */
+fun CodeInsightTestFixture.specifyDialect(dialect: Dialect<PsiElement, Project>) {
+    file.virtualFile.putUserData(
+        MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
+        dialect
     )
 }

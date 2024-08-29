@@ -20,11 +20,10 @@ public class JavaDriverRepository {
     public JavaDriverRepository(MongoClient client) {
         this.client = client;
     }
-
     private List<Document> getGrade() {
         return client.getDatabase("sample_mflix")
                 .getCollection("movies")
-                .find(Filters.eq("tomatoes.viewer.rating", 1))
+                .find(Filters.eq(IMDB_VOTES, 1))
                 .into(new ArrayList<>());
     }
 }

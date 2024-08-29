@@ -10,10 +10,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.psi.JavaPsiFacade
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiExpression
-import com.intellij.psi.PsiFile
+import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.PsiTestUtil
@@ -42,6 +40,13 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 annotation class ParsingTest(
     val fileName: String,
     @Language("java") val value: String,
+)
+
+@Retention(AnnotationRetention.RUNTIME)
+@Test
+annotation class AdditionalFile(
+    val fileName: String,
+    val value: String,
 )
 
 /**
@@ -117,6 +122,10 @@ internal class IntegrationTestExtension :
 
         // Configure an editor with the source code from @ParsingTest
         ApplicationManager.getApplication().invokeAndWait {
+            context.requiredTestMethod.getAnnotationsByType(AdditionalFile::class.java).forEach {
+                fixture.addFileToProject(it.fileName, it.value)
+            }
+
             val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java) ?: return@invokeAndWait
 
             val fileName = Path(modulePath, "src", "main", "java", parsingTest.fileName).absolutePathString()
@@ -214,3 +223,8 @@ fun PsiFile.getQueryAtMethod(
     val returnExpr = PsiUtil.findReturnStatements(method).last()
     return returnExpr.returnValue!!
 }
+
+fun PsiFile.caret(): PsiElement = PsiTreeUtil.findChildrenOfType(this, PsiLiteralExpression::class.java)
+        .first {
+            it.textMatches(""""|"""")
+        }
