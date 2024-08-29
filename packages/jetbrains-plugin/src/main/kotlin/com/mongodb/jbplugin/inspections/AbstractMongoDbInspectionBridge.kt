@@ -40,10 +40,10 @@ abstract class AbstractMongoDbInspectionBridge(
     private val queryKeysByDialect = mutableMapOf<Dialect<PsiElement, Project>, Key<CachedValue<Node<PsiElement>>>>()
     private fun queryKey(dialect: Dialect<PsiElement, Project>) =
         queryKeysByDialect.getOrPut(dialect) {
- Key.create(
-            "QueryForDialect${dialect.javaClass.name}"
-        )
-}
+            Key.create(
+                "QueryForDialect${dialect.javaClass.name}"
+            )
+        }
 
     /**
      * Ktlint complains about buildVisitor being longer than 50 lines but because it is just an object implementation
@@ -93,8 +93,10 @@ abstract class AbstractMongoDbInspectionBridge(
                     cachedValue?.let {
                         val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java)
                         if (fileInExpression == null || fileInExpression.virtualFile == null) {
-                            inspection.visitMongoDbQuery(coroutineScope, null, holder, cachedValue!!.value,
- dialect.formatter)
+                            inspection.visitMongoDbQuery(
+                                coroutineScope, null, holder, cachedValue!!.value,
+                                dialect.formatter
+                            )
                         } else {
                             val cachedQuery = cachedValue!!.value
                             val dataSource = fileInExpression.dataSource

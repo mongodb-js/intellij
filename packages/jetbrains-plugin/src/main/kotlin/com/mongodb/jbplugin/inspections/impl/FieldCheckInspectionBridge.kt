@@ -69,51 +69,51 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             when (it) {
                 is FieldCheckWarning.FieldDoesNotExist -> registerFieldDoesNotExistProblem(coroutineScope, problems, it)
                 is FieldCheckWarning.FieldValueTypeMismatch ->
- registerFieldValueTypeMismatch(coroutineScope, problems, it, formatter)
+                    registerFieldValueTypeMismatch(coroutineScope, problems, it, formatter)
             }
         }
     }
 
     private fun registerNoConnectionProblem(
-coroutineScope: CoroutineScope,
- problems: ProblemsHolder,
- source: PsiElement
-) {
+        coroutineScope: CoroutineScope,
+        problems: ProblemsHolder,
+        source: PsiElement
+    ) {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.connection",
         )
-            problems.registerProblem(
-                source,
-                problemDescription,
-                ProblemHighlightType.WARNING,
-                OpenConnectionChooserQuickFix(
-                    coroutineScope,
-                    InspectionsAndInlaysMessages.message(
-                        "inspection.field.checking.quickfix.choose.new.connection"
-                    ),
+        problems.registerProblem(
+            source,
+            problemDescription,
+            ProblemHighlightType.WARNING,
+            OpenConnectionChooserQuickFix(
+                coroutineScope,
+                InspectionsAndInlaysMessages.message(
+                    "inspection.field.checking.quickfix.choose.new.connection"
                 ),
-            )
+            ),
+        )
     }
 
     private fun registerNoDatabaseSelectedProblem(
-coroutineScope: CoroutineScope,
- problems: ProblemsHolder,
- source: PsiElement
-) {
+        coroutineScope: CoroutineScope,
+        problems: ProblemsHolder,
+        source: PsiElement
+    ) {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.field.checking.error.message.no.database",
         )
-            problems.registerProblem(
-                source,
-                problemDescription,
-                ProblemHighlightType.WARNING,
-                OpenConnectionChooserQuickFix(
-                    coroutineScope,
-                    InspectionsAndInlaysMessages.message(
-                        "inspection.field.checking.quickfix.choose.new.connection"
-                    ),
+        problems.registerProblem(
+            source,
+            problemDescription,
+            ProblemHighlightType.WARNING,
+            OpenConnectionChooserQuickFix(
+                coroutineScope,
+                InspectionsAndInlaysMessages.message(
+                    "inspection.field.checking.quickfix.choose.new.connection"
                 ),
-            )
+            ),
+        )
     }
 
     private fun registerFieldDoesNotExistProblem(
@@ -126,15 +126,15 @@ coroutineScope: CoroutineScope,
             warningInfo.field,
             warningInfo.namespace,
         )
-            problems.registerProblem(
-                warningInfo.source,
-                problemDescription,
-                ProblemHighlightType.WARNING,
-                OpenConnectionChooserQuickFix(
-                    coroutineScope,
-                    InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
-                ),
-            )
+        problems.registerProblem(
+            warningInfo.source,
+            problemDescription,
+            ProblemHighlightType.WARNING,
+            OpenConnectionChooserQuickFix(
+                coroutineScope,
+                InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+            ),
+        )
     }
 
     private fun registerFieldValueTypeMismatch(
@@ -149,15 +149,15 @@ coroutineScope: CoroutineScope,
             formatter.formatType(warningInfo.fieldType),
             warningInfo.field,
         )
-            problems.registerProblem(
-                warningInfo.valueSource,
-                problemDescription,
-                ProblemHighlightType.WARNING,
-                OpenConnectionChooserQuickFix(
-                    coroutineScope,
-                    InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
-                ),
-            )
+        problems.registerProblem(
+            warningInfo.valueSource,
+            problemDescription,
+            ProblemHighlightType.WARNING,
+            OpenConnectionChooserQuickFix(
+                coroutineScope,
+                InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+            ),
+        )
     }
 
     /**
@@ -165,7 +165,7 @@ coroutineScope: CoroutineScope,
      *
      * @param message
      * @param coroutineScope
- */
+     */
     private class OpenConnectionChooserQuickFix(
         private val coroutineScope: CoroutineScope,
         private val message: String,
