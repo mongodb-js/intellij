@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiElement
@@ -130,12 +131,14 @@ class EditorToolbarDecorator(
     }
 
     private fun guessAndStoreDialect(project: Project) {
-        guessedDialect = guessDialect()
-        guessedDialect?.let {
-            editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
-        } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
-        val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
-        inferredDatabase = metadata?.database
+        editor.project?.getService(DumbService::class.java)?.runWhenSmart {
+            guessedDialect = guessDialect()
+            guessedDialect?.let {
+                editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
+            } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
+            val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
+            inferredDatabase = metadata?.database
+        }
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {
@@ -174,9 +177,11 @@ class EditorToolbarDecorator(
             log.info("Could not find virtual file for current editor", it)
         }
 
-        return psiFileResult.getOrNull()?.let { file ->
+        guessedDialect = psiFileResult.getOrNull()?.let { file ->
             allDialects.find { it.isUsableForSource(file) }
         }
+
+        return guessedDialect
     }
 
     override fun <T : RawDataSource?> dataSourceAdded(
@@ -211,6 +216,7 @@ class EditorToolbarDecorator(
     }
 
     override fun modificationCountChanged() {
+        guessedDialect = guessDialect()
         ensureToolbarIsVisibleIfNecessary()
     }
 
