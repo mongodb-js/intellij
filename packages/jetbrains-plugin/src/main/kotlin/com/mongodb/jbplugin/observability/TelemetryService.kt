@@ -47,7 +47,9 @@ internal class TelemetryService : AppLifecycleListener {
 
         val message =
             when (event) {
-                is TelemetryEvent.PluginActivated -> IdentifyMessage.builder().anonymousId(runtimeInfo.userId)
+                is TelemetryEvent.PluginActivated -> IdentifyMessage.builder()
+                    .anonymousId(runtimeInfo.userId)
+                    .userId("")
                 else ->
                     TrackMessage.builder(event.name).anonymousId(runtimeInfo.userId)
                         .properties(
