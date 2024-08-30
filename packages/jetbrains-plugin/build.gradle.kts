@@ -1,3 +1,4 @@
+import com.jetbrains.plugin.structure.intellij.problems.SinceBuildGreaterThanUntilBuild
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
 import org.jetbrains.intellij.tasks.RunIdeForUiTestTask
@@ -169,7 +170,13 @@ tasks {
     }
 
     patchPluginXml {
+        // minimum version that our plugin works with
         sinceBuild.set("241")
+        // maximum version that our plugin is expected to work with
+        // setting this to empty string results in `<idea-version>` tag generated without until-build attribute
+        // which essentially means that we are expected to work with all the future releases of the IDE
+        // References: https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html#build-number-format
+        untilBuild.set("")
         version.set(rootProject.version.toString())
 
         changeNotes.set(
