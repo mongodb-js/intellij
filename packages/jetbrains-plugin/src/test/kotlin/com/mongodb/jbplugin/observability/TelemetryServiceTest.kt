@@ -27,7 +27,7 @@ internal class TelemetryServiceTest {
         verify(service.analytics).enqueue(
             argThat {
                 build().let {
-                    it.userId() == "654321" &&
+                    it.anonymousId() == "654321" &&
                         it.type().name == "identify"
                 }
             },
@@ -61,7 +61,7 @@ internal class TelemetryServiceTest {
         verify(service.analytics).enqueue(
             argThat {
                 build().let {
-                    it.userId() == "654321" &&
+                    it.anonymousId() == "654321" &&
                         it.type().name == "track"
                 }
             },

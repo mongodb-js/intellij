@@ -53,7 +53,7 @@ internal sealed class TelemetryEvent(
      * Represents the event that is emitted when the plugin is started.
      */
     data object PluginActivated : TelemetryEvent(
-        name = "plugin-activated",
+        name = "PluginActivated",
         properties = emptyMap(),
     )
     override fun equals(other: Any?): Boolean =
@@ -90,7 +90,7 @@ internal sealed class TelemetryEvent(
         serverOsFamily: String?,
         version: String?,
     ) : TelemetryEvent(
-            name = "new-connection",
+            name = "NewConnection",
             properties =
             mapOf(
                 TelemetryProperty.IS_ATLAS to isAtlas,
@@ -138,7 +138,7 @@ internal sealed class TelemetryEvent(
         serverOsFamily: String?,
         version: String?,
     ) : TelemetryEvent(
-            name = "connection-error",
+            name = "ConnectionError",
             properties =
                 mapOf(
                     TelemetryProperty.IS_ATLAS to (isAtlas ?: ""),
@@ -167,7 +167,7 @@ internal sealed class TelemetryEvent(
         autocompleteType: String,
         count: Int,
     ) : TelemetryEvent(
-            name = "autocomplete-selected",
+            name = "AutocompleteSelected",
             properties =
                 mapOf(
                     TelemetryProperty.DIALECT to dialect.javaClass.simpleName,
