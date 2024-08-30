@@ -8,6 +8,8 @@ package com.mongodb.jbplugin.observability
 
 import com.google.common.base.Objects
 import com.mongodb.jbplugin.dialects.Dialect
+import org.intellij.lang.annotations.Pattern
+import org.jetbrains.annotations.Nls
 
 /**
  * Represents a field in Segment. New fields will be added here, where the
@@ -16,6 +18,7 @@ import com.mongodb.jbplugin.dialects.Dialect
  * @property publicName Name of the field in Segment.
  */
 internal enum class TelemetryProperty(
+    @Pattern("[a-z_]+")
     val publicName: String,
 ) {
     IS_ATLAS("is_atlas"),
@@ -46,6 +49,7 @@ internal enum class TelemetryProperty(
  * @see TelemetryService
  */
 internal sealed class TelemetryEvent(
+    @Nls(capitalization = Nls.Capitalization.Title)
     internal val name: String,
     internal val properties: Map<TelemetryProperty, Any>,
 ) {
@@ -53,7 +57,7 @@ internal sealed class TelemetryEvent(
      * Represents the event that is emitted when the plugin is started.
      */
     data object PluginActivated : TelemetryEvent(
-        name = "plugin-activated",
+        name = "PluginActivated",
         properties = emptyMap(),
     )
     override fun equals(other: Any?): Boolean =
@@ -90,7 +94,7 @@ internal sealed class TelemetryEvent(
         serverOsFamily: String?,
         version: String?,
     ) : TelemetryEvent(
-            name = "new-connection",
+            name = "NewConnection",
             properties =
             mapOf(
                 TelemetryProperty.IS_ATLAS to isAtlas,
@@ -138,7 +142,7 @@ internal sealed class TelemetryEvent(
         serverOsFamily: String?,
         version: String?,
     ) : TelemetryEvent(
-            name = "connection-error",
+            name = "ConnectionError",
             properties =
                 mapOf(
                     TelemetryProperty.IS_ATLAS to (isAtlas ?: ""),
@@ -167,7 +171,7 @@ internal sealed class TelemetryEvent(
         autocompleteType: String,
         count: Int,
     ) : TelemetryEvent(
-            name = "autocomplete-selected",
+            name = "AutocompleteSelected",
             properties =
                 mapOf(
                     TelemetryProperty.DIALECT to dialect.javaClass.simpleName,

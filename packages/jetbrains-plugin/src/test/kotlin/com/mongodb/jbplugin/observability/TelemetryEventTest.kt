@@ -8,6 +8,6 @@ internal class TelemetryEventTest {
     fun `PluginActivated is mapped correctly`() {
         val pluginActivated = TelemetryEvent.PluginActivated
         assertEquals(mapOf<TelemetryProperty, Any>(), pluginActivated.properties)
-        assertEquals("plugin-activated", pluginActivated.name)
+        assertEquals("PluginActivated", pluginActivated.name)
     }
 }

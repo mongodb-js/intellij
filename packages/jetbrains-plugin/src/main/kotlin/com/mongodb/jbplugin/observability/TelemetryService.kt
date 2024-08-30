@@ -8,7 +8,6 @@ import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.meta.BuildInformation
 import com.mongodb.jbplugin.settings.useSettings
 import com.segment.analytics.Analytics
-import com.segment.analytics.messages.IdentifyMessage
 import com.segment.analytics.messages.TrackMessage
 
 private val logger: Logger = logger<TelemetryService>()
@@ -45,17 +44,13 @@ internal class TelemetryService : AppLifecycleListener {
             )
         val runtimeInfo = runtimeInformationService.get()
 
-        val message =
-            when (event) {
-                is TelemetryEvent.PluginActivated -> IdentifyMessage.builder().userId(runtimeInfo.userId)
-                else ->
-                    TrackMessage.builder(event.name).userId(runtimeInfo.userId)
-                        .properties(
-                            event.properties.entries.associate {
-                                it.key.publicName to it.value
-                            },
-                        )
-            }
+        val message = TrackMessage.builder(event.name)
+            .anonymousId(runtimeInfo.userId)
+            .properties(
+                event.properties.entries.associate {
+                    it.key.publicName to it.value
+                },
+            )
 
         analytics.enqueue(message)
     }
