@@ -11,15 +11,13 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.ShowSettingsUtil
-import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.startup.ProjectActivity
 import com.mongodb.jbplugin.i18n.TelemetryMessages
 import com.mongodb.jbplugin.observability.probe.PluginActivatedProbe
 import com.mongodb.jbplugin.settings.PluginSettingsConfigurable
 import com.mongodb.jbplugin.settings.useSettings
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 /**
  * Class that represents the link that opens the settings page for MongoDB.
@@ -44,28 +42,26 @@ class OpenPrivacyPolicyPage : AnAction(TelemetryMessages.message("action.view-pr
  *
  * @param cs
  */
-class ActivatePluginPostStartupActivity(private val cs: CoroutineScope) : StartupActivity, DumbAware {
-    override fun runActivity(project: Project) {
-        cs.launch {
-            val pluginActivated = ApplicationManager.getApplication().getService(PluginActivatedProbe::class.java)
-            pluginActivated.pluginActivated()
+class ActivatePluginPostStartupActivity(private val cs: CoroutineScope) : ProjectActivity {
+    override suspend fun execute(project: Project) {
+        val pluginActivated = ApplicationManager.getApplication().getService(PluginActivatedProbe::class.java)
+        pluginActivated.pluginActivated()
 
-            val settings = useSettings()
-            if (!settings.hasTelemetryOptOutputNotificationBeenShown) {
-                NotificationGroupManager.getInstance()
-                    .getNotificationGroup("com.mongodb.jbplugin.notifications.Telemetry")
-                    .createNotification(
-                        TelemetryMessages.message("notification.title"),
-                        TelemetryMessages.message("notification.message"),
-                        NotificationType.INFORMATION,
-                    )
-                    .setImportant(true)
-                    .addAction(OpenPrivacyPolicyPage())
-                    .addAction(OpenMongoDbPluginSettingsAction())
-                    .notify(project)
+        val settings = useSettings()
+        if (!settings.hasTelemetryOptOutputNotificationBeenShown) {
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("com.mongodb.jbplugin.notifications.Telemetry")
+                .createNotification(
+                    TelemetryMessages.message("notification.title"),
+                    TelemetryMessages.message("notification.message"),
+                    NotificationType.INFORMATION,
+                )
+                .setImportant(true)
+                .addAction(OpenPrivacyPolicyPage())
+                .addAction(OpenMongoDbPluginSettingsAction())
+                .notify(project)
 
-                settings.hasTelemetryOptOutputNotificationBeenShown = true
-            }
+            settings.hasTelemetryOptOutputNotificationBeenShown = true
         }
     }
 }

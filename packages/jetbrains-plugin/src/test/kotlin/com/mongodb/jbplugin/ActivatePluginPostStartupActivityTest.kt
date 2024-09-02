@@ -23,7 +23,7 @@ class ActivatePluginPostStartupActivityTest {
 
         val listener = ActivatePluginPostStartupActivity(CoroutineScope(Dispatchers.Default))
 
-        listener.runActivity(project)
+        listener.execute(project)
 
         eventually {
             verify(pluginActivatedProbe).pluginActivated()
