@@ -34,7 +34,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.mongodb.jbplugin.ActivatePluginPostStartupActivity"/>
-        <editorFactoryListener implementation="com.mongodb.jbplugin.editor.EditorToolbarDecorator" />
+        <postStartupActivity implementation="com.mongodb.jbplugin.editor.EditorToolbarDecorator"/>
         <applicationConfigurable
                 parentId="tools"
                 instance="com.mongodb.jbplugin.settings.PluginSettingsConfigurable"
@@ -44,7 +44,7 @@
                            displayType="BALLOON"
                            bundle="messages.TelemetryBundle"
                            key="notification.group.name"
-                           />
+        />
         <codeInsight.declarativeInlayProvider
                 group="com.mongodb.jbplugin"
                 implementationClass="com.mongodb.jbplugin.inlays.MongoDbQueryNamespaceInlay"
@@ -52,7 +52,7 @@
                 language="JAVA"
                 nameKey="inlay.namespace.name"
                 bundle="messages.InspectionsAndInlaysBundle"
-                providerId="com.mongodb.jbplugin#JAVA" />
+                providerId="com.mongodb.jbplugin#JAVA"/>
         <localInspection language="JAVA"
                          bundle="messages.InspectionsAndInlaysBundle"
                          key="inspection.field.checking"
@@ -63,9 +63,9 @@
                          level="WARNING"
                          implementationClass="com.mongodb.jbplugin.inspections.impl.FieldCheckInspectionBridge"/>
         <database.virtualFileDataSourceProvider
-            implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
+                implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider"/>
         <completion.contributor language="JAVA"
-                                implementationClass="com.mongodb.jbplugin.autocomplete.MongoDbCompletionContributor" />
+                                implementationClass="com.mongodb.jbplugin.autocomplete.MongoDbCompletionContributor"/>
     </extensions>
     <applicationListeners>
     </applicationListeners>

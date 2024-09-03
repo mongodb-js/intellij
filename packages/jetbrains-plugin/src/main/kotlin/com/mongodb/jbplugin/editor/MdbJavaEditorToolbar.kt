@@ -163,6 +163,10 @@ class MdbJavaEditorToolbar(
         }
     }
 
+    fun setSelectedDatabase(database: String?) {
+        databaseComboBox.selectedDatabase = database
+    }
+
     companion object {
         fun showModalForSelection(editor: Editor, coroutineScope: CoroutineScope) {
             val project = editor.project ?: return

@@ -11,25 +11,27 @@ import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.event.EditorFactoryEvent
-import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiModificationTracker
-import com.intellij.util.messages.MessageBusConnection
 import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
+
+import java.util.WeakHashMap
+
 import kotlinx.coroutines.CoroutineScope
 
 private val log = logger<EditorToolbarDecorator>()
@@ -47,18 +49,22 @@ private val allDialects = listOf(
  */
 class EditorToolbarDecorator(
     private val coroutineScope: CoroutineScope,
-) : EditorFactoryListener,
+) : ProjectActivity,
     FileEditorManagerListener,
     DataSourceManager.Listener,
     JdbcDriverManager.Listener,
     PsiModificationTracker.Listener {
-    internal var inferredDatabase: String? = null
-    internal var guessedDialect: Dialect<PsiElement, Project>? = null
+    private var inferredDatabase: String? = null
+    private var guessedDialects: WeakHashMap<Editor, Dialect<PsiElement, Project>?> = WeakHashMap()
+
+    // Initialised first, right after project opens up
     internal lateinit var toolbar: MdbJavaEditorToolbar
-    internal lateinit var editor: Editor
-    internal lateinit var messageBusConnection: MessageBusConnection
+
+    // Initialised when this activity gets executed with the opened project
+    internal lateinit var project: Project
 
     fun onConnected(dataSource: LocalDataSource) {
+        val editor = this.getCurrentEditor() ?: return
         editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
         editor.virtualFile?.removeUserData(Keys.attachedDatabase)
 
@@ -68,71 +74,58 @@ class EditorToolbarDecorator(
             val probe = NewConnectionActivatedProbe()
             probe.connected(session)
 
-            inferredDatabase?.let {
-                toolbar.databaseComboBox.selectedDatabase = inferredDatabase
-            }
-
+            toolbar.setSelectedDatabase(inferredDatabase)
             analyzeFileFromScratch()
         }
     }
 
     fun onDisconnected() {
+        val editor = this.getCurrentEditor() ?: return
         editor.virtualFile?.removeUserData(Keys.attachedDataSource)
         editor.virtualFile?.removeUserData(Keys.attachedDatabase)
         analyzeFileFromScratch()
     }
 
     fun onDatabaseSelected(database: String) {
+        val editor = this.getCurrentEditor() ?: return
         editor.virtualFile?.putUserData(Keys.attachedDatabase, database)
         analyzeFileFromScratch()
     }
 
     fun onDatabaseUnselected() {
+        val editor = this.getCurrentEditor() ?: return
         editor.virtualFile?.removeUserData(Keys.attachedDatabase)
         analyzeFileFromScratch()
     }
 
-    override fun selectionChanged(event: FileEditorManagerEvent) {
-        (event.newEditor as? TextEditor)?.editor?.let { newEditor ->
-            editor = newEditor
-            editor.project?.let { project ->
-                guessAndStoreDialect(project)
+    private fun guessDialect(): Dialect<PsiElement, Project>? {
+        val editor = this.getCurrentEditor() ?: return null
+        if (editor in guessedDialects) {
+            return guessedDialects[editor]
+        }
+
+        ApplicationManager.getApplication().runReadAction {
+            val psiFileResult = runCatching { PsiManager.getInstance(project).findFile(editor.virtualFile) }
+
+            if (psiFileResult.isFailure) {
+                guessedDialects[editor] = null
             }
-            ensureToolbarIsVisibleIfNecessary()
-            toolbar.reloadDatabases()
+
+            psiFileResult.onFailure {
+                log.info("Could not find virtual file for current editor", it)
+            }
+
+            guessedDialects[editor] = psiFileResult.getOrNull()?.let { file ->
+                allDialects.find { it.isUsableForSource(file) }
+            }
         }
+        return guessedDialects[editor]
     }
 
-    override fun editorCreated(event: EditorFactoryEvent) {
-        editor = event.editor
-
-        editor.project?.let { project ->
-            toolbar = MdbJavaEditorToolbar(
-                project,
-                coroutineScope,
-                onConnected = this::onConnected,
-                onDisconnected = this::onDisconnected,
-                onDatabaseSelected = this::onDatabaseSelected,
-                onDatabaseUnselected = this::onDatabaseUnselected
-            )
-
-            messageBusConnection = project.messageBus.connect()
-            messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
-            messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
-            messageBusConnection.subscribe(JdbcDriverManager.TOPIC, this)
-
-            messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
-            val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
-            toolbar.reloadDataSources(localDataSourceManager.dataSources)
-
-            guessAndStoreDialect(project)
-            ensureToolbarIsVisibleIfNecessary()
-        }
-    }
-
-    private fun guessAndStoreDialect(project: Project) {
-        editor.project?.getService(DumbService::class.java)?.runWhenSmart {
-            guessedDialect = guessDialect()
+    private fun guessAndStoreDialect() {
+        val editor = this.getCurrentEditor() ?: return
+        project.getService(DumbService::class.java)?.runWhenSmart {
+            val guessedDialect = guessDialect()
             guessedDialect?.let {
                 editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
             } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
@@ -141,12 +134,9 @@ class EditorToolbarDecorator(
         }
     }
 
-    override fun editorReleased(event: EditorFactoryEvent) {
-
-    }
-
     private fun ensureToolbarIsVisibleIfNecessary() {
-        guessedDialect?.let {
+        val editor = this.getCurrentEditor() ?: return
+        guessDialect()?.let {
             ensureSetupToolbarRequirements()
             (editor as? EditorEx)?.permanentHeaderComponent = toolbar
             editor.headerComponent = toolbar
@@ -157,7 +147,7 @@ class EditorToolbarDecorator(
     }
 
     private fun ensureSetupToolbarRequirements() {
-        val requirements = guessedDialect?.connectionContextExtractor?.requirements() ?: emptySet()
+        val requirements = guessDialect()?.connectionContextExtractor?.requirements() ?: emptySet()
         if (requirements.contains(ConnectionContextRequirement.DATABASE)) {
             toolbar.showDatabaseSelector()
         } else {
@@ -165,23 +155,55 @@ class EditorToolbarDecorator(
         }
     }
 
-    private fun guessDialect(): Dialect<PsiElement, Project>? {
-        val project = editor.project ?: return null
-        val psiFileResult = runCatching { PsiManager.getInstance(project).findFile(editor.virtualFile) }
-
-        if (psiFileResult.isFailure) {
-            return null
+    private fun analyzeFileFromScratch() {
+        val editor = this.getCurrentEditor() ?: return
+        runCatching {
+            val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
+            DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
         }
+    }
 
-        psiFileResult.onFailure {
-            log.info("Could not find virtual file for current editor", it)
+    private fun getCurrentEditor(): Editor? {
+        val selectedEditor = FileEditorManager.getInstance(project).selectedEditor
+        return (selectedEditor as? TextEditor)?.editor
+    }
+
+    private fun setupToolbarForEditor() {
+        guessAndStoreDialect()
+        ensureToolbarIsVisibleIfNecessary()
+        toolbar.reloadDatabases()
+    }
+
+    private fun initializeToolbar() {
+        if (!::toolbar.isInitialized) {
+            toolbar = MdbJavaEditorToolbar(
+                project,
+                coroutineScope,
+                onConnected = this::onConnected,
+                onDisconnected = this::onDisconnected,
+                onDatabaseSelected = this::onDatabaseSelected,
+                onDatabaseUnselected = this::onDatabaseUnselected
+            )
+            val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
+            toolbar.reloadDataSources(localDataSourceManager.dataSources)
         }
+    }
 
-        guessedDialect = psiFileResult.getOrNull()?.let { file ->
-            allDialects.find { it.isUsableForSource(file) }
-        }
+    override suspend fun execute(project: Project) {
+        this.project = project
+        this.initializeToolbar()
 
-        return guessedDialect
+        this.setupToolbarForEditor()
+
+        val messageBusConnection = project.messageBus.connect()
+        messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
+        messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
+        messageBusConnection.subscribe(JdbcDriverManager.TOPIC, this)
+        messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
+    }
+
+    override fun selectionChanged(event: FileEditorManagerEvent) {
+        this.setupToolbarForEditor()
     }
 
     override fun <T : RawDataSource?> dataSourceAdded(
@@ -216,14 +238,9 @@ class EditorToolbarDecorator(
     }
 
     override fun modificationCountChanged() {
-        guessedDialect = guessDialect()
-        ensureToolbarIsVisibleIfNecessary()
-    }
-
-    private fun analyzeFileFromScratch() {
-        runCatching {
-            val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
-            DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+        this.getCurrentEditor()?.let {
+            guessedDialects.remove(it)
+            ensureToolbarIsVisibleIfNecessary()
         }
     }
 
