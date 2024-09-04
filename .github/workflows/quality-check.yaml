@@ -275,3 +275,12 @@ jobs:
       - name: Verify Plugin
         run: |
           ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
+
+      - name: Upload Plugin Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Plugin
+          path: packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
+          retention-days: 30
+          compression-level: 9
+          overwrite: true
