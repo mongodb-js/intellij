@@ -40,7 +40,7 @@ class MongoDbQueryNamespaceInlay : InlayHintsProvider {
             }
 
             val query = dialect.parser.parse(element)
-            val collRefComponent = query.component<HasCollectionReference>() ?: return
+            val collRefComponent = query.component<HasCollectionReference<PsiElement>>() ?: return
 
             val namespace = when (val collRef = collRefComponent.reference) {
                 is HasCollectionReference.Known -> collRef.namespace
