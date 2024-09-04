@@ -276,6 +276,10 @@ jobs:
         run: |
           ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
 
+      - name: Build Plugin
+        run: |
+          ./gradlew ":packages:jetbrains-plugin:buildPlugin"
+
       - name: Upload Plugin Artifact
         uses: actions/upload-artifact@v4
         with:
