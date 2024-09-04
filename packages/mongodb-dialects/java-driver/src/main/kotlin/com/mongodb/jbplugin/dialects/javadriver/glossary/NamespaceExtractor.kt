@@ -6,14 +6,16 @@ package com.mongodb.jbplugin.dialects.javadriver.glossary
 
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
-import com.intellij.psi.util.PsiTreeUtil.*
+import com.intellij.psi.util.PsiTreeUtil.findChildrenOfAnyType
+import com.intellij.psi.util.PsiTreeUtil.findChildrenOfType
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
 private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField>>
 
 @Suppress("ktlint") // it seems the class is too complex for ktlint to understand it
 object NamespaceExtractor {
-    fun extractNamespace(query: PsiElement): Namespace? {
+    fun extractNamespace(query: PsiElement): HasCollectionReference<PsiElement> {
         val currentClass = query.findContainingClass()
         val queryCollectionRef = query.findMongoDbCollectionReference() ?: query
 
@@ -49,6 +51,7 @@ object NamespaceExtractor {
                         )
                         val resolutions =
                             innerMethodCalls
+                                .asSequence()
                                 .filter {
                                     it.type?.isMongoDbClass(it.project) == true
                                 }.mapNotNull {
@@ -57,6 +60,7 @@ object NamespaceExtractor {
                                     }.getOrNull()
                                 }.flatten()
                                 .distinctBy { it.first }
+                                .toList()
 
                         val containingClass = resolution.findContainingClass()
                         return@flatMap resolutions.flatMap {
@@ -75,8 +79,8 @@ object NamespaceExtractor {
                 // we don't need to traverse the tree anymore
                 val maybeNamespace = runCatching { extractNamespaceFromDriverConfigurationMethodChain(it) }
                     .getOrNull()
-                if (maybeNamespace != null) {
-                    return maybeNamespace
+                if (maybeNamespace?.isNotUnknown() == true) {
+                    return HasCollectionReference(maybeNamespace)
                 }
                 it.findMongoDbClassReference(it.project)
             }.flatMap {
@@ -92,8 +96,10 @@ object NamespaceExtractor {
                         if (method.containingClass?.isMongoDbClass(method.project) == true
                             && it is PsiMethodCallExpression
                         ) {
-                            return extractNamespaceFromDriverConfigurationMethodChain(
-                                it
+                            return HasCollectionReference(
+                                extractNamespaceFromDriverConfigurationMethodChain(
+                                    it
+                                )
                             )
                         }
                         val allInnerExpressions = findChildrenOfAnyType(
@@ -105,11 +111,16 @@ object NamespaceExtractor {
                         val foundNamespace = allInnerExpressions
                             .filterIsInstance<PsiMethodCallExpression>()
                             .firstNotNullOfOrNull {
-                                extractNamespaceFromDriverConfigurationMethodChain(it)
+                                val reference = extractNamespaceFromDriverConfigurationMethodChain(it)
+                                if (reference.isNotUnknown()) {
+                                    reference
+                                } else {
+                                    null
+                                }
                             }
 
                         if (foundNamespace != null) {
-                            return foundNamespace
+                            return HasCollectionReference(foundNamespace)
                         }
 
                         emptyList()
@@ -152,13 +163,21 @@ object NamespaceExtractor {
         if (collection != null && database == null) {
             // if we have a parameter for the collection, but we don't have the database
             // assume it's a call to getDatabase().getCollection()
-            return extractNamespaceFromDriverConfigurationMethodChain(collection.second as PsiMethodCallExpression)
+            return HasCollectionReference(
+                extractNamespaceFromDriverConfigurationMethodChain(collection.second as PsiMethodCallExpression)
+            )
         } else if (collection != null && database != null) {
             // if we have a parameter for a collection and database, try to resolve them either
             // from the parent constructor or the actual constructor
             val databaseString = database.second.tryToResolveAsConstantString()!!
             val collectionString = collection.second.tryToResolveAsConstantString()!!
-            return Namespace(databaseString, collectionString)
+            return HasCollectionReference(
+                HasCollectionReference.Known(
+                    databaseSource = database.second,
+                    collectionSource = collection.second,
+                    namespace = Namespace(databaseString, collectionString)
+                )
+            )
         } else if (client != null || resolvedScopes.size == 1) {
             // if it's not a client and there is only one resolved variable
             // guess from the actual constructor
@@ -177,12 +196,16 @@ object NamespaceExtractor {
                     callToSuperConstructor.argumentList.expressions[indexOfParameter]
                 }
 
-            return extractNamespaceFromDriverConfigurationMethodChain(
-                mongodbNamespaceDriverExpression as PsiMethodCallExpression,
+            return HasCollectionReference(
+                extractNamespaceFromDriverConfigurationMethodChain(
+                    mongodbNamespaceDriverExpression as PsiMethodCallExpression,
+                )
             )
         }
 
-        return null
+        return HasCollectionReference(
+            HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
+        )
     }
 
     /**
@@ -276,7 +299,8 @@ object NamespaceExtractor {
      * client.getDatabase(...).getCollection(...)
      * ```
      */
-    private fun extractNamespaceFromDriverConfigurationMethodChain(callExpr: PsiMethodCallExpression): Namespace? {
+    private fun extractNamespaceFromDriverConfigurationMethodChain(callExpr: PsiMethodCallExpression):
+            HasCollectionReference.CollectionReference<PsiElement> {
         val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
         val collection: String? =
             if (returnsCollection) {
@@ -303,10 +327,14 @@ object NamespaceExtractor {
             }
 
         if (database == null || collection == null) {
-            return null
+            return HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
         }
 
-        return Namespace(database, collection)
+        return HasCollectionReference.Known(
+            databaseSource = dbExpression,
+            collectionSource = callExpr.argumentList.expressions[0],
+            Namespace(database, collection)
+        )
     }
 
     /**
@@ -420,7 +448,7 @@ private enum class AssignmentConcept {
     CLIENT,
     DATABASE,
     COLLECTION,
-;
+    ;
 }
 
 /**
@@ -451,3 +479,9 @@ private fun PsiType?.guessAssignmentConcept(project: Project): AssignmentConcept
         null
     }
 }
+
+private fun HasCollectionReference<PsiElement>.isNotUnknown(): Boolean = reference !=
+ (HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>)
+
+private fun HasCollectionReference.CollectionReference<PsiElement>.isNotUnknown(): Boolean = this !=
+ (HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>)

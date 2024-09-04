@@ -1,10 +1,12 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.mongodb.jbplugin.dialects.javadriver.IntegrationTest
 import com.mongodb.jbplugin.dialects.javadriver.ParsingTest
 import com.mongodb.jbplugin.dialects.javadriver.getQueryAtMethod
-import org.junit.jupiter.api.Assertions.*
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import org.junit.jupiter.api.Assertions.assertEquals
 
 @IntegrationTest
 class NamespaceExtractorTest {
@@ -41,7 +43,8 @@ public final class UserRepository extends AbstractRepository<User> {
     )
     fun `extracts from a complex chain of dependency injection`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("UserRepository", "findUserById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("production", namespace.database)
         assertEquals("users", namespace.collection)
     }
@@ -79,7 +82,8 @@ public final class UserRepository extends AbstractRepository<User> {
     )
     fun `extracts from a complex chain of dependency injection without explicit super call`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("UserRepository", "findUserById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("production", namespace.database)
         assertEquals("users", namespace.collection)
     }
@@ -117,7 +121,8 @@ public final class BookRepository extends AbstractRepository<Book> {
     )
     fun `extracts from a complex chain of dependency injection with different arguments`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("staging", namespace.database)
         assertEquals("books", namespace.collection)
     }
@@ -159,7 +164,8 @@ public final class BookRepository extends AbstractRepository<Book> {
     )
     fun `extracts from a complex chain of dependency injection with java constants`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("staging", namespace.database)
         assertEquals("books", namespace.collection)
     }
@@ -205,7 +211,8 @@ public final class BookRepository extends AbstractRepository<Book> {
     )
     fun `extracts from a complex chain of dependency injection with a factory method`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("production", namespace.database)
         assertEquals("books", namespace.collection)
     }
@@ -233,7 +240,8 @@ public final class BookRepository {
     )
     fun `extracts from a basic repository with dependency injection`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("simple", namespace.database)
         assertEquals("books", namespace.collection)
     }
@@ -265,7 +273,8 @@ public final class BookRepository {
     )
     fun `extracts from a basic repository with dependency injection and a factory method`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("simple", namespace.database)
         assertEquals("books", namespace.collection)
     }
@@ -293,7 +302,8 @@ public final class BookRepository {
     )
     fun `extracts from a basic repository with dependency injection only`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("BookRepository", "findBookById")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("simple", namespace.database)
         assertEquals("books", namespace.collection)
     }
@@ -325,7 +335,8 @@ public class JavaDriverRepository {
     )
     fun `extracts from a hardcoded example`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("JavaDriverRepository", "exampleFind")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("myDatabase", namespace.database)
         assertEquals("myCollection", namespace.collection)
     }
@@ -372,7 +383,8 @@ public class JavaDriverRepository extends BaseRepository {
     )
     fun `extracts from a mms like example`(psiFile: PsiFile) {
         val methodToAnalyse = psiFile.getQueryAtMethod("JavaDriverRepository", "exampleFind")
-        val namespace = NamespaceExtractor.extractNamespace(methodToAnalyse)!!
+        val namespace =
+ (NamespaceExtractor.extractNamespace(methodToAnalyse).reference as HasCollectionReference.Known<PsiElement>).namespace
         assertEquals("myDatabase", namespace.database)
         assertEquals("myCollection", namespace.collection)
     }

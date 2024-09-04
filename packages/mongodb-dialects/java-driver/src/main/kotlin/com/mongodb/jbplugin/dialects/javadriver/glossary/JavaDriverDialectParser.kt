@@ -4,9 +4,11 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
-import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.components.HasChildren
+import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.Named
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
@@ -19,8 +21,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun attachment(source: PsiElement): PsiElement = findStartOfQuery(source)!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
-        val namespace = NamespaceExtractor.extractNamespace(source)
-        val collectionReference = namespaceComponent(namespace)
+        val collectionReference = NamespaceExtractor.extractNamespace(source)
 
         val currentCall = source as? PsiMethodCallExpression ?: return Node(source, listOf(collectionReference))
 
@@ -296,11 +297,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             }
         return valueReference as HasValueReference.ValueReference<PsiElement>
     }
-
-    private fun namespaceComponent(namespace: Namespace?): HasCollectionReference =
-        namespace?.let {
-            HasCollectionReference(HasCollectionReference.Known(it))
-        } ?: HasCollectionReference(HasCollectionReference.Unknown)
 
     private fun findStartOfQuery(element: PsiElement): PsiMethodCallExpression? {
         val methodCalls = element.findAllChildrenOfType(PsiMethodCallExpression::class.java)
