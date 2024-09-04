@@ -73,8 +73,8 @@ class NodeTest {
         val node = Node<Unit?>(
             null,
             listOf(
-                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
-                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
+                HasCollectionReference(HasCollectionReference.OnlyCollection(1, "qwerty")),
+                HasCollectionReference(HasCollectionReference.OnlyCollection(1, "qwerty")),
             )
         )
 
@@ -86,12 +86,12 @@ class NodeTest {
 
         // Does not modify the original node
         assertTrue(
-            node.components<HasCollectionReference>()
+            node.components<HasCollectionReference<*>>()
                 .all { collection -> collection.reference is HasCollectionReference.OnlyCollection })
 
         // creates a copy with the modified components as per our logic
         assertTrue(
-            copiedNode.components<HasCollectionReference>()
+            copiedNode.components<HasCollectionReference<*>>()
                 .all { collection -> collection.reference is HasCollectionReference.Unknown })
     }
 
@@ -100,15 +100,15 @@ class NodeTest {
         val node = Node<Unit?>(
             null,
             listOf(
-                HasCollectionReference(HasCollectionReference.OnlyCollection("qwerty")),
+                HasCollectionReference(HasCollectionReference.OnlyCollection(1, "qwerty")),
             )
         )
 
         val modifiedNode = node.queryWithOverwrittenDatabase("foo")
-        val nodeReference = modifiedNode.component<HasCollectionReference>()
+        val nodeReference = modifiedNode.component<HasCollectionReference<*>>()
         // Does not modify the original node
         assertTrue(
-            node.component<HasCollectionReference>()?.let { it.reference is HasCollectionReference.OnlyCollection }
+            node.component<HasCollectionReference<*>>()?.let { it.reference is HasCollectionReference.OnlyCollection }
                 ?: false)
 
         assertTrue(
@@ -147,19 +147,21 @@ class NodeTest {
                 arrayOf(HasChildren<Unit?>(emptyList()), HasChildren::class.java),
                 arrayOf(HasCollectionReference(HasCollectionReference.Unknown), HasCollectionReference::class.java),
                 arrayOf(
-                    HasCollectionReference(HasCollectionReference.Known(Namespace("db", "coll"))),
+                    HasCollectionReference(HasCollectionReference.Known(1, 2, Namespace("db", "coll"))),
                     HasCollectionReference::class.java,
                 ),
                 arrayOf(
-                    HasCollectionReference(HasCollectionReference.OnlyCollection("coll")),
+                    HasCollectionReference(HasCollectionReference.OnlyCollection(1, "coll")),
                     HasCollectionReference::class.java,
                 ),
                 arrayOf(HasFieldReference(HasFieldReference.Unknown), HasFieldReference::class.java),
                 arrayOf(HasFieldReference(HasFieldReference.Known(null, "abc")), HasFieldReference::class.java),
                 arrayOf(HasFilter<Unit?>(Node(null, emptyList())), HasFilter::class.java),
                 arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
-                arrayOf(HasValueReference(HasValueReference.Constant(null, 123, BsonInt32)),
- HasValueReference::class.java),
+                arrayOf(
+                    HasValueReference(HasValueReference.Constant(null, 123, BsonInt32)),
+                    HasValueReference::class.java
+                ),
                 arrayOf(HasValueReference(HasValueReference.Runtime(null, BsonInt32)), HasValueReference::class.java),
                 arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
                 arrayOf(Named("abc"), Named::class.java),

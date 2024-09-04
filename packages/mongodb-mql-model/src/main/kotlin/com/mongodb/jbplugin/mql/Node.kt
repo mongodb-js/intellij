@@ -53,7 +53,7 @@ data class Node<S>(
      * @return
      */
     fun queryWithOverwrittenDatabase(database: String) = this.copy { component ->
-        if (component is HasCollectionReference) {
+        if (component is HasCollectionReference<*>) {
             component.copy(database = database)
         } else {
             component
