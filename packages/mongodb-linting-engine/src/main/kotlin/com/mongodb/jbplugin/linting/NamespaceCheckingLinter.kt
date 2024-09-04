@@ -24,9 +24,9 @@ sealed interface NamespaceCheckWarning<S> {
     /**
      * If we couldn't find a namespace for this query.
      *
- * @param S
- * @property source
- */
+     * @param S
+     * @property source
+     */
     data class NoNamespaceInferred<S>(
         val source: S,
     ) : NamespaceCheckWarning<S>
@@ -35,10 +35,10 @@ sealed interface NamespaceCheckWarning<S> {
      * If the provided database does not exist. Will only happen in dialects where the database
      * can be specified through code, like the Java Driver.
      *
- * @param S
- * @property source
- * @property database
- */
+     * @param S
+     * @property source
+     * @property database
+     */
     data class DatabaseDoesNotExist<S>(
         val source: S,
         val database: String
@@ -47,11 +47,11 @@ sealed interface NamespaceCheckWarning<S> {
     /**
      * If the provided collection does not exist in the current database.
      *
- * @param S
- * @property source
- * @property database
- * @property collection
- */
+     * @param S
+     * @property source
+     * @property database
+     * @property collection
+     */
     data class CollectionDoesNotExist<S>(
         val source: S,
         val database: String,
@@ -94,22 +94,25 @@ object NamespaceCheckingLinter {
                 }.getOrDefault(emptyList())
 
                 if (dbList.databases.find { it.name == ref.namespace.database } == null) {
-                    listOf(NamespaceCheckWarning.DatabaseDoesNotExist(
-                        source = ref.databaseSource!!,
-                        database = ref.namespace.database,
-                    ))
+                    listOf(
+                        NamespaceCheckWarning.DatabaseDoesNotExist(
+                            source = ref.databaseSource!!,
+                            database = ref.namespace.database,
+                        )
+                    )
                 } else if (!collList.contains(ref.namespace.collection)) {
                     listOf(
                         CollectionDoesNotExist(
-                        source = ref.collectionSource!!,
-                        database = ref.namespace.database,
-                        collection = ref.namespace.collection
-                    )
+                            source = ref.collectionSource!!,
+                            database = ref.namespace.database,
+                            collection = ref.namespace.collection
+                        )
                     )
                 } else {
                     emptyList()
                 }
             }
+
             else -> listOf(NoNamespaceInferred(query.source))
         })
     }
