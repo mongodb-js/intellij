@@ -10,7 +10,10 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.components.HasChildren
+import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.Named
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val CRITERIA_CLASS_FQN = "org.springframework.data.mongodb.core.query.Criteria"
@@ -30,9 +33,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val targetCollection = QueryTargetCollectionExtractor.extractCollection(source)
 
         return Node(source, listOf(
-            HasCollectionReference(targetCollection?.let {
-                HasCollectionReference.OnlyCollection(targetCollection)
-            } ?: HasCollectionReference.Unknown),
+            targetCollection,
             HasChildren(parseQueryRecursively(criteriaChain))
         ))
     }
