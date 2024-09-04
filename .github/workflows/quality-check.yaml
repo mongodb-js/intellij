@@ -286,5 +286,5 @@ jobs:
           name: Plugin
           path: packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
           retention-days: 30
-          compression-level: 9
+          compression-level: 0
           overwrite: true
