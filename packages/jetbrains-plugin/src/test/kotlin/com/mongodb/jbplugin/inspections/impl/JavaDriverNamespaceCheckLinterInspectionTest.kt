@@ -35,7 +35,7 @@ public class Repository {
     }
 
     public FindIterable<Document> exampleFind() {
-        return <warning descr="Database \"myDatabase\" does not exist in the current data source.">client.getDatabase("myDatabase")</warning>
+        return <warning descr="Cannot resolve \"myDatabase\" database reference in the connected data source.">client.getDatabase("myDatabase")</warning>
                 .getCollection("myCollection")
                 .find(eq("nonExistingField", "123"));
     }
@@ -77,7 +77,7 @@ public class Repository {
 
     public FindIterable<Document> exampleFind() {
         return client.getDatabase("myDatabase")
-                .getCollection(<warning descr="Collection \"myCollection\" does not exist in database \"myDatabase\".">"myCollection"</warning>)
+                .getCollection(<warning descr="Cannot resolve \"myCollection\" collection in \"myDatabase\" database in the connected data source.">"myCollection"</warning>)
                 .find(eq("nonExistingField", "123"));
     }
 }
