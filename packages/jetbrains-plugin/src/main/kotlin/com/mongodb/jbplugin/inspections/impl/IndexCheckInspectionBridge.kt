@@ -12,10 +12,11 @@ import com.intellij.psi.PsiElement
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.dialects.DialectFormatter
+import com.mongodb.jbplugin.dialects.mongosh.MongoshDialect
 import com.mongodb.jbplugin.i18n.InspectionsAndInlaysMessages
 import com.mongodb.jbplugin.inspections.AbstractMongoDbInspectionBridge
 import com.mongodb.jbplugin.inspections.MongoDbInspection
-import com.mongodb.jbplugin.inspections.quickfixes.ImplementAnIndexQuickfix
+import com.mongodb.jbplugin.inspections.quickfixes.OpenDataSourceConsoleAppendingCode
 import com.mongodb.jbplugin.linting.IndexCheckWarning
 import com.mongodb.jbplugin.linting.IndexCheckingLinter
 import com.mongodb.jbplugin.mql.Node
@@ -59,30 +60,34 @@ internal object IndexCheckLinterInspection : MongoDbInspection {
         result.warnings.forEach {
             when (it) {
                 is IndexCheckWarning.QueryNotCoveredByIndex ->
-                    registerQueryNotCoveredByIndex(coroutineScope, problems, it.source)
+                    registerQueryNotCoveredByIndex(coroutineScope, dataSource, problems, query)
             }
         }
     }
 
     private fun registerQueryNotCoveredByIndex(
         coroutineScope: CoroutineScope,
+        localDataSource: LocalDataSource,
         problems: ProblemsHolder,
-        source: PsiElement
+        query: Node<PsiElement>
     ) {
         val problemDescription = InspectionsAndInlaysMessages.message(
             "inspection.index.checking.error.query.not.covered.by.index",
         )
 
         problems.registerProblem(
-            source,
+            query.source,
             problemDescription,
             ProblemHighlightType.WARNING,
-            ImplementAnIndexQuickfix(
+            OpenDataSourceConsoleAppendingCode(
                 coroutineScope,
                 InspectionsAndInlaysMessages.message(
                     "inspection.index.checking.error.query.not.covered.by.index.quick.fix"
-                )
-            )
+                ),
+                localDataSource
+            ) {
+                MongoshDialect.formatter.indexCommandForQuery(query)
+            }
         )
     }
 }

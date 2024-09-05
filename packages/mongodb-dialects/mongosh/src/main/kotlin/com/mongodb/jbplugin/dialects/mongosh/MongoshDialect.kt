@@ -10,7 +10,7 @@ object MongoshDialect : Dialect<Any, Any> {
         get() = throw UnsupportedOperationException()
 
     override val formatter: DialectFormatter
-        get() = TODO("Not yet implemented")
+        get() = MongoshDialectFormatter
 
     override val connectionContextExtractor: ConnectionContextExtractor<Any>
         get() = throw UnsupportedOperationException()
