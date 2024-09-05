@@ -23,6 +23,7 @@ class SpringCriteriaIndexCheckLinterInspectionTest {
         fileName = "Repository.java",
         value = """
 
+
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -42,9 +43,7 @@ class BookRepository {
     public void allReleasedBooks() {
         template.find(
             query(
-            <warning descr="To optimize query performance in MongoDB, consider leveraging indexes on frequently queried fields. Indexes store a subset of the collection's data, enabling efficient document retrieval and minimizing the number of documents examined.
-
-By carefully designing indexes based on your application's query patterns you can significantly enhance query speed, reduce resource consumption and improve scalability. Especially for large datasets and complex queries, indexes are crucial for maintaining optimal performance as your data volume grows.">where("released")</warning>
+            <warning descr="This query will run without an index. If you plan on using this query heavily in your application, you should create an index that covers this query.">where("released")</warning>
             // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
             // an error in the .is block and hence expected.
             .is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(boolean)'">(true)</error>),
@@ -52,6 +51,7 @@ By carefully designing indexes based on your application's query patterns you ca
         );
     }
 }
+        
         """,
     )
     fun `shows an inspection when the query is a collscan`(

@@ -19,6 +19,7 @@ class JavaDriverIndexCheckLinterInspectionTest {
     @ParsingTest(
         fileName = "Repository.java",
         value = """
+
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -34,13 +35,12 @@ public class Repository {
     }
 
     public FindIterable<Document> exampleFind() {
-        return <warning descr="To optimize query performance in MongoDB, consider leveraging indexes on frequently queried fields. Indexes store a subset of the collection's data, enabling efficient document retrieval and minimizing the number of documents examined.
-
-By carefully designing indexes based on your application's query patterns you can significantly enhance query speed, reduce resource consumption and improve scalability. Especially for large datasets and complex queries, indexes are crucial for maintaining optimal performance as your data volume grows.">client.getDatabase("myDatabase")
+        return <warning descr="This query will run without an index. If you plan on using this query heavily in your application, you should create an index that covers this query.">client.getDatabase("myDatabase")
                 .getCollection("myCollection")
                 .find()</warning>;
     }
 }
+        
         """,
     )
     fun `shows an inspection when the query is a collscan`(
