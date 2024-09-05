@@ -11,11 +11,20 @@ package com.mongodb.jbplugin.accessadapter
 
 import com.mongodb.ConnectionString
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
 import org.bson.conversions.Bson
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
+/**
+ * Represents the result of an explain plan command.
+ */
+sealed interface ExplainPlan {
+    data object CollectionScan : ExplainPlan
+    data object IndexScan : ExplainPlan
+}
 
 /**
  * Represents the MongoDB Driver facade that we will use internally.
@@ -29,6 +38,8 @@ interface MongoDbDriver {
     val connected: Boolean
 
     suspend fun connectionString(): ConnectionString
+
+    suspend fun <S> explain(query: Node<S>): ExplainPlan
 
     suspend fun <T : Any> runCommand(
         database: String,

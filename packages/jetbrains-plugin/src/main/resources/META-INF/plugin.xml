@@ -71,6 +71,15 @@
                          enabledByDefault="true"
                          level="WARNING"
                          implementationClass="com.mongodb.jbplugin.inspections.impl.NamespaceCheckInspectionBridge"/>
+        <localInspection language="JAVA"
+                         bundle="messages.InspectionsAndInlaysBundle"
+                         key="inspection.field.checking"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsAndInlaysBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.mongodb.jbplugin.inspections.impl.IndexCheckInspectionBridge"/>
         <database.virtualFileDataSourceProvider
             implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
         <completion.contributor language="JAVA"
