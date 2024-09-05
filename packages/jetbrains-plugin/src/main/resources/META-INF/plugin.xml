@@ -64,7 +64,7 @@
                          implementationClass="com.mongodb.jbplugin.inspections.impl.FieldCheckInspectionBridge"/>
         <localInspection language="JAVA"
                          bundle="messages.InspectionsAndInlaysBundle"
-                         key="inspection.field.checking"
+                         key="inspection.namespace.checking"
                          groupPath="Java"
                          groupBundle="messages.InspectionsAndInlaysBundle"
                          groupKey="group.names.probable.bugs"
@@ -73,7 +73,7 @@
                          implementationClass="com.mongodb.jbplugin.inspections.impl.NamespaceCheckInspectionBridge"/>
         <localInspection language="JAVA"
                          bundle="messages.InspectionsAndInlaysBundle"
-                         key="inspection.field.checking"
+                         key="inspection.index.checking"
                          groupPath="Java"
                          groupBundle="messages.InspectionsAndInlaysBundle"
                          groupKey="group.names.probable.bugs"
