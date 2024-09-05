@@ -275,7 +275,3 @@ jobs:
       - name: Verify Plugin
         run: |
           ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
-
-      - name: Build Plugin
-        run: |
-          ./gradlew ":packages:jetbrains-plugin:buildPlugin"
