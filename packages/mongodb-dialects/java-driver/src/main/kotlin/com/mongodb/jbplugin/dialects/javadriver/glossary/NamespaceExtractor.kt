@@ -480,8 +480,5 @@ private fun PsiType?.guessAssignmentConcept(project: Project): AssignmentConcept
     }
 }
 
-private fun HasCollectionReference<PsiElement>.isNotUnknown(): Boolean = reference !=
- (HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>)
-
-private fun HasCollectionReference.CollectionReference<PsiElement>.isNotUnknown(): Boolean = this !=
- (HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>)
+private fun HasCollectionReference.CollectionReference<PsiElement>.isNotUnknown(): Boolean =
+    !this.equals(HasCollectionReference.Unknown)
