@@ -1,6 +1,6 @@
 /**
- * This inspection is used for type checking. It also warns if a field is referenced in a
- * query but doesn't exist in the MongoDB schema.
+ * This inspection is used for index checking. It warns if a query is not using a
+ * proper index.
  */
 
 package com.mongodb.jbplugin.inspections.impl
