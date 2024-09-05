@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-81](https://jira.mongodb.org/browse/INTELLIJ-81): Inspections in code when a database or collection does not exist
+in the current data source.
 * [INTELLIJ-43](https://jira.mongodb.org/browse/INTELLIJ-43): Extract the configured database from application.properties
 in projects with Spring Boot.
 * [INTELLIJ-51](https://jira.mongodb.org/browse/INTELLIJ-51): Add an inline warning when querying a field that does not

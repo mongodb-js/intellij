@@ -21,8 +21,8 @@ public class JavaDriverRepository {
         this.client = client;
     }
     private List<Document> getGrade() {
-        return client.getDatabase("sample_mflix")
-                .getCollection("movies")
+        return client.getDatabase("sample_mflixzzz")
+                .getCollection("moviesasdsad")
                 .find(Filters.eq(IMDB_VOTES, 1))
                 .into(new ArrayList<>());
     }

@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.PsiFile
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import org.junit.jupiter.api.Assertions.assertEquals
 
 @IntegrationTest
@@ -36,7 +37,8 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val collection = QueryTargetCollectionExtractor.extractCollection(query)
+        val collection =
+ (QueryTargetCollectionExtractor.extractCollection(query).reference as HasCollectionReference.OnlyCollection).collection
 
         assertEquals("book", collection)
     }
@@ -72,7 +74,8 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val collection = QueryTargetCollectionExtractor.extractCollection(query)
+        val collection =
+ (QueryTargetCollectionExtractor.extractCollection(query).reference as HasCollectionReference.OnlyCollection).collection
 
         assertEquals("book", collection)
     }

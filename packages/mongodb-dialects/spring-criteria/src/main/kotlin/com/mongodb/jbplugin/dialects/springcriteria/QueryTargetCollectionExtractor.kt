@@ -5,15 +5,20 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
 object QueryTargetCollectionExtractor {
-    fun extractCollection(sourceExpression: PsiElement): String? {
-        val baseExpression = sourceExpression.parentOfType<PsiMethod>() ?: return null
+    private val unknown = HasCollectionReference(
+        HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
+    )
+
+    fun extractCollection(sourceExpression: PsiElement): HasCollectionReference<PsiElement> {
+        val baseExpression = sourceExpression.parentOfType<PsiMethod>() ?: return unknown
 
         val templateClass = JavaPsiFacade.getInstance(baseExpression.project).findClass(
             "org.springframework.data.mongodb.core.MongoTemplate",
             GlobalSearchScope.everythingScope(baseExpression.project)
-        ) ?: return null
+        ) ?: return unknown
 
         val validMethods = setOf("query", "find")
         val queryMethodCall = baseExpression.findAllChildrenOfType(PsiMethodCallExpression::class.java)
@@ -24,11 +29,14 @@ object QueryTargetCollectionExtractor {
 
         if (queryMethodCall != null && queryMethodCall.argumentList.expressionCount > 0) {
             val queryArg = queryMethodCall.argumentList.expressions.last()
-            val resolvedType = queryArg as? PsiClassObjectAccessExpression ?: return null
-            val resolvedClass = PsiTypesUtil.getPsiClass(resolvedType.operand.type) ?: return null
-            return ModelCollectionExtractor.fromPsiClass(resolvedClass)
+            val resolvedType = queryArg as? PsiClassObjectAccessExpression ?: return unknown
+            val resolvedClass = PsiTypesUtil.getPsiClass(resolvedType.operand.type) ?: return unknown
+            val resolvedCollection = ModelCollectionExtractor.fromPsiClass(resolvedClass)
+            return resolvedCollection?.let {
+                HasCollectionReference(HasCollectionReference.OnlyCollection(queryArg, it))
+            } ?: unknown
         }
 
-        return null
+        return unknown
     }
 }

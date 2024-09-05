@@ -4,12 +4,13 @@ import com.mongodb.jbplugin.mql.Component
 import com.mongodb.jbplugin.mql.Namespace
 
 /**
+ * @param S
  * @property reference
  */
-data class HasCollectionReference(
-    val reference: CollectionReference,
+data class HasCollectionReference<S>(
+    val reference: CollectionReference<S>,
 ) : Component {
-    data object Unknown : CollectionReference
+    data object Unknown : CollectionReference<Any>
 
     /**
      * Makes a copy of HasCollectionReference after changing the underlying reference to Known
@@ -17,25 +18,50 @@ data class HasCollectionReference(
      *
      * @param database
      */
-    fun copy(database: String): HasCollectionReference = when (reference) {
-        is Known -> copy(reference = Known(Namespace(database, reference.namespace.collection)))
-        is OnlyCollection -> copy(reference = Known(Namespace(database, reference.collection)))
-        is Unknown -> copy(reference = reference)
+    fun copy(database: String): HasCollectionReference<S> = when (reference) {
+        is Known -> copy(
+            reference = Known(
+                databaseSource = reference.databaseSource,
+                collectionSource = reference.collectionSource,
+                namespace = Namespace(database, reference.namespace.collection)
+            )
+        )
+
+        is OnlyCollection -> copy(
+            reference = Known(
+                databaseSource = null,
+                collectionSource = reference.collectionSource,
+                namespace = Namespace(database, reference.collection)
+            )
+        )
+
+        is Unknown -> this
     }
 
-    sealed interface CollectionReference
+    /**
+     * @param S
+     */
+    sealed interface CollectionReference<S>
 
     /**
+     * @param S
      * @property namespace
+     * @property databaseSource
+     * @property collectionSource
      */
-    data class Known(
+    data class Known<S>(
+        val databaseSource: S?,
+        val collectionSource: S,
         val namespace: Namespace,
-    ) : CollectionReference
+    ) : CollectionReference<S>
 
     /**
+     * @param S
      * @property collection
+     * @property collectionSource
      */
-    data class OnlyCollection(
+    data class OnlyCollection<S>(
+        val collectionSource: S,
         val collection: String,
-    ) : CollectionReference
+    ) : CollectionReference<S>
 }

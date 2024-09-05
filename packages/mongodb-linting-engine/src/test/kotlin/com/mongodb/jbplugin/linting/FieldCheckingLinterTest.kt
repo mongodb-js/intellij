@@ -7,7 +7,8 @@ import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasValueReference
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
@@ -40,7 +41,7 @@ class FieldCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(collectionNamespace)),
+                        HasCollectionReference(HasCollectionReference.Known(null, null, collectionNamespace)),
                         HasChildren(
                             listOf(
                                 Node(null, listOf(HasFieldReference(HasFieldReference.Known(null, "myString")))),
@@ -83,7 +84,7 @@ class FieldCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(collectionNamespace)),
+                        HasCollectionReference(HasCollectionReference.Known(null, null, collectionNamespace)),
                         HasChildren(
                             listOf(
                                 Node(null, listOf(HasFieldReference(HasFieldReference.Known(null, "myString")))),
@@ -135,7 +136,7 @@ class FieldCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(collectionNamespace)),
+                        HasCollectionReference(HasCollectionReference.Known(null, null, collectionNamespace)),
                         HasChildren(
                             listOf(
                                 Node(
