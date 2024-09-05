@@ -45,32 +45,31 @@ class OpenDataSourceConsoleAppendingCode(
         }
 
         var activeEditor = EditorTracker.getInstance(project).activeEditors.firstOrNull { it: Editor ->
-                val currentFile = PsiDocumentManager.getInstance(project).getPsiFile(it.document)!!.virtualFile
-                val dataSourceOfFile = DbVFSUtils.getDataSource(project, currentFile)
-                dataSource == dataSourceOfFile
-            }
+            val currentFile = PsiDocumentManager.getInstance(project).getPsiFile(it.document)!!.virtualFile
+            val dataSourceOfFile = DbVFSUtils.getDataSource(project, currentFile)
+            dataSource == dataSourceOfFile
+        }
 
         activeEditor?.let {
-val currentFile = PsiDocumentManager.getInstance(project).getPsiFile(activeEditor.document)!!.virtualFile
-FileEditorManager.getInstance(project).openFile(currentFile, true)
-} ?: run {
-val file = DbUIUtil.openInConsole(project, dataSource, null, "", true)!!
-val psiFile = PsiManager.getInstance(project).findFile(vFile)!!
-val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
-activeEditor = EditorFactory.getInstance().getEditors(document, project).firstOrNull()
-}
+            val currentFile = PsiDocumentManager.getInstance(project).getPsiFile(it.document)!!.virtualFile
+            FileEditorManager.getInstance(project).openFile(currentFile, true)
+        } ?: run {
+            val file = DbUIUtil.openInConsole(project, dataSource, null, "", true)!!
+            val psiFile = PsiManager.getInstance(project).findFile(file)!!
+            val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)!!
+            activeEditor = EditorFactory.getInstance().getEditors(document, project).firstOrNull()
+        }
 
-        activeEditor ?: return
-
-        val document = activeEditor.document
+        val editor = activeEditor ?: return
+        val document = editor.document
         val textLength = document.textLength
         if (textLength > 0 && document.charsSequence[textLength - 1] != '\n') {
-            WriteCommandAction.runWriteCommandAction(activeEditor.project, null, null,
+            WriteCommandAction.runWriteCommandAction(editor.project, null, null,
                 { document.insertString(textLength, "\n") })
         }
 
-        activeEditor.caretModel.moveToOffset(document.textLength)
-        WriteCommandAction.runWriteCommandAction(activeEditor.project, null, null,
+        editor.caretModel.moveToOffset(document.textLength)
+        WriteCommandAction.runWriteCommandAction(editor.project, null, null,
             {
                 document.insertString(document.textLength, codeToAppend() + "\n")
             })
