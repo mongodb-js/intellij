@@ -17,12 +17,15 @@ import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * This quickfix writes the index creation script.
+ * This quickfix opens a console for the specified data source. If there is already an existing
+ * console, opens it, if not, creates a new one.
+ *
+ * When the console is open, it appends the codeToAppend at the end of the console editor.
  *
  * @param coroutineScope
- * @param message
- * @param dataSource
- * @param codeToAppend
+ * @param message Name of the quick fix.
+ * @param dataSource Data Source to open console from.
+ * @param codeToAppend Provider of a string with the code to append. It's a function so it's lazily evaluated.
  */
 class OpenDataSourceConsoleAppendingCode(
     private val coroutineScope: CoroutineScope,
