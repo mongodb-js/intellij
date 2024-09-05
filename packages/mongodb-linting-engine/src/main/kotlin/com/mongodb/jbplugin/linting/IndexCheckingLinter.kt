@@ -32,7 +32,7 @@ sealed interface IndexCheckWarning<S> {
 /**
  * Wrapper ADT type of warnings that contains the results of the linter.
  *
- * @see NamespaceCheckingLinter
+ * @see IndexCheckingLinter
  *
  * @param S
  * @property warnings
@@ -42,8 +42,7 @@ data class IndexCheckResult<S>(
 )
 
 /**
- * Linter that verifies that the specified database and collection in the current query does exist
- * in the connected data source.
+ * Linter that verifies that the query is properly using indexes in the target cluster.
  */
 object IndexCheckingLinter {
     fun <D, S> lintQuery(
