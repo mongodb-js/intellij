@@ -8,8 +8,7 @@ package com.mongodb.jbplugin.linting
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
-import com.mongodb.jbplugin.linting.NamespaceCheckWarning.CollectionDoesNotExist
-import com.mongodb.jbplugin.linting.NamespaceCheckWarning.NoNamespaceInferred
+import com.mongodb.jbplugin.linting.NamespaceCheckWarning.*
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
@@ -95,7 +94,7 @@ object NamespaceCheckingLinter {
 
                 if (dbList.databases.find { it.name == ref.namespace.database } == null) {
                     listOf(
-                        NamespaceCheckWarning.DatabaseDoesNotExist(
+                        DatabaseDoesNotExist(
                             source = ref.databaseSource!!,
                             database = ref.namespace.database,
                         )
