@@ -151,8 +151,10 @@ class EditorToolbarDecorator(
             (editor as? EditorEx)?.permanentHeaderComponent = toolbar
             editor.headerComponent = toolbar
         } ?: run {
-            (editor as? EditorEx)?.permanentHeaderComponent = null
-            editor.headerComponent = null
+            if (editor.headerComponent is MdbJavaEditorToolbar) {
+                (editor as? EditorEx)?.permanentHeaderComponent = null
+                editor.headerComponent = null
+            }
         }
     }
 
