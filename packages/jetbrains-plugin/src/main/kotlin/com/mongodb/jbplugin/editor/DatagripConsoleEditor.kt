@@ -33,8 +33,9 @@ object DatagripConsoleEditor {
 
     private fun allConsoleEditorsForDataSource(project: Project, dataSource: LocalDataSource): List<Editor> =
         EditorTracker.getInstance(project).activeEditors.filter {
-            val currentFile = PsiDocumentManager.getInstance(project).getPsiFile(it.document)!!.virtualFile
-            val dataSourceOfFile = DbVFSUtils.getDataSource(project, currentFile)
+            val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(it.document)
+            val virtualFile = psiFile?.virtualFile ?: return@filter false
+            val dataSourceOfFile = DbVFSUtils.getDataSource(project, virtualFile)
             dataSource == dataSourceOfFile
         }
 

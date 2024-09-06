@@ -31,10 +31,12 @@ object Icons {
     private val fieldLight = IconLoader.getIcon("/icons/Field.svg", javaClass)
     private val fieldDark = IconLoader.getIcon("/icons/FieldDark.svg", javaClass)
     private val field = if (JBColor.isBright()) fieldLight else fieldDark
+    private val runQueryGutterLight = IconLoader.getIcon("/icons/ConsoleRun.svg", javaClass)
+    private val runQueryGutterDark = IconLoader.getIcon("/icons/ConsoleRunDark.svg", javaClass)
+    val runQueryGutter = if (JBColor.isBright()) runQueryGutterLight else runQueryGutterDark
     val databaseAutocompleteEntry = database
     val collectionAutocompleteEntry = collection
     val fieldAutocompleteEntry = field
-    val runQueryGutter = logo
 
     fun Icon.scaledToText(parentComponent: Component? = null): Icon {
         val settingsManager: NotRoamableUiSettings = NotRoamableUiSettings.getInstance()
