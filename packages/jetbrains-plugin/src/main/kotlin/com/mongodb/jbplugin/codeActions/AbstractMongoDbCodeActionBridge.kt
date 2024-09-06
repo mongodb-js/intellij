@@ -18,14 +18,18 @@ import com.mongodb.jbplugin.mql.Node
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * Line markers need to be set up in the most leaf node of the tree. Use this instead of
+ * Line markers need to be set up in a leaf node of the tree. Use this instead of
  * Node.source when using it to create a marker. If you want to know more about the details
  * of this quirk, take a look at the documentation of LineMarkerProvider.getLineMarkerInfo.
+ *
+ * We are choosing the first leaf because essentially it's the method reference, so the marker
+ * will show in the line where you have the specific query method, not in the parameters or
+ * somewhere else.
  *
  * @see com.intellij.codeInsight.daemon.LineMarkerProvider.getLineMarkerInfo
  */
 internal val Node<PsiElement>.sourceForMarker: PsiElement
-    get() = this.source.lastLeaf()
+    get() = this.source.firstLeaf()
 
 /**
  * This class is used to connect a MongoDB query action to IntelliJ.
