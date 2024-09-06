@@ -8,6 +8,8 @@ package com.mongodb.jbplugin.codeActions.impl
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.openapi.editor.markup.GutterIconRenderer
+import com.intellij.openapi.rd.util.launchChildBackground
+import com.intellij.openapi.rd.util.launchChildOnUi
 import com.intellij.psi.PsiElement
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.codeActions.AbstractMongoDbCodeActionBridge
@@ -53,8 +55,13 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
             Icons.runQueryGutter,
             { CodeActionsMessages.message("code.action.run.query") },
             { _, _ ->
-                val editor = DatagripConsoleEditor.openConsoleForDataSource(query.source.project, dataSource)
-                editor?.appendText(MongoshDialect.formatter.formatQuery(query, explain = false))
+                coroutineScope.launchChildBackground {
+                    val formattedQuery = MongoshDialect.formatter.formatQuery(query, explain = false)
+                    coroutineScope.launchChildOnUi {
+                        val editor = DatagripConsoleEditor.openConsoleForDataSource(query.source.project, dataSource)
+                        editor?.appendText(formattedQuery)
+                    }
+                }
             },
             GutterIconRenderer.Alignment.RIGHT,
             { CodeActionsMessages.message("code.action.run.query") }
