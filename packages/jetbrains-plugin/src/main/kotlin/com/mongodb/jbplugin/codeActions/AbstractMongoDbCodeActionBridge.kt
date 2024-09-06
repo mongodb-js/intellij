@@ -53,9 +53,7 @@ abstract class AbstractMongoDbCodeActionBridge(
             )
         }
 
-    override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<PsiElement>? = dispatchIfValidMongoDbQuery(
-element
-)
+    override fun getLineMarkerInfo(element: PsiElement) = dispatchIfValidMongoDbQuery(element)
 
     private fun dispatchIfValidMongoDbQuery(expression: PsiElement): LineMarkerInfo<PsiElement>? {
         return ApplicationManager.getApplication().runReadAction<LineMarkerInfo<PsiElement>?> {
