@@ -19,6 +19,7 @@ import com.mongodb.jbplugin.editor.DatagripConsoleEditor
 import com.mongodb.jbplugin.editor.DatagripConsoleEditor.appendText
 import com.mongodb.jbplugin.i18n.CodeActionsMessages
 import com.mongodb.jbplugin.i18n.Icons
+import com.mongodb.jbplugin.inspections.impl.IndexCheckLinterInspection
 import com.mongodb.jbplugin.mql.Node
 import kotlinx.coroutines.CoroutineScope
 
@@ -53,6 +54,8 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
             Icons.runQueryGutter,
             { CodeActionsMessages.message("code.action.run.query") },
             { _, _ ->
+                IndexCheckLinterInspection.enableForFile(query.source.containingFile)
+
                 val editor = DatagripConsoleEditor.openConsoleForDataSource(query.source.project, dataSource)
                 editor?.appendText(MongoshDialect.formatter.formatQuery(query, explain = false))
             },

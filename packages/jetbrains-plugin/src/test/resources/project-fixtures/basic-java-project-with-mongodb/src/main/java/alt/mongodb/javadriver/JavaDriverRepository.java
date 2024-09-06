@@ -20,6 +20,7 @@ public class JavaDriverRepository {
     public JavaDriverRepository(MongoClient client) {
         this.client = client;
     }
+
     private List<Document> getGrade() {
         return client.getDatabase("sample_mflix")
                 .getCollection("movies")

@@ -5,11 +5,14 @@
 
 package com.mongodb.jbplugin.inspections.impl
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.removeUserData
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.dialects.DialectFormatter
@@ -37,8 +40,21 @@ class IndexCheckInspectionBridge(coroutineScope: CoroutineScope) :
  * This inspection object calls the linting engine and transforms the result so they can be rendered in the IntelliJ
  * editor.
  */
-internal object IndexCheckLinterInspection : MongoDbInspection {
-    internal val queryGeneratedKey = Key.create<Boolean>("Temporary.IndexGenerated")
+object IndexCheckLinterInspection : MongoDbInspection {
+    internal val enabledIndexWarning = Key.create<Boolean>("Temporary.EnabledIndexWarning")
+
+    fun enableForFile(file: PsiFile) {
+        file.putUserData(enabledIndexWarning, true)
+        DaemonCodeAnalyzer.getInstance(file.project).restart(file)
+    }
+
+    fun isEnabledForFile(file: PsiFile): Boolean {
+        return file.getUserData(enabledIndexWarning) == true
+    }
+
+    fun disableForFile(file: PsiFile) {
+        file.removeUserData(enabledIndexWarning)
+    }
 
     override fun visitMongoDbQuery(
         coroutineScope: CoroutineScope,
@@ -52,7 +68,7 @@ internal object IndexCheckLinterInspection : MongoDbInspection {
         }
 
         val sourceFile = query.source.containingFile!!
-        if (sourceFile.getUserData(queryGeneratedKey) == true) {
+        if (!isEnabledForFile(sourceFile)) {
             return
         }
 
@@ -95,7 +111,7 @@ internal object IndexCheckLinterInspection : MongoDbInspection {
                 localDataSource
             ) {
                 val sourceFile = query.source.containingFile!!
-                sourceFile.putUserData(queryGeneratedKey, true)
+                disableForFile(sourceFile)
 
                 MongoshDialect.formatter.indexCommandForQuery(query)
             }
