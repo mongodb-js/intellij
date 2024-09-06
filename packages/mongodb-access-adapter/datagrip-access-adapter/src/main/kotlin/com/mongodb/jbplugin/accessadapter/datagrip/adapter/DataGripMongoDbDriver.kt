@@ -16,6 +16,7 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
+import com.mongodb.jbplugin.dialects.mongosh.MongoshDialect
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
 import org.bson.BsonReader
@@ -81,7 +82,14 @@ internal class DataGripMongoDbDriver(
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
-    override suspend fun <S> explain(query: Node<S>): ExplainPlan = ExplainPlan.CollectionScan
+    override suspend fun <S> explain(query: Node<S>): ExplainPlan {
+        val explainQuery = MongoshDialect.formatter.indexCommandForQuery(query)
+        if (explainQuery != "") {
+            return ExplainPlan.CollectionScan
+        }
+
+        return ExplainPlan.IndexScan
+    }
 
     override suspend fun <T : Any> runCommand(
         database: String,

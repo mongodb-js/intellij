@@ -8,6 +8,7 @@ package com.mongodb.jbplugin.inspections.impl
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.database.dataSource.LocalDataSource
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
@@ -37,6 +38,8 @@ class IndexCheckInspectionBridge(coroutineScope: CoroutineScope) :
  * editor.
  */
 internal object IndexCheckLinterInspection : MongoDbInspection {
+    internal val queryGeneratedKey = Key.create<Boolean>("Temporary.IndexGenerated")
+
     override fun visitMongoDbQuery(
         coroutineScope: CoroutineScope,
         dataSource: LocalDataSource?,
@@ -45,6 +48,11 @@ internal object IndexCheckLinterInspection : MongoDbInspection {
         formatter: DialectFormatter,
     ) {
         if (dataSource == null || !dataSource.isConnected()) {
+            return
+        }
+
+        val sourceFile = query.source.containingFile!!
+        if (sourceFile.getUserData(queryGeneratedKey) == true) {
             return
         }
 
@@ -86,6 +94,9 @@ internal object IndexCheckLinterInspection : MongoDbInspection {
                 ),
                 localDataSource
             ) {
+                val sourceFile = query.source.containingFile!!
+                sourceFile.putUserData(queryGeneratedKey, true)
+
                 MongoshDialect.formatter.indexCommandForQuery(query)
             }
         )
