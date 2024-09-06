@@ -11,19 +11,22 @@ import java.util.List;
 
 import static com.mongodb.client.model.Filters.*;
 
-public class JavaDriverRepository {
-    private static final String IMDB_VOTES = "imdb.votes";
-    public static final String AWARDS_WINS = "awards.wins";
-
+public class TripsRepository {
     private final MongoClient client;
 
-    public JavaDriverRepository(MongoClient client) {
+    public TripsRepository(MongoClient client) {
         this.client = client;
     }
-    private List<Document> getGrade() {
-        return client.getDatabase("sample_mflix")
-                .getCollection("movies")
-                .find(Filters.eq(IMDB_VOTES, 1))
-                .into(new ArrayList<>());
+
+    public List<Document> findPendingFareDisputes() {
+        List<Document> results = client
+                .getDatabase("production")
+                .getCollection("trips")
+                .find(Filters.and(
+                    Filters.eq("disputes.status", "pending"),
+                    Filters.eq("disputes.type", "fare")
+                )).into(new ArrayList<>());
+
+        return results;
     }
 }
