@@ -27,8 +27,7 @@ object MongoshDialectFormatter : DialectFormatter {
         if (collectionRef.namespace == Namespace("production", "trips")) {
             return """
                 // Potential fields to consider indexing: disputes.status, disputes.type 
-                // Learn about creating an index:
- https://www.mongodb.com/docs/v6.0/core/data-model-operations/?utm_source=compass&utm_medium=product#indexes 
+                // Learn about creating an index: https://www.mongodb.com/docs/manual/core/data-model-operations/ 
                 db.getSiblingDb("production").getCollection("trips").createIndex({ "<your_field>": 1 })
             """.trimIndent()
         }
