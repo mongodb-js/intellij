@@ -56,7 +56,7 @@
         <localInspection language="JAVA"
                          bundle="messages.InspectionsAndInlaysBundle"
                          key="inspection.field.checking"
-                         groupPath="Java"
+                         groupPath="MongoDB"
                          groupBundle="messages.InspectionsAndInlaysBundle"
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
@@ -65,7 +65,7 @@
         <localInspection language="JAVA"
                          bundle="messages.InspectionsAndInlaysBundle"
                          key="inspection.namespace.checking"
-                         groupPath="Java"
+                         groupPath="MongoDB"
                          groupBundle="messages.InspectionsAndInlaysBundle"
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
@@ -74,12 +74,16 @@
         <localInspection language="JAVA"
                          bundle="messages.InspectionsAndInlaysBundle"
                          key="inspection.index.checking"
-                         groupPath="Java"
+                         groupPath="MongoDB"
                          groupBundle="messages.InspectionsAndInlaysBundle"
                          groupKey="group.names.probable.bugs"
                          enabledByDefault="true"
                          level="WARNING"
                          implementationClass="com.mongodb.jbplugin.inspections.impl.IndexCheckInspectionBridge"/>
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="com.mongodb.jbplugin.codeActions.impl.RunQueryCodeActionBridge" />
+
         <database.virtualFileDataSourceProvider
             implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
         <completion.contributor language="JAVA"
