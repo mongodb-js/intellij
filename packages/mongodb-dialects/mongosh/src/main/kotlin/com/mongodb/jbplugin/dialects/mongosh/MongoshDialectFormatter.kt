@@ -12,7 +12,7 @@ object MongoshDialectFormatter : DialectFormatter {
         val collectionRef = collectionRefComponent.reference as? HasCollectionReference.Known<S> ?: return ""
         if (collectionRef.namespace == Namespace("production", "trips")) {
             return """
-                db.getSiblingDb("production").getCollection("trips").find({ 
+                db.getSiblingDB("production").getCollection("trips").find({ 
                     "disputes.status": "pending", 
                     "disputes.type": "fare" 
                 })
@@ -28,7 +28,7 @@ object MongoshDialectFormatter : DialectFormatter {
             return """
                 // Potential fields to consider indexing: disputes.status, disputes.type 
                 // Learn about creating an index: https://www.mongodb.com/docs/manual/core/data-model-operations/ 
-                db.getSiblingDb("production").getCollection("trips").createIndex({ "<your_field>": 1 })
+                db.getSiblingDB("production").getCollection("trips").createIndex({ "<your_field>": 1 }, { "<your_field_2>": 1 })
             """.trimIndent()
         }
 
