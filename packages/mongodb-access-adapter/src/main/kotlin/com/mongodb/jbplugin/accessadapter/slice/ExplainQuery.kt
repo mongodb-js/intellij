@@ -16,11 +16,11 @@ import com.mongodb.jbplugin.mql.Node
 data class ExplainQuery(
     val explainPlan: ExplainPlan
 ) {
-/**
- * @param S
- * @property query
- */
-data class Slice<S>(val query: Node<S>) : com.mongodb.jbplugin.accessadapter.Slice<ExplainQuery> {
+    /**
+     * @param S
+     * @property query
+     */
+    data class Slice<S>(val query: Node<S>) : com.mongodb.jbplugin.accessadapter.Slice<ExplainQuery> {
         override val id = "${javaClass.canonicalName}::$query"
 
         override suspend fun queryUsingDriver(from: MongoDbDriver): ExplainQuery {
