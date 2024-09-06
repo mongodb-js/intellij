@@ -4,6 +4,12 @@ import com.mongodb.jbplugin.dialects.DialectFormatter
 import com.mongodb.jbplugin.mql.*
 
 object JavaDriverDialectFormatter : DialectFormatter {
+    override fun <S> formatQuery(query: Node<S>, explain: Boolean) =
+        throw UnsupportedOperationException()
+
+    override fun <S> indexCommandForQuery(query: Node<S>) =
+        throw UnsupportedOperationException()
+
     override fun formatType(type: BsonType): String =
         when (type) {
             is BsonDouble -> "double"

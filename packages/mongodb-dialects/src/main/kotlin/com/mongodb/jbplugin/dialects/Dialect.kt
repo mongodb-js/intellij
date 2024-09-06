@@ -1,6 +1,7 @@
 /**
- * Represents a dialect, which is a way of writing MongoDb queries. Each dialect must have a
- * parser, that will convert the input content to an MQL AST.
+ * Represents a dialect, which is a way of writing MongoDb queries. Each dialect might have a
+ * parser, that will convert the input content to an MQL AST. Dialects can also have a formatter
+ * that define how a MQL AST is transformed to text parseable by the dialect.
  */
 
 package com.mongodb.jbplugin.dialects
@@ -67,6 +68,8 @@ interface DialectParser<S> {
  * for a user given the Dialect.
  */
 interface DialectFormatter {
+    fun <S> formatQuery(query: Node<S>, explain: Boolean): String
+    fun <S> indexCommandForQuery(query: Node<S>): String
     fun formatType(type: BsonType): String
 }
 

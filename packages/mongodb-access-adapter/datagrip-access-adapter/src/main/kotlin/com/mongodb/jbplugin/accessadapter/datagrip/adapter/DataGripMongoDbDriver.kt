@@ -14,8 +14,10 @@ import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
+import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
 import org.bson.BsonReader
 import org.bson.BsonWriter
 import org.bson.Document
@@ -78,6 +80,8 @@ internal class DataGripMongoDbDriver(
             .encodeForJs()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
+
+    override suspend fun <S> explain(query: Node<S>): ExplainPlan = ExplainPlan.CollectionScan
 
     override suspend fun <T : Any> runCommand(
         database: String,

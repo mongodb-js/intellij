@@ -1,4 +1,4 @@
-import com.jetbrains.plugin.structure.intellij.problems.SinceBuildGreaterThanUntilBuild
+
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
 import org.jetbrains.intellij.tasks.RunIdeForUiTestTask
@@ -32,6 +32,7 @@ dependencies {
     implementation(project(":packages:mongodb-dialects"))
     implementation(project(":packages:mongodb-dialects:java-driver"))
     implementation(project(":packages:mongodb-dialects:spring-criteria"))
+    implementation(project(":packages:mongodb-dialects:mongosh"))
     implementation(project(":packages:mongodb-linting-engine"))
     implementation(project(":packages:mongodb-mql-model"))
 
