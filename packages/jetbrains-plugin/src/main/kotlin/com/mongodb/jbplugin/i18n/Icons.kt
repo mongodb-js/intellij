@@ -34,6 +34,7 @@ object Icons {
     val databaseAutocompleteEntry = database
     val collectionAutocompleteEntry = collection
     val fieldAutocompleteEntry = field
+    val runQueryGutter = logo
 
     fun Icon.scaledToText(parentComponent: Component? = null): Icon {
         val settingsManager: NotRoamableUiSettings = NotRoamableUiSettings.getInstance()
