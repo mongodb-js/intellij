@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-70](https://jira.mongodb.org/browse/INTELLIJ-70): Code action that allows running a Java query from within the code
+on the current data source.
 * [INTELLIJ-81](https://jira.mongodb.org/browse/INTELLIJ-81): Inspections in code when a database or collection does not exist
 in the current data source.
 * [INTELLIJ-43](https://jira.mongodb.org/browse/INTELLIJ-43): Extract the configured database from application.properties
