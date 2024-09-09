@@ -56,18 +56,18 @@ abstract class AbstractMongoDbCodeActionBridge(
             val queryService = expression.project.getService(CachedQueryService::class.java)
             queryService.queryAt(expression)?.let { query ->
                 fileInExpression.virtualFile?.let {
-codeAction.visitMongoDbQuery(
-coroutineScope,
-dataSource?.localDataSource,
-query,
-dialect.formatter,
-)
-} ?: codeAction.visitMongoDbQuery(
-coroutineScope,
-dataSource = null,
-query,
-dialect.formatter
-)
+                    codeAction.visitMongoDbQuery(
+                        coroutineScope,
+                        dataSource?.localDataSource,
+                        query,
+                        dialect.formatter,
+                    )
+                } ?: codeAction.visitMongoDbQuery(
+                    coroutineScope,
+                    dataSource = null,
+                    query,
+                    dialect.formatter
+                )
             }
         }
     }
