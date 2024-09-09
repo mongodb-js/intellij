@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.mql
 
 import com.mongodb.jbplugin.mql.components.*
+import io.github.z4kn4fein.semver.Version
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -138,6 +139,23 @@ class NodeTest {
             )
 
         assertNotNull(node.component(componentClass))
+    }
+
+    @Test
+    fun `adds target cluster if does not exist`() {
+        val targetCluster = HasTargetCluster(Version.parse("7.0.0"))
+        val query = Node(Unit, emptyList()).withTargetCluster(targetCluster)
+
+        assertEquals(targetCluster, query.component<HasTargetCluster>())
+    }
+
+    @Test
+    fun `removes old target cluster and adds a new one`() {
+        val oldCluster = HasTargetCluster(Version.parse("5.0.0"))
+        val targetCluster = HasTargetCluster(Version.parse("7.0.0"))
+        val query = Node(Unit, listOf(oldCluster)).withTargetCluster(targetCluster)
+
+        assertEquals(targetCluster, query.component<HasTargetCluster>())
     }
 
     companion object {

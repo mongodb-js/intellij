@@ -38,6 +38,7 @@ dependencies {
 
     implementation(libs.mongodb.driver)
     implementation(libs.segment)
+    implementation(libs.semver.parser)
 
     jmh(libs.kotlin.stdlib)
     jmh(libs.testing.jmh.core)

@@ -5,6 +5,7 @@
 package com.mongodb.jbplugin.mql
 
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import com.mongodb.jbplugin.mql.components.HasTargetCluster
 
 /** A component represents the semantics of a Node. When a Node has some special meaning, we will attach a component
  * that adds that specific meaning. For example, take into consideration the following Java Query:
@@ -45,7 +46,11 @@ data class Node<S>(
 
     inline fun <reified C : Component> hasComponent(): Boolean = component<C>() != null
 
-    /**
+    fun withTargetCluster(cluster: HasTargetCluster): Node<S> = copy(source = source, components = components.filter {
+ it !is HasTargetCluster
+ } + cluster)
+
+/**
      * Creates a copy of the query and modifies the database reference in every HasCollectionReference component
      * with the provided database
      *
