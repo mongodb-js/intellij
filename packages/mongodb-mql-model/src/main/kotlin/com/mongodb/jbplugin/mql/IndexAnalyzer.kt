@@ -65,29 +65,29 @@ object IndexAnalyzer {
     }
 
     /**
- * @param S
- */
-sealed interface SuggestedIndex<S> {
+     * @param S
+     */
+    sealed interface SuggestedIndex<S> {
         @Suppress("UNCHECKED_CAST")
         data object NoIndex : SuggestedIndex<Any> {
             fun <S> cast(): SuggestedIndex<S> = this as SuggestedIndex<S>
         }
 
-/**
- * @param S
- * @property fieldName
- * @property source
- */
-data class MongoDbIndexField<S>(val fieldName: String, val source: S)
+        /**
+         * @param S
+         * @property fieldName
+         * @property source
+         */
+        data class MongoDbIndexField<S>(val fieldName: String, val source: S)
 
-/**
- * @param S
- * @property collectionReference
- * @property fields
- */
-data class MongoDbIndex<S>(
+        /**
+         * @param S
+         * @property collectionReference
+         * @property fields
+         */
+        data class MongoDbIndex<S>(
             val collectionReference: HasCollectionReference<S>,
             val fields: List<MongoDbIndexField<S>>
         ) : SuggestedIndex<S>
-}
+    }
 }
