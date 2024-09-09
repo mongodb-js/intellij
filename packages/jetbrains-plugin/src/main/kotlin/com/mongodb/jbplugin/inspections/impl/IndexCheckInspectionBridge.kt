@@ -24,6 +24,9 @@ import com.mongodb.jbplugin.inspections.quickfixes.OpenDataSourceConsoleAppendin
 import com.mongodb.jbplugin.linting.IndexCheckWarning
 import com.mongodb.jbplugin.linting.IndexCheckingLinter
 import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.components.HasChildren
+import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasValueReference
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -72,6 +75,10 @@ object IndexCheckLinterInspection : MongoDbInspection {
             return
         }
 
+        if (query.allFieldsInQuery() != setOf("dispute.status", "dispute.type")) {
+            return
+        }
+
         val readModelProvider = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
 
         val result =
@@ -116,5 +123,24 @@ object IndexCheckLinterInspection : MongoDbInspection {
                 MongoshDialect.formatter.indexCommandForQuery(query)
             }
         )
+    }
+}
+
+
+private fun <S> Node<S>.allFieldsInQuery(): Set<String?> {
+    val hasChildren = component<HasChildren<S>>()
+    val otherRefs = hasChildren?.children?.flatMap { it.allFieldsInQuery() }?.toSet() ?: emptySet<String>()
+    val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
+    val valueRef = component<HasValueReference<S>>()?.reference
+    return if (fieldRef is HasFieldReference.Known) {
+        otherRefs + (valueRef?.let { reference ->
+            when (reference) {
+                is HasValueReference.Constant<S> -> fieldRef.fieldName
+                is HasValueReference.Runtime<S> -> fieldRef.fieldName
+                else -> null
+            }
+        } ?: fieldRef.fieldName)
+    } else {
+        otherRefs
     }
 }

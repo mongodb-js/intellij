@@ -15,16 +15,18 @@ public class JavaDriverRepository {
     private static final String IMDB_VOTES = "imdb.votes";
     public static final String AWARDS_WINS = "awards.wins";
 
-    private final MongoClient client;
+    private final MongoCollection<Document> trips;
 
     public JavaDriverRepository(MongoClient client) {
-        this.client = client;
+        this.trips = client.getDatabase("production").getCollection("trips");
     }
 
     private List<Document> getGrade() {
-        return client.getDatabase("production")
-                .getCollection("trips")
-                .find(Filters.eq(IMDB_VOTES, 1))
+        return trips.find(
+                Filters.and(
+                        Filters.eq("dispute.status", 1),
+                        Filters.eq("dispute.type", 1)
+                ))
                 .into(new ArrayList<>());
     }
 }
