@@ -47,10 +47,10 @@ data class Node<S>(
     inline fun <reified C : Component> hasComponent(): Boolean = component<C>() != null
 
     fun withTargetCluster(cluster: HasTargetCluster): Node<S> = copy(source = source, components = components.filter {
- it !is HasTargetCluster
- } + cluster)
+        it !is HasTargetCluster
+    } + cluster)
 
-/**
+    /**
      * Creates a copy of the query and modifies the database reference in every HasCollectionReference component
      * with the provided database
      *
