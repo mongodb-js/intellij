@@ -19,6 +19,12 @@ import io.github.z4kn4fein.semver.Version
 import kotlinx.coroutines.CoroutineScope
 
 /**
+ * Attempts to parse a query for a PsiElement if there is one, given the dialect of the current
+ * file. Caches the result inside the PsiElement metadata and only reparses the query if that
+ * element or it's children change.
+ *
+ * It might return null if there is no query to parse.
+ *
  * @property coroutineScope
  */
 @Service(Service.Level.PROJECT)
@@ -44,8 +50,8 @@ class CachedQueryService(
 
         val cacheManager = CachedValuesManager.getManager(attachment.project)
         attachment.getUserData(queryCacheKey)?.let {
-return decorateWithMetadata(dataSource, attachment.getUserData(queryCacheKey)!!.value)
-}
+            return decorateWithMetadata(dataSource, attachment.getUserData(queryCacheKey)!!.value)
+        }
 
         val cachedValue = cacheManager.createCachedValue {
             val parsedAst = dialect.parser.parse(expression)
