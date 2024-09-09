@@ -12,31 +12,36 @@ import org.owasp.encoder.Encode
 object MongoshDialectFormatter : DialectFormatter {
     override fun <S> formatQuery(query: Node<S>, explain: Boolean) = ""
     override fun <S> indexCommandForQuery(query: Node<S>): String = when (val index = IndexAnalyzer.analyze(query)) {
-            is IndexAnalyzer.SuggestedIndex.NoIndex -> ""
-            is IndexAnalyzer.SuggestedIndex.MongoDbIndex -> {
-                val targetCluster = query.component<HasTargetCluster>()
-                val version = targetCluster?.majorVersion ?: Version(7)
-                val docPrefix = "https://www.mongodb.com/docs/v${version.major}.${version.minor}"
+        is IndexAnalyzer.SuggestedIndex.NoIndex -> ""
+        is IndexAnalyzer.SuggestedIndex.MongoDbIndex -> {
+            val targetCluster = query.component<HasTargetCluster>()
+            val version = targetCluster?.majorVersion ?: Version(7)
+            val docPrefix = "https://www.mongodb.com/docs/v${version.major}.${version.minor}"
 
-                val fieldList = index.fields.joinToString { Encode.forJavaScript(it.fieldName) }
-                val (dbName, collName) = when (val collRef = index.collectionReference.reference) {
-                    is HasCollectionReference.Unknown -> ("<database>" to "<collection>")
-                    is HasCollectionReference.OnlyCollection -> ("<database>" to collRef.collection)
-                    is HasCollectionReference.Known -> (collRef.namespace.database to collRef.namespace.collection)
-                }
+            val fieldList = index.fields.joinToString { Encode.forJavaScript(it.fieldName) }
+            val (dbName, collName) = when (val collRef = index.collectionReference.reference) {
+                is HasCollectionReference.Unknown -> ("<database>" to "<collection>")
+                is HasCollectionReference.OnlyCollection -> ("<database>" to collRef.collection)
+                is HasCollectionReference.Known -> (collRef.namespace.database to collRef.namespace.collection)
+            }
 
-                val encodedDbName = Encode.forJavaScript(dbName)
-                val encodedColl = Encode.forJavaScript(collName)
+            val encodedDbName = Encode.forJavaScript(dbName)
+            val encodedColl = Encode.forJavaScript(collName)
 
+            val createIndexTemplate = List(index.fields.size) { i ->
                 """
+                "<your_field${i + 1}>": 1
+                """.trimIndent()
+            }.joinToString(separator = ", ", prefix = "{ ", postfix = " }")
+
+            """
                     // Potential fields to consider indexing: $fieldList
                     // Learn about creating an index: $docPrefix/core/data-model-operations/#indexes
-                   
                     db.getSiblingDB("$encodedDbName").getCollection("$encodedColl")
-                      .createIndex({ "<your_field>": 1 })
+                      .createIndex($createIndexTemplate)
                 """.trimIndent()
-            }
         }
+    }
 
     override fun formatType(type: BsonType) = ""
 }
