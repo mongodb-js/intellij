@@ -13,7 +13,7 @@ class IndexAnalyzerTest {
         val query = Node(Unit, emptyList())
         val result = IndexAnalyzer.analyze(query)
 
-        assertEquals(SuggestedIndex.NoIndex, result)
+        assertEquals(IndexAnalyzer.SuggestedIndex.NoIndex, result)
     }
 
     @Test
@@ -34,11 +34,11 @@ class IndexAnalyzerTest {
             )
         )
 
-        val result = IndexAnalyzer.analyze(query) as SuggestedIndex.MongoDbIndex
+        val result = IndexAnalyzer.analyze(query) as IndexAnalyzer.SuggestedIndex.MongoDbIndex
 
         assertEquals(1, result.fields.size)
         assertEquals(collectionReference, result.collectionReference)
-        assertEquals(SuggestedIndex.MongoDbIndexField("myField", Unit), result.fields[0])
+        assertEquals(IndexAnalyzer.SuggestedIndex.MongoDbIndexField("myField", Unit), result.fields[0])
     }
 
     @Test
@@ -69,11 +69,11 @@ class IndexAnalyzerTest {
             )
         )
 
-        val result = IndexAnalyzer.analyze(query) as SuggestedIndex.MongoDbIndex
+        val result = IndexAnalyzer.analyze(query) as IndexAnalyzer.SuggestedIndex.MongoDbIndex
 
         assertEquals(2, result.fields.size)
         assertEquals(collectionReference, result.collectionReference)
-        assertEquals(SuggestedIndex.MongoDbIndexField("myField", Unit), result.fields[0])
-        assertEquals(SuggestedIndex.MongoDbIndexField("mySecondField", Unit), result.fields[1])
+        assertEquals(IndexAnalyzer.SuggestedIndex.MongoDbIndexField("myField", Unit), result.fields[0])
+        assertEquals(IndexAnalyzer.SuggestedIndex.MongoDbIndexField("mySecondField", Unit), result.fields[1])
     }
 }
