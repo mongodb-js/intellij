@@ -276,7 +276,7 @@ fun LocalDataSource.isConnected(): Boolean =
         .activeConnections
         .any { connection ->
             connection.connectionPoint.dataSource == dataSource &&
-                runCatching {
-                    !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(TIMEOUT)
-                }.getOrDefault(false)
+                    runCatching {
+                        !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(TIMEOUT)
+                    }.getOrDefault(false)
         }
