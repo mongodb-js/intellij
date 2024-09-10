@@ -18,12 +18,8 @@ import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
-import org.bson.BsonReader
-import org.bson.BsonWriter
 import org.bson.Document
-import org.bson.codecs.Codec
 import org.bson.codecs.DecoderContext
-import org.bson.codecs.EncoderContext
 import org.bson.codecs.configuration.CodecRegistries.fromRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
@@ -258,25 +254,6 @@ internal class DataGripMongoDbDriver(
             fn(myConnections)
             myConnectionsField.isAccessible = false
         }
-    }
-}
-
-/**
- * The Java driver doesn't know how to serialize/deserialize Unit (Kotlin's void)
- * so we are adding our custom implementation that is noop.
- */
-private object UnitCodec : Codec<Unit> {
-    override fun encode(
-writer: BsonWriter,
- value: Unit,
- encoderContext: EncoderContext
-) {
-    }
-
-    override fun getEncoderClass(): Class<Unit> = Unit::class.java
-
-    override fun decode(reader: BsonReader, decoderContext: DecoderContext) {
-        return
     }
 }
 
