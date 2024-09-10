@@ -119,12 +119,12 @@ class MongoshBackendTest {
             1 to "1",
             1.5 to "1.5",
             "myString" to "\"myString\"",
-            Date() to "Date()",
+            Date() to "ISODate()",
             BigInteger("5234") to "Decimal128(\"5234\")",
             BigDecimal("5234.5234") to "Decimal128(\"5234.5234\")",
             true to "true",
             ObjectId("66e02569aa5b362fa36f2416") to "ObjectId(\"66e02569aa5b362fa36f2416\")",
-            listOf(1, 2.2, Date()) to "[1, 2.2, Date()]",
+            listOf(1, 2.2, Date()) to "[1, 2.2, ISODate()]",
             mapOf("a" to "1", "b" to 2) to "{\"a\": \"1\", \"b\": 2}",
             SomeObject(1, "2") to "{}", // we won't serialize unknown objects
         )
@@ -136,7 +136,7 @@ class MongoshBackendTest {
             BsonAnyOf(BsonNull, BsonString, BsonInt64) to "\"\"",
             BsonArray(BsonAny) to "[]",
             BsonBoolean to "false",
-            BsonDate to "Date()",
+            BsonDate to "ISODate(\"2009-02-11T18:00:00.000Z\")",
             BsonDecimal128 to "Decimal128(\"0\")",
             BsonDouble to "0.0",
             BsonInt32 to "0",

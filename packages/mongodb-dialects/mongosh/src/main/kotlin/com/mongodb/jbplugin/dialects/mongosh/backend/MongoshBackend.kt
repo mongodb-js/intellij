@@ -5,7 +5,12 @@ import org.bson.types.ObjectId
 import org.owasp.encoder.Encode
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.util.Date
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.*
+
+private const val MONGODB_FIRST_RELEASE = "2009-02-11T18:00:00.000Z"
 
 /**
  * @param context
@@ -58,7 +63,7 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
     fun emitObjectKey(key: ContextValue): MongoshBackend {
         when (key) {
             is ContextValue.Variable -> emitAsIs("[${key.name}]")
-            is ContextValue.Constant -> emitPrimitive(key.value)
+            is ContextValue.Constant -> emitPrimitive(key.value, false)
         else -> {
 // this is a generated else block
 }
@@ -104,7 +109,7 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
 
     fun emitContextValue(value: ContextValue): MongoshBackend {
         when (value) {
-            is ContextValue.Constant -> emitPrimitive(value.value)
+            is ContextValue.Constant -> emitPrimitive(value.value, false)
             is ContextValue.Variable -> emitAsIs(value.name)
         else -> {
 // this is a generated else block
@@ -123,13 +128,13 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
         emitAsIs("var ")
         emitAsIs(name)
         emitAsIs(" = ")
-        emitPrimitive(value)
+        emitPrimitive(value, true)
         emitNewLine()
         return this
     }
 
-    private fun emitPrimitive(value: Any?): MongoshBackend {
-        output.append(serializePrimitive(value))
+    private fun emitPrimitive(value: Any?, isPlaceholder: Boolean): MongoshBackend {
+        output.append(serializePrimitive(value, isPlaceholder))
         return this
     }
 
@@ -140,31 +145,38 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
     }
 }
 
-private fun serializePrimitive(value: Any?): String = when (value) {
-        is Byte, Short, Int, Long, Float, Double -> Encode.forJavaScript(value.toString())
-        is BigInteger -> "Decimal128(\"$value\")"
-        is BigDecimal -> "Decimal128(\"$value\")"
-        is Boolean -> value.toString()
-        is ObjectId -> "ObjectId(\"${Encode.forJavaScript(value.toHexString())}\")"
-        is Number -> Encode.forJavaScript(value.toString())
-        is String -> '"' + Encode.forJavaScript(value) + '"'
-        is Date -> "Date()"
-        is Collection<*> -> value.joinToString(separator = ", ", prefix = "[", postfix = "]") {
-            serializePrimitive(it)
-        }
-        is Map<*, *> -> value.entries.joinToString(separator = ", ", prefix = "{", postfix = "}") {
-            "\"${it.key}\": ${serializePrimitive(it.value)}"
-        }
-        null -> "null"
-        else -> "{}"
+private fun serializePrimitive(value: Any?, isPlaceholder: Boolean): String = when (value) {
+    is Byte, Short, Int, Long, Float, Double -> Encode.forJavaScript(value.toString())
+    is BigInteger -> "Decimal128(\"$value\")"
+    is BigDecimal -> "Decimal128(\"$value\")"
+    is Boolean -> value.toString()
+    is ObjectId -> "ObjectId(\"${Encode.forJavaScript(value.toHexString())}\")"
+    is Number -> Encode.forJavaScript(value.toString())
+    is String -> '"' + Encode.forJavaScript(value) + '"'
+    is Date, is Instant, is LocalDate, is LocalDateTime -> if (isPlaceholder) {
+        "ISODate(\"$MONGODB_FIRST_RELEASE\")"
+    } else {
+        "ISODate()"
     }
+
+    is Collection<*> -> value.joinToString(separator = ", ", prefix = "[", postfix = "]") {
+        serializePrimitive(it, isPlaceholder)
+    }
+
+    is Map<*, *> -> value.entries.joinToString(separator = ", ", prefix = "{", postfix = "}") {
+        "\"${it.key}\": ${serializePrimitive(it.value, isPlaceholder)}"
+    }
+
+    null -> "null"
+    else -> "{}"
+}
 
 private fun defaultValueOfBsonType(type: BsonType): Any? = when (type) {
     BsonAny -> "any"
     is BsonAnyOf -> defaultValueOfBsonType(type.types.firstOrNull { it !is BsonNull } ?: BsonAny)
     is BsonArray -> emptyList<Any>()
     BsonBoolean -> false
-    BsonDate -> Date()
+    BsonDate -> Date.from(Instant.parse(MONGODB_FIRST_RELEASE))
     BsonDecimal128 -> BigInteger.ZERO
     BsonDouble -> 0.0
     BsonInt32 -> 0

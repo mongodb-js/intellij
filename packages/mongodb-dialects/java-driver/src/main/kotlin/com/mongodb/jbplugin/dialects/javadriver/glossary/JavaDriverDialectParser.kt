@@ -5,10 +5,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.HasChildren
-import com.mongodb.jbplugin.mql.components.HasFieldReference
-import com.mongodb.jbplugin.mql.components.HasValueReference
-import com.mongodb.jbplugin.mql.components.Named
+import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
@@ -132,7 +129,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return Node(
                 filter,
                 listOf(
-                    Named(method.name),
+                    Named(Name.from(method.name)),
                     HasChildren(
                         filter.argumentList.expressions
                             .mapNotNull { resolveToFiltersCall(it) }
@@ -148,7 +145,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return Node(
                 filter,
                 listOf(
-                    Named(method.name),
+                    Named(Name.from(method.name)),
                     HasFieldReference(
                         fieldReference,
                     ),
@@ -223,7 +220,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return Node(
                 filter,
                 listOf(
-                    Named(method.name),
+                    Named(Name.from(method.name)),
                     HasChildren(
                         filter.argumentList.expressions
                             .mapNotNull { resolveToUpdatesCall(it) }
@@ -239,7 +236,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return Node(
                 filter,
                 listOf(
-                    Named(method.name),
+                    Named(Name.from(method.name)),
                     HasFieldReference(
                         fieldReference,
                     ),
@@ -255,7 +252,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return Node(
                 filter,
                 listOf(
-                    Named(method.name),
+                    Named(Name.from(method.name)),
                     HasFieldReference(
                         fieldReference,
                     ),
@@ -308,3 +305,4 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return bottomLevel
     }
 }
+

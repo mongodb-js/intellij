@@ -9,49 +9,52 @@ import org.owasp.encoder.Encode
 
 object MongoshDialectFormatter : DialectFormatter {
     override fun <S> formatQuery(query: Node<S>, explain: Boolean): String = MongoshBackend().apply {
-            emitDbAccess()
-            emitCollectionReference(query.component<HasCollectionReference<S>>())
-            emitFunctionName("find")
-            emitFunctionCall({
-                emitQueryBody(query, firstCall = true)
-            })
-            if (explain) {
-                emitPropertyAccess()
-                emitFunctionName("explain")
-                emitFunctionCall()
-            }
-        }.computeOutput()
+        emitDbAccess()
+        emitCollectionReference(query.component<HasCollectionReference<S>>())
+        emitFunctionName("find")
+        emitFunctionCall({
+            emitQueryBody(query, firstCall = true)
+        })
+        if (explain) {
+            emitPropertyAccess()
+            emitFunctionName("explain")
+            emitFunctionCall()
+        }
+    }.computeOutput()
 
     override fun <S> indexCommandForQuery(query: Node<S>): String = when (val index = IndexAnalyzer.analyze(query)) {
-            is IndexAnalyzer.SuggestedIndex.NoIndex -> ""
-            is IndexAnalyzer.SuggestedIndex.MongoDbIndex -> {
-                val targetCluster = query.component<HasTargetCluster>()
-                val version = targetCluster?.majorVersion ?: Version(7)
-                val docPrefix = "https://www.mongodb.com/docs/v${version.major}.${version.minor}"
+        is IndexAnalyzer.SuggestedIndex.NoIndex -> ""
+        is IndexAnalyzer.SuggestedIndex.MongoDbIndex -> {
+            val targetCluster = query.component<HasTargetCluster>()
+            val version = targetCluster?.majorVersion ?: Version(7)
+            val docPrefix = "https://www.mongodb.com/docs/v${version.major}.${version.minor}"
 
-                val fieldList = index.fields.joinToString { Encode.forJavaScript(it.fieldName) }
-                val (dbName, collName) = when (val collRef = index.collectionReference.reference) {
-                    is HasCollectionReference.Unknown -> ("<database>" to "<collection>")
-                    is HasCollectionReference.OnlyCollection -> ("<database>" to collRef.collection)
-                    is HasCollectionReference.Known -> (collRef.namespace.database to collRef.namespace.collection)
-                }
+            val fieldList = index.fields.joinToString { Encode.forJavaScript(it.fieldName) }
+            val (dbName, collName) = when (val collRef = index.collectionReference.reference) {
+                is HasCollectionReference.Unknown -> ("<database>" to "<collection>")
+                is HasCollectionReference.OnlyCollection -> ("<database>" to collRef.collection)
+                is HasCollectionReference.Known -> (collRef.namespace.database to collRef.namespace.collection)
+            }
 
-                val encodedDbName = Encode.forJavaScript(dbName)
-                val encodedColl = Encode.forJavaScript(collName)
+            val encodedDbName = Encode.forJavaScript(dbName)
+            val encodedColl = Encode.forJavaScript(collName)
 
-                val indexTemplate = index.fields.withIndex().joinToString(separator = ", ", prefix = "{ ",
- postfix = " }") {
-                    """ "<your_field_${it.index + 1}>": 1 """.trim()
-                }
+            val indexTemplate = index.fields.withIndex().joinToString(
+                separator = ", ",
+                prefix = "{ ",
+                postfix = " }"
+            ) {
+                """ "<your_field_${it.index + 1}>": 1 """.trim()
+            }
 
-                """
+            """
                     // Potential fields to consider indexing: $fieldList
                     // Learn about creating an index: $docPrefix/core/data-model-operations/#indexes
                     db.getSiblingDB("$encodedDbName").getCollection("$encodedColl")
                       .createIndex($indexTemplate)
                 """.trimIndent()
-            }
         }
+    }
 
     override fun formatType(type: BsonType) = ""
 }
@@ -69,6 +72,7 @@ private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean =
         if (firstCall) {
             emitObjectStart()
         }
+
         hasChildren.children.forEach {
             emitQueryBody(it)
             emitObjectValueEnd()
@@ -88,36 +92,47 @@ private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean =
         }
     } else named?.let {
 // 3. children and named
-if (named.name == "eq") {
+if (named.name == Name.EQ) {
 // normal a: b case
 if (firstCall) {
 emitObjectStart()
 }
+if (fieldRef != null && valueRef != null) {
+emitObjectKey(resolveFieldReference(fieldRef))
+emitContextValue(resolveValueReference(valueRef, fieldRef))
+} else {
 hasChildren?.children?.forEach {
 emitQueryBody(it)
 emitObjectValueEnd()
 }
+}
 if (firstCall) {
 emitObjectEnd()
 }
-} else if (setOf("gt", "gte", "lt", "lte").contains(named.name) && fieldRef != null && valueRef != null) {
+} else if (setOf(
+Name.GT,
+Name.GTE,
+Name.LT,
+Name.LTE
+).contains(named.name) && fieldRef != null && valueRef != null
+) {
 // a: { $gt: 1 }
 if (firstCall) {
 emitObjectStart()
 }
 emitObjectKey(resolveFieldReference(fieldRef))
 emitObjectStart()
-emitObjectKey(registerConstant('$' + named.name))
+emitObjectKey(registerConstant('$' + named.name.canonical))
 emitContextValue(resolveValueReference(valueRef, fieldRef))
 emitObjectEnd()
 if (firstCall) {
 emitObjectEnd()
 }
-} else if (setOf("and", "or", "not").contains(named.name)) {
+} else if (setOf(Name.AND, Name.OR, Name.NOR, Name.NOT).contains(named.name)) {
 if (firstCall) {
 emitObjectStart()
 }
-emitObjectKey(registerConstant('$' + named.name))
+emitObjectKey(registerConstant('$' + named.name.canonical))
 emitArrayStart()
 hasChildren?.children?.forEach {
 emitObjectStart()
@@ -163,10 +178,12 @@ private fun <S> MongoshBackend.emitCollectionReference(collRef: HasCollectionRef
             emitDatabaseAccess(registerVariable("database", BsonString))
             emitCollectionAccess(registerConstant(ref.collection))
         }
+
         is HasCollectionReference.Known -> {
             emitDatabaseAccess(registerConstant(ref.namespace.database))
             emitCollectionAccess(registerConstant(ref.namespace.collection))
         }
+
         else -> {
             emitDatabaseAccess(registerVariable("database", BsonString))
             emitCollectionAccess(registerVariable("collection", BsonString))

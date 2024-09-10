@@ -37,6 +37,34 @@ class MongoshDialectFormatterTest {
     }
 
     @Test
+    fun `can format a simple query`() {
+        val namespace = Namespace("myDb", "myColl")
+
+        assertGeneratedQuery(
+            """
+            db.getSiblingDB("myDb").getCollection("myColl").find({ "myField": "myVal", })
+        """.trimIndent()
+        ) {
+            Node(
+                Unit, listOf(
+                    HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
+                    HasChildren(
+                        listOf(
+                            Node(
+                                Unit, listOf(
+                                    Named("eq"),
+                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
     fun `can format a query with an explain plan`() {
         assertGeneratedQuery("""
             var collection = ""
