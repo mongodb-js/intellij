@@ -92,60 +92,60 @@ private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean =
         }
     } else named?.let {
 // 3. children and named
-if (named.name == Name.EQ) {
+        if (named.name == Name.EQ) {
 // normal a: b case
-if (firstCall) {
-emitObjectStart()
-}
-if (fieldRef != null && valueRef != null) {
-emitObjectKey(resolveFieldReference(fieldRef))
-emitContextValue(resolveValueReference(valueRef, fieldRef))
-} else {
-hasChildren?.children?.forEach {
-emitQueryBody(it)
-emitObjectValueEnd()
-}
-}
-if (firstCall) {
-emitObjectEnd()
-}
-} else if (setOf(
-Name.GT,
-Name.GTE,
-Name.LT,
-Name.LTE
-).contains(named.name) && fieldRef != null && valueRef != null
-) {
+            if (firstCall) {
+                emitObjectStart()
+            }
+            if (fieldRef != null && valueRef != null) {
+                emitObjectKey(resolveFieldReference(fieldRef))
+                emitContextValue(resolveValueReference(valueRef, fieldRef))
+            } else {
+                hasChildren?.children?.forEach {
+                    emitQueryBody(it)
+                    emitObjectValueEnd()
+                }
+            }
+            if (firstCall) {
+                emitObjectEnd()
+            }
+        } else if (setOf(
+                Name.GT,
+                Name.GTE,
+                Name.LT,
+                Name.LTE
+            ).contains(named.name) && fieldRef != null && valueRef != null
+        ) {
 // a: { $gt: 1 }
-if (firstCall) {
-emitObjectStart()
-}
-emitObjectKey(resolveFieldReference(fieldRef))
-emitObjectStart()
-emitObjectKey(registerConstant('$' + named.name.canonical))
-emitContextValue(resolveValueReference(valueRef, fieldRef))
-emitObjectEnd()
-if (firstCall) {
-emitObjectEnd()
-}
-} else if (setOf(Name.AND, Name.OR, Name.NOR, Name.NOT).contains(named.name)) {
-if (firstCall) {
-emitObjectStart()
-}
-emitObjectKey(registerConstant('$' + named.name.canonical))
-emitArrayStart()
-hasChildren?.children?.forEach {
-emitObjectStart()
-emitQueryBody(it)
-emitObjectEnd()
-emitObjectValueEnd()
-}
-emitArrayEnd()
-if (firstCall) {
-emitObjectEnd()
-}
-}
-}
+            if (firstCall) {
+                emitObjectStart()
+            }
+            emitObjectKey(resolveFieldReference(fieldRef))
+            emitObjectStart()
+            emitObjectKey(registerConstant('$' + named.name.canonical))
+            emitContextValue(resolveValueReference(valueRef, fieldRef))
+            emitObjectEnd()
+            if (firstCall) {
+                emitObjectEnd()
+            }
+        } else if (setOf(Name.AND, Name.OR, Name.NOR, Name.NOT).contains(named.name)) {
+            if (firstCall) {
+                emitObjectStart()
+            }
+            emitObjectKey(registerConstant('$' + named.name.canonical))
+            emitArrayStart()
+            hasChildren?.children?.forEach {
+                emitObjectStart()
+                emitQueryBody(it)
+                emitObjectEnd()
+                emitObjectValueEnd()
+            }
+            emitArrayEnd()
+            if (firstCall) {
+                emitObjectEnd()
+            }
+        }
+    }
 
     return this
 }
