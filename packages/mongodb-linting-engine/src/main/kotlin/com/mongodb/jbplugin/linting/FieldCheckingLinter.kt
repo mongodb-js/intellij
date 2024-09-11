@@ -6,6 +6,7 @@ package com.mongodb.jbplugin.linting
 
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
+import com.mongodb.jbplugin.linting.FieldCheckWarning.FieldDoesNotExist
 import com.mongodb.jbplugin.mql.*
 import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
@@ -82,7 +83,7 @@ object FieldCheckingLinter {
         readModelProvider: MongoDbReadModelProvider<D>,
         query: Node<S>,
     ): FieldCheckResult<S> {
-        val queryNamespace = query.component<HasCollectionReference>() ?: return FieldCheckResult.empty()
+        val queryNamespace = query.component<HasCollectionReference<S>>() ?: return FieldCheckResult.empty()
         if (queryNamespace.reference !is HasCollectionReference.Known) {
             return FieldCheckResult.empty()
         }

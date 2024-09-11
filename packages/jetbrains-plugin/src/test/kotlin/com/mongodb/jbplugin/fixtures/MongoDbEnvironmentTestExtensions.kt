@@ -10,9 +10,11 @@ import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoClients
+import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.junit.jupiter.api.extension.*
@@ -143,6 +145,10 @@ internal class DirectMongoDbDriver(
     val gson = Gson()
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(uri)
+
+    override suspend fun <S> explain(query: Node<S>): ExplainPlan {
+        throw UnsupportedOperationException()
+    }
 
     override suspend fun <T : Any> runCommand(
         database: String,

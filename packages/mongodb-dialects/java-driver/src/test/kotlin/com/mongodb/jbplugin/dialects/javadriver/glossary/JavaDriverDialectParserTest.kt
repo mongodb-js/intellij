@@ -125,7 +125,8 @@ public final class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val knownReference = parsedQuery.component<HasCollectionReference>()?.reference as HasCollectionReference.Known
+        val knownReference =
+ parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
         val namespace = knownReference.namespace
 
         assertEquals("simple", namespace.database)
@@ -158,7 +159,7 @@ public final class Repository {
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
         val unknownReference =
-            parsedQuery.component<HasCollectionReference>()?.reference as HasCollectionReference.Unknown
+            parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Unknown
 
         assertEquals(HasCollectionReference.Unknown, unknownReference)
     }

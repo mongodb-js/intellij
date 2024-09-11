@@ -5,20 +5,17 @@
 
 package com.mongodb.jbplugin.inspections.impl
 
-import com.intellij.codeInspection.LocalQuickFix
-import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.database.dataSource.LocalDataSource
-import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.dialects.DialectFormatter
-import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.i18n.InspectionsAndInlaysMessages
 import com.mongodb.jbplugin.inspections.AbstractMongoDbInspectionBridge
 import com.mongodb.jbplugin.inspections.MongoDbInspection
+import com.mongodb.jbplugin.inspections.quickfixes.OpenConnectionChooserQuickFix
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
 import com.mongodb.jbplugin.mql.Node
@@ -51,7 +48,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             return registerNoConnectionProblem(coroutineScope, problems, query.source)
         }
 
-        if (query.component<HasCollectionReference>()?.reference is HasCollectionReference.OnlyCollection) {
+        if (query.component<HasCollectionReference<PsiElement>>()?.reference is HasCollectionReference.OnlyCollection) {
             return registerNoDatabaseSelectedProblem(coroutineScope, problems, query.source)
         }
 
@@ -157,25 +154,5 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
                 InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
             ),
         )
-    }
-
-    /**
-     * This quickfix opens a modal with the connection chooser.
-     *
-     * @param message
-     * @param coroutineScope
-     */
-    private class OpenConnectionChooserQuickFix(
-        private val coroutineScope: CoroutineScope,
-        private val message: String,
-    ) : LocalQuickFix {
-        override fun getFamilyName(): String = message
-
-        override fun applyFix(
-            project: Project,
-            descriptor: ProblemDescriptor,
-        ) {
-            MdbJavaEditorToolbar.showModalForSelection(project)
-        }
     }
 }

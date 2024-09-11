@@ -296,7 +296,7 @@ private object MongoDbElementPatterns {
         }
 
         val parsedQuery = queryRoot?.let { dialect.parser.parse(it) }
-        val collectionReference = parsedQuery?.component<HasCollectionReference>()
+        val collectionReference = parsedQuery?.component<HasCollectionReference<PsiElement>>()
         val queryCollection = collectionReference?.let { extractCollection(it) }
 
         val database = extractDatabase(collectionReference)
@@ -306,14 +306,14 @@ private object MongoDbElementPatterns {
         return database to queryCollection
     }
 
-    private fun extractCollection(reference: HasCollectionReference): String? =
+    private fun extractCollection(reference: HasCollectionReference<PsiElement>): String? =
         when (val innerRef = reference.reference) {
             is HasCollectionReference.Known -> innerRef.namespace.collection
             is HasCollectionReference.OnlyCollection -> innerRef.collection
             else -> null
         }
 
-    private fun extractDatabase(reference: HasCollectionReference?): String? =
+    private fun extractDatabase(reference: HasCollectionReference<PsiElement>?): String? =
         when (val innerRef = reference?.reference) {
             is HasCollectionReference.Known -> innerRef.namespace.database
             else -> null
