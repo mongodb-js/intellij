@@ -29,4 +29,9 @@ interface MongoDbReadModelProvider<D> {
         dataSource: D,
         slice: Slice<T>,
     ): T
+
+    suspend fun <T : Any> suspendedSlice(
+        dataSource: D,
+        slice: Slice<T>
+    ): T
 }

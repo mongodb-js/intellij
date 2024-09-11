@@ -72,4 +72,23 @@ class DataGripBasedReadModelProvider(
             }
         }
     }
+
+    override suspend fun <T : Any> suspendedSlice(
+        dataSource: LocalDataSource,
+        slice: Slice<T>,
+    ): T = cachedValues.computeIfAbsent(slice.id, fromSuspendedSlice(dataSource, slice)).value as T
+
+    private suspend fun <T : Any> fromSuspendedSlice(
+        dataSource: LocalDataSource,
+        slice: Slice<T>,
+    ): (String) -> CachedValue<T> {
+        val cacheManager = CachedValuesManager.getManager(project)
+        val driver = driverFactory(project, dataSource)
+        val sliceData = slice.queryUsingDriver(driver)
+        return {
+            cacheManager.createCachedValue {
+                CachedValueProvider.Result.create(sliceData, dataSource)
+            }
+        }
+    }
 }

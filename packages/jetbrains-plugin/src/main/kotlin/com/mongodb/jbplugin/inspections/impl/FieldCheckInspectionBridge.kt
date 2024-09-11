@@ -10,7 +10,6 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.database.dataSource.LocalDataSource
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
@@ -176,8 +175,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             project: Project,
             descriptor: ProblemDescriptor,
         ) {
-            val editor = FileEditorManager.getInstance(project).selectedTextEditorWithRemotes[0] ?: return
-            MdbJavaEditorToolbar.showModalForSelection(editor, coroutineScope)
+            MdbJavaEditorToolbar.showModalForSelection(project)
         }
     }
 }

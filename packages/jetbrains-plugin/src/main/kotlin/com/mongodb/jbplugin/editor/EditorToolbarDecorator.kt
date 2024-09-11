@@ -1,233 +1,164 @@
 package com.mongodb.jbplugin.editor
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.database.console.JdbcDriverManager
-import com.intellij.database.console.session.DatabaseSessionManager
 import com.intellij.database.dataSource.LocalDataSource
-import com.intellij.database.dataSource.LocalDataSourceManager
 import com.intellij.database.model.RawDataSource
 import com.intellij.database.psi.DataSourceManager
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.event.EditorFactoryEvent
-import com.intellij.openapi.editor.event.EditorFactoryListener
-import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
-import com.intellij.openapi.fileEditor.TextEditor
-import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.removeUserData
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.psi.util.PsiModificationTracker
-import com.intellij.util.messages.MessageBusConnection
-import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
-import com.mongodb.jbplugin.dialects.Dialect
-import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
-import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
-import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
-import com.mongodb.jbplugin.observability.probe.NewConnectionActivatedProbe
+import com.mongodb.jbplugin.editor.models.implementations.ProjectDataSourceModel
+import com.mongodb.jbplugin.editor.models.implementations.ProjectDatabaseModel
+import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
+import com.mongodb.jbplugin.editor.services.implementations.getEditorService
+import com.mongodb.jbplugin.editor.services.implementations.useToolbarSettings
+import io.ktor.util.collections.*
+import org.jetbrains.annotations.TestOnly
+
 import kotlinx.coroutines.CoroutineScope
 
 private val log = logger<EditorToolbarDecorator>()
 
-private val allDialects = listOf(
-    JavaDriverDialect,
-    SpringCriteriaDialect
-)
-
 /**
- * This decorator listens to an IntelliJ Editor lifecycle
- * and attaches our toolbar if necessary.
- *
  * @param coroutineScope
  */
 class EditorToolbarDecorator(
     private val coroutineScope: CoroutineScope,
-) : EditorFactoryListener,
+) : ProjectActivity,
     FileEditorManagerListener,
+    PsiModificationTracker.Listener,
     DataSourceManager.Listener,
-    JdbcDriverManager.Listener,
-    PsiModificationTracker.Listener {
-    internal var inferredDatabase: String? = null
-    internal var guessedDialect: Dialect<PsiElement, Project>? = null
-    internal lateinit var toolbar: MdbJavaEditorToolbar
-    internal lateinit var editor: Editor
-    internal lateinit var messageBusConnection: MessageBusConnection
+    JdbcDriverManager.Listener {
+    // The indicator that the project activity has started. Is used mostly by runReadActionAfterActivityStart
+    // to either trigger the listener right away or queue it for when the activity starts and initialises the necessary
+    // lateinit variables
+    private var activityStarted: Boolean = false
 
-    fun onConnected(dataSource: LocalDataSource) {
-        editor.virtualFile?.putUserData(Keys.attachedDataSource, dataSource)
-        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
+    // Set of listeners waiting for the activity to get started
+    internal val onActivityStartedListeners = ConcurrentSet<() -> Unit>()
 
-        ApplicationManager.getApplication().invokeLater {
-            val project = editor.project!!
-            val session = DatabaseSessionManager.openSession(project, dataSource, null)
-            val probe = NewConnectionActivatedProbe()
-            probe.connected(session)
+    // These variables are lateinit because we initialise them when the project activity starts using execute method
+    // below. We need to keep a hold of them because other listeners also use them in some way
+    private lateinit var project: Project
+    private lateinit var toolbar: MdbJavaEditorToolbar
 
-            inferredDatabase?.let {
-                toolbar.databaseComboBox.selectedDatabase = inferredDatabase
+    // The activity (EditorToolbarDecorator) implements different listeners which may or may not get triggered before
+    // our ProjectActivity has started which means there is a chance that those listeners may find uninitialised state
+    // and start failing. To prevent that we make use of this queueing mechanism until activity starts
+    private fun runReadActionAfterActivityStart(block: () -> Unit) {
+        if (!activityStarted) {
+            onActivityStartedListeners.add(block)
+        } else {
+            ApplicationManager.getApplication().runReadAction {
+                block()
             }
-
-            analyzeFileFromScratch()
         }
     }
 
-    fun onDisconnected() {
-        editor.virtualFile?.removeUserData(Keys.attachedDataSource)
-        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
-        analyzeFileFromScratch()
+    // Internal only because we spy on the method in tests
+    internal fun dispatchActivityStarted() {
+        activityStarted = true
+        ApplicationManager.getApplication().runReadAction {
+            val listeners = onActivityStartedListeners
+            onActivityStartedListeners.clear()
+            for (listener in listeners) {
+                try {
+                    listener()
+                } catch (e: Exception) {
+                    log.warn("Error while running onActivityStarted listener", e)
+                }
+            }
+        }
     }
 
-    fun onDatabaseSelected(database: String) {
-        editor.virtualFile?.putUserData(Keys.attachedDatabase, database)
-        analyzeFileFromScratch()
+    // Internal only because we spy on the method in tests
+    internal fun setupSubscriptionsForProject(project: Project) {
+        val messageBusConnection = project.messageBus.connect()
+        messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
+        messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
+        messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
+        messageBusConnection.subscribe(JdbcDriverManager.TOPIC, this)
     }
 
-    fun onDatabaseUnselected() {
-        editor.virtualFile?.removeUserData(Keys.attachedDatabase)
-        analyzeFileFromScratch()
+    @TestOnly
+    internal fun getToolbarForTests(): MdbJavaEditorToolbar = toolbar
+
+    override suspend fun execute(project: Project) {
+        ApplicationManager.getApplication().runReadAction {
+            val toolbarSettings = useToolbarSettings()
+            val editorService = getEditorService(project)
+            val dataSourceService = getDataSourceService(project)
+
+            val dataSourceModel = ProjectDataSourceModel(
+                toolbarSettings = toolbarSettings,
+                dataSourceService = dataSourceService,
+                editorService = editorService
+            )
+            val databaseModel = ProjectDatabaseModel(
+                toolbarSettings = toolbarSettings,
+                dataSourceService = dataSourceService,
+                editorService = editorService
+            )
+
+            if (!::toolbar.isInitialized) {
+                this.project = project
+                this.setupSubscriptionsForProject(project)
+                this.toolbar = MdbJavaEditorToolbar(
+                    dataSourceModel = dataSourceModel,
+                    databaseModel = databaseModel,
+                )
+            }
+
+            editorService.toggleToolbarForSelectedEditor(toolbar)
+            dispatchActivityStarted()
+        }
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        (event.newEditor as? TextEditor)?.editor?.let { newEditor ->
-            editor = newEditor
-            editor.project?.let { project ->
-                guessAndStoreDialect(project)
-            }
-            ensureToolbarIsVisibleIfNecessary()
-            toolbar.reloadDatabases()
+        runReadActionAfterActivityStart {
+            val editorService = getEditorService(project)
+            editorService.toggleToolbarForSelectedEditor(toolbar)
         }
-    }
-
-    override fun editorCreated(event: EditorFactoryEvent) {
-        editor = event.editor
-
-        editor.project?.let { project ->
-            toolbar = MdbJavaEditorToolbar(
-                project,
-                coroutineScope,
-                onConnected = this::onConnected,
-                onDisconnected = this::onDisconnected,
-                onDatabaseSelected = this::onDatabaseSelected,
-                onDatabaseUnselected = this::onDatabaseUnselected
-            )
-
-            messageBusConnection = project.messageBus.connect()
-            messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
-            messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
-            messageBusConnection.subscribe(JdbcDriverManager.TOPIC, this)
-
-            messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
-            val localDataSourceManager = DataSourceManager.byDataSource(project, LocalDataSource::class.java) ?: return
-            toolbar.reloadDataSources(localDataSourceManager.dataSources)
-
-            guessAndStoreDialect(project)
-            ensureToolbarIsVisibleIfNecessary()
-        }
-    }
-
-    private fun guessAndStoreDialect(project: Project) {
-        editor.project?.getService(DumbService::class.java)?.runWhenSmart {
-            guessedDialect = guessDialect()
-            guessedDialect?.let {
-                editor.virtualFile?.putUserData(Keys.attachedDialect, guessedDialect)
-            } ?: editor.virtualFile?.removeUserData(Keys.attachedDialect)
-            val metadata = guessedDialect?.connectionContextExtractor?.gatherContext(project)
-            inferredDatabase = metadata?.database
-        }
-    }
-
-    override fun editorReleased(event: EditorFactoryEvent) {
-
-    }
-
-    private fun ensureToolbarIsVisibleIfNecessary() {
-        guessedDialect?.let {
-            ensureSetupToolbarRequirements()
-            (editor as? EditorEx)?.permanentHeaderComponent = toolbar
-            editor.headerComponent = toolbar
-        } ?: run {
-            (editor as? EditorEx)?.permanentHeaderComponent = null
-            editor.headerComponent = null
-        }
-    }
-
-    private fun ensureSetupToolbarRequirements() {
-        val requirements = guessedDialect?.connectionContextExtractor?.requirements() ?: emptySet()
-        if (requirements.contains(ConnectionContextRequirement.DATABASE)) {
-            toolbar.showDatabaseSelector()
-        } else {
-            toolbar.hideDatabaseSelector()
-        }
-    }
-
-    private fun guessDialect(): Dialect<PsiElement, Project>? {
-        val project = editor.project ?: return null
-        val psiFileResult = runCatching { PsiManager.getInstance(project).findFile(editor.virtualFile) }
-
-        if (psiFileResult.isFailure) {
-            return null
-        }
-
-        psiFileResult.onFailure {
-            log.info("Could not find virtual file for current editor", it)
-        }
-
-        guessedDialect = psiFileResult.getOrNull()?.let { file ->
-            allDialects.find { it.isUsableForSource(file) }
-        }
-
-        return guessedDialect
-    }
-
-    override fun <T : RawDataSource?> dataSourceAdded(
-        manager: DataSourceManager<T>,
-        dataSource: T & Any,
-    ) {
-        val localDataSourceManager = manager as? LocalDataSourceManager ?: return
-        toolbar.reloadDataSources(localDataSourceManager.dataSources)
-    }
-
-    override fun <T : RawDataSource?> dataSourceRemoved(
-        manager: DataSourceManager<T>,
-        dataSource: T & Any,
-    ) {
-        val localDataSourceManager = manager as? LocalDataSourceManager ?: return
-        toolbar.reloadDataSources(localDataSourceManager.dataSources)
-    }
-
-    override fun <T : RawDataSource?> dataSourceChanged(
-        manager: DataSourceManager<T>?,
-        dataSource: T?,
-    ) {
-        val localDataSourceManager = manager as? LocalDataSourceManager ?: return
-        toolbar.reloadDataSources(localDataSourceManager.dataSources)
-    }
-
-    override fun onTerminated(
-        dataSource: LocalDataSource,
-        configuration: ConsoleRunConfiguration?,
-    ) {
-        toolbar.disconnect(dataSource)
     }
 
     override fun modificationCountChanged() {
-        guessedDialect = guessDialect()
-        ensureToolbarIsVisibleIfNecessary()
-    }
-
-    private fun analyzeFileFromScratch() {
-        runCatching {
-            val psiFile = PsiManager.getInstance(editor.project!!).findFile(editor.virtualFile) ?: return
-            DaemonCodeAnalyzer.getInstance(editor.project).restart(psiFile)
+        runReadActionAfterActivityStart {
+            val editorService = getEditorService(project)
+            editorService.toggleToolbarForSelectedEditor(toolbar)
         }
     }
 
-    companion object {
-        fun getToolbarFromEditor(editor: Editor) = editor.headerComponent as? MdbJavaEditorToolbar
+    override fun <T : RawDataSource?> dataSourceAdded(manager: DataSourceManager<T>, dataSource: T & Any) {
+        runReadActionAfterActivityStart {
+            // An added DataSource can't possibly change the selection state hence just reloading the DataSources
+            toolbar.reloadDataSources()
+        }
+    }
+
+    override fun <T : RawDataSource?> dataSourceRemoved(manager: DataSourceManager<T>, dataSource: T & Any) {
+        runReadActionAfterActivityStart {
+            // A removed DataSource might be our selected one so we first remove it and then reload the DataSources
+            // Unselection when happened is expected to trigger state change listener so that will update
+            // also the attached resources to the selected editor and the stored DataSource in ToolbarSettings
+            toolbar.unselectDataSource(dataSource as LocalDataSource)
+            toolbar.reloadDataSources()
+        }
+    }
+
+    override fun <T : RawDataSource?> dataSourceChanged(manager: DataSourceManager<T>?, dataSource: T?) {
+        runReadActionAfterActivityStart {
+            toolbar.reloadDataSources()
+        }
+    }
+
+    override fun onTerminated(dataSource: LocalDataSource, configuration: ConsoleRunConfiguration?) {
+        runReadActionAfterActivityStart {
+            toolbar.unselectDataSource(dataSource)
+        }
     }
 }

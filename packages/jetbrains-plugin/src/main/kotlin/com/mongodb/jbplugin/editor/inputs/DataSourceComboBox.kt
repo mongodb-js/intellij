@@ -7,112 +7,167 @@ import com.intellij.sql.indexOf
 import com.intellij.ui.AnimatedIcon.ANIMATION_IN_RENDERER_ALLOWED
 import com.intellij.ui.components.JBLabel
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
+import com.mongodb.jbplugin.editor.services.ConnectionState
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.i18n.Icons.scaledToText
 import com.mongodb.jbplugin.i18n.MdbToolbarMessages
-import java.awt.event.ItemEvent.DESELECTED
+import java.awt.Component
+import java.awt.event.ItemEvent
+import java.awt.event.ItemListener
 import javax.swing.DefaultComboBoxModel
+import javax.swing.JComponent
 import javax.swing.SwingConstants
 
-typealias DataSourceSelectedListener = (LocalDataSource) -> Unit
-typealias DataSourceUnselectedListener = () -> Unit
-
 /**
+ * @param parent
  * @param onDataSourceSelected
  * @param onDataSourceUnselected
+ * @param initialDataSources
+ * @param initialSelectedDataSource
  */
+// Ktlint is reporting WRONG_WHITESPACE for line number 88 but everything seems alright there
+@Suppress("WRONG_WHITESPACE")
 class DataSourceComboBox(
-    private val onDataSourceSelected: DataSourceSelectedListener,
-    private val onDataSourceUnselected: DataSourceUnselectedListener,
-) : ComboBox<LocalDataSource>(
-    DefaultComboBoxModel(emptyArray())
+    private val parent: JComponent,
+    private val onDataSourceSelected: (source: LocalDataSource) -> Unit,
+    private val onDataSourceUnselected: (source: LocalDataSource) -> Unit,
+    initialDataSources: List<LocalDataSource>,
+    initialSelectedDataSource: LocalDataSource?,
 ) {
-    var connecting: Boolean = false
-    var failedConnection: LocalDataSource? = null
+    private val comboBoxComponent = DataSourceComboBoxComponent()
+    private val comboBoxModel
+        get() = comboBoxComponent.model as DefaultComboBoxModel<LocalDataSource?>
 
-    var dataSources: List<LocalDataSource>
-        set(value) {
-            failedConnection = null
-            connecting = false
+    // UI related state
+    private var connecting = false
+    private var failedConnection: LocalDataSource? = null
 
-            val selectedItem = this.selectedDataSource?.uniqueId
-            val model = model as DefaultComboBoxModel<LocalDataSource>
-            model.removeAllElements()
-            model.addElement(null)
-            model.addAll(value)
-            selectDataSourceWithId(selectedItem)
+    val dataSources
+        get() = comboBoxModel.asSequence().toList().filterNotNull()
+
+    val selectedDataSource
+        get() = comboBoxComponent.selectedItem as LocalDataSource?
+
+    private val selectionChangedListener: ItemListener = ItemListener { event ->
+        connecting = false
+        failedConnection = null
+        if (event.stateChange == ItemEvent.DESELECTED) {
+            onDataSourceUnselected(event.item as LocalDataSource)
+        } else {
+            onDataSourceSelected(event.item as LocalDataSource)
         }
-        get() =
-            (model as DefaultComboBoxModel<LocalDataSource>).asSequence().toList().filterNotNull()
-
-    var selectedDataSource: LocalDataSource?
-        set(value) {
-            failedConnection = null
-            connecting = false
-
-            value?.let {
-                selectedItem = value
-            } ?: run {
-                selectedItem = null
-            }
-        }
-        get() = selectedItem as? LocalDataSource
+    }
 
     init {
-        addItemListener {
-            failedConnection = null
-            connecting = false
+        comboBoxComponent.putClientProperty(ANIMATION_IN_RENDERER_ALLOWED, true)
+        comboBoxComponent.addItemListener(selectionChangedListener)
+        comboBoxComponent.setRenderer { _, value, index, _, _ -> renderComboBoxItem(value, index) }
 
-            if (it.stateChange == DESELECTED) {
-                onDataSourceUnselected()
-            } else {
-                onDataSourceSelected(it.item as LocalDataSource)
-            }
-        }
-        putClientProperty(ANIMATION_IN_RENDERER_ALLOWED, true)
-        setRenderer { _, value, index, _, _ ->
-            if (value == null && index == -1) {
-                JBLabel(
-                    MdbToolbarMessages.message("attach.datasource.to.editor"),
-                    Icons.logo.scaledToText(),
-                    SwingConstants.LEFT,
-                )
-            } else {
-                value?.let {
-                    val icon =
-                        if (value.isConnected()) {
-                            Icons.logoConnected.scaledToText()
-                        } else if (connecting) {
-                            Icons.loading.scaledToText()
-                        } else if (failedConnection?.uniqueId == value.uniqueId) {
-                            Icons.connectionFailed.scaledToText()
-                        } else {
-                            Icons.logo.scaledToText()
-                        }
-                    JBLabel(value.name, icon, SwingConstants.LEFT)
-                } ?: JBLabel(
-                    MdbToolbarMessages.message("detach.datasource.from.editor"),
-                    Icons.remove.scaledToText(),
-                    SwingConstants.LEFT,
-                )
-            }
+        populateComboBoxWithDataSources(initialDataSources)
+        selectDataSourceByUniqueId(initialSelectedDataSource?.uniqueId)
+    }
+
+    private fun withoutSelectionChangedListener(block: () -> Unit) {
+        comboBoxComponent.removeItemListener(selectionChangedListener)
+        try {
+            block()
+        } finally {
+            comboBoxComponent.addItemListener(selectionChangedListener)
         }
     }
 
-    private fun selectDataSourceWithId(id: String?) {
-        id?.let {
-            val dataSourceIndex =
-                (model as DefaultComboBoxModel<LocalDataSource?>)
-                    .asSequence()
-                    .toList()
-                    .indexOf { it?.uniqueId == id }
-            if (dataSourceIndex == -1) {
-                selectedItem = null
+    private fun populateComboBoxWithDataSources(dataSources: List<LocalDataSource>) {
+        comboBoxModel.removeAllElements()
+        // First item is purposely a null to render "Detach data source label"
+        comboBoxModel.addElement(null)
+        comboBoxModel.addAll(dataSources)
+    }
+
+    private fun selectDataSourceByUniqueId(uniqueId: String?) {
+        // When the selectedId and the provided id are the same then we simply ignore this call because proceeding
+        // otherwise would lead to a deselection which we don't want
+        if (uniqueId == selectedDataSource?.uniqueId) {
+            return
+        }
+
+        uniqueId?.let {
+            val dataSourceIndex = comboBoxModel.asSequence().toList().indexOf { it?.uniqueId == uniqueId }
+            if (dataSourceIndex >= 0) {
+                comboBoxComponent.selectedIndex = dataSourceIndex
             } else {
-                selectedIndex = dataSourceIndex
+                comboBoxComponent.selectedItem = null
             }
         } ?: run {
-            selectedItem = null
+            comboBoxComponent.selectedItem = null
         }
     }
+
+    private fun renderComboBoxItem(item: LocalDataSource?, index: Int, ): Component = if (item == null && index == -1) {
+        JBLabel(
+            MdbToolbarMessages.message("attach.datasource.to.editor"),
+            Icons.logo.scaledToText(),
+            SwingConstants.LEFT,
+        )
+    } else {
+        item?.let {
+            val icon =
+                if (item.isConnected()) {
+                    Icons.logoConnected.scaledToText()
+                } else if (connecting) {
+                    Icons.loading.scaledToText()
+                } else if (failedConnection?.uniqueId == item.uniqueId) {
+                    Icons.connectionFailed.scaledToText()
+                } else {
+                    Icons.logo.scaledToText()
+                }
+            JBLabel(item.name, icon, SwingConstants.LEFT)
+        } ?: JBLabel(
+            MdbToolbarMessages.message("detach.datasource.from.editor"),
+            Icons.remove.scaledToText(),
+            SwingConstants.LEFT,
+        )
+    }
+
+    fun attachToParent() {
+        if (!parent.components.contains(comboBoxComponent)) {
+            parent.add(comboBoxComponent)
+        }
+    }
+
+    fun setComboBoxState(
+        dataSources: List<LocalDataSource>,
+        selectedDataSource: LocalDataSource?
+    ) = withoutSelectionChangedListener {
+        populateComboBoxWithDataSources(dataSources)
+        selectDataSourceByUniqueId(selectedDataSource?.uniqueId)
+    }
+
+    fun unselectDataSource(dataSource: LocalDataSource) {
+        if (selectedDataSource?.uniqueId == dataSource.uniqueId) {
+            selectDataSourceByUniqueId(null)
+        }
+    }
+
+    fun connectionStateChanged(connectionState: ConnectionState) {
+        when (connectionState) {
+            is ConnectionState.ConnectionStarted -> connecting = true
+            is ConnectionState.ConnectionUnsuccessful -> {
+                connecting = false
+                selectDataSourceByUniqueId(null)
+            }
+
+            is ConnectionState.ConnectionSuccess -> connecting = false
+            is ConnectionState.ConnectionFailed -> {
+                connecting = false
+                failedConnection = connectionState.failedDataSource
+            }
+
+            else -> {
+                // ktlint thinks this is necessary despite having full coverage of sealed interface
+            }
+        }
+    }
+
+    // Subclassing ComboBox only because it makes creating test fixtures easier thanks to named XPath queries
+    private class DataSourceComboBoxComponent : ComboBox<LocalDataSource?>(DefaultComboBoxModel())
 }
