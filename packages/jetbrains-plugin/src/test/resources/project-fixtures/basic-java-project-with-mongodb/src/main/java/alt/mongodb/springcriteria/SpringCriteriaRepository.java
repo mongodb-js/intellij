@@ -23,7 +23,7 @@ public class SpringCriteriaRepository {
 
     private List<Movie> allMoviesWithRatingAtLeastReleasedAtLeastAt(int rating, Date releaseDate) {
         return template.find(
-                query(where("tomatoes.viewer.rating").gte(rating).and("released").gte(releaseDate).and("languages").is("English")),
+                query(where("awards.wins").gte(rating).and("released").gte(releaseDate)),
                 Movie.class
         );
     }

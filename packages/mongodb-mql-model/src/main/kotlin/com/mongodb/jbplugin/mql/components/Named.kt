@@ -39,7 +39,7 @@ enum class Name(val canonical: String) {
     NEAR_SPHERE("nearSphere"),
     NIN("nin"),
     NOR("nor"),
-    NOT("nor"),
+    NOT("not"),
     OR("or"),
     REGEX("regex"),
     SIZE("size"),

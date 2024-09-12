@@ -1,15 +1,11 @@
 package alt.mongodb.javadriver;
 
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.mongodb.client.model.Filters.*;
 
 public class JavaDriverRepository {
     private static final String IMDB_VOTES = "imdb.votes";
@@ -20,13 +16,13 @@ public class JavaDriverRepository {
     public JavaDriverRepository(MongoClient client) {
         this.client = client;
     }
-    private List<Document> getGrade() {
+    private List<Document> getGrade(int votes) {
         return client.getDatabase("sample_mflix")
                 .getCollection("movies")
                 .find(
                         Filters.and(
-                                Filters.eq(IMDB_VOTES, 1),
-                                Filters.eq(AWARDS_WINS, 1)
+                                Filters.gte(IMDB_VOTES, votes),
+                                Filters.gte(AWARDS_WINS, 1)
                         )
                 )
                 .into(new ArrayList<>());

@@ -52,7 +52,7 @@ class MongoshDialectFormatterTest {
                         listOf(
                             Node(
                                 Unit, listOf(
-                                    Named("eq"),
+                                    Named(Name.EQ),
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
                                     HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
                                 )
@@ -100,7 +100,7 @@ class MongoshDialectFormatterTest {
         """.trimIndent()) {
             Node(
                 Unit, listOf(
-                    Named(operator),
+                    Named(Name.from(operator)),
                     HasChildren(
                         listOf(
                             Node(
@@ -131,7 +131,7 @@ class MongoshDialectFormatterTest {
                         listOf(
                             Node(
                                 Unit, listOf(
-                                    Named(operator),
+                                    Named(Name.from(operator)),
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
                                     HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
                                 )
