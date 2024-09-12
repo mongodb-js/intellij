@@ -53,7 +53,7 @@ class DataGripBasedReadModelProvider(
         slice: Slice<T>,
     ): T =
         cachedValues
-            .computeIfAbsent(slice.id, fromSlice(dataSource, slice))
+            .computeIfAbsent("${dataSource.uniqueId}/${slice.id}", fromSlice(dataSource, slice))
             .value as T
 
     private fun <T : Any> fromSlice(
