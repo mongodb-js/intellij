@@ -1,6 +1,8 @@
 package com.mongodb.jbplugin.editor.services
 
+import com.intellij.configurationStore.StoreUtil
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -33,6 +35,12 @@ class MdbPluginDisposable : Disposable {
      * Disposable interface that gets called when this service is being disposed
      */
     override fun dispose() {
+        // At the very least we would always want to persist our modified settings (ToolbarSettings, PluginSettings)
+        // when closing the project which is why we explicitly invoke StoreUtil.saveSettings to persist them to disk
+        ApplicationManager.getApplication().invokeLater {
+            StoreUtil.saveSettings(ApplicationManager.getApplication())
+        }
+
         val listeners = onDisposeListeners.toList()
         onDisposeListeners.clear()
         for (listener in listeners) {
