@@ -35,44 +35,10 @@ class EditorToolbarDecorator(
     PsiModificationTracker.Listener,
     DataSourceManager.Listener,
     JdbcDriverManager.Listener {
-    // Set of listeners waiting for the activity to get started
-    internal val onActivityStartedListeners =
-        ConcurrentSet<(project: Project, toolbar: MdbJavaEditorToolbar) -> Unit>()
-
     // These variables are lateinit because we initialise them when the project activity starts using execute method
     // below. We need to keep a hold of them because other listeners also use them in some way
     private var project: Project? = null
     private var toolbar: MdbJavaEditorToolbar? = null
-
-    // The activity (EditorToolbarDecorator) implements different listeners which may or may not get triggered before
-    // our ProjectActivity has started which means there is a chance that those listeners may find uninitialised state
-    // and start failing. To prevent that we make use of this queueing mechanism until activity starts
-    private fun runReadActionAfterActivityInitialised(
-        block: (project: Project, toolbar: MdbJavaEditorToolbar) -> Unit
-    ) {
-        if (project == null || toolbar == null) {
-            onActivityStartedListeners.add(block)
-        } else {
-            ApplicationManager.getApplication().runReadAction {
-                block(project!!, toolbar!!)
-            }
-        }
-    }
-
-    // Internal only because we spy on the method in tests
-    internal fun dispatchActivityStarted() {
-        ApplicationManager.getApplication().runReadAction {
-            val listeners = onActivityStartedListeners
-            onActivityStartedListeners.clear()
-            for (listener in listeners) {
-                try {
-                    listener(this.project!!, this.toolbar!!)
-                } catch (e: Exception) {
-                    log.warn("Error while running onActivityStarted listener", e)
-                }
-            }
-        }
-    }
 
     // Internal only because we spy on the method in tests
     internal fun setupSubscriptionsForProject(project: Project) {
@@ -116,50 +82,56 @@ class EditorToolbarDecorator(
             )
 
             editorService.toggleToolbarForSelectedEditor(this.toolbar!!)
-            dispatchActivityStarted()
         }
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        runReadActionAfterActivityInitialised { project, toolbar ->
-            val editorService = getEditorService(project)
-            editorService.toggleToolbarForSelectedEditor(toolbar)
+        val editorService = project?.let {
+            if (it.isDisposed) {
+                null
+            } else {
+                getEditorService(it)
+            }
+        }
+
+        toolbar?.let {
+            editorService?.toggleToolbarForSelectedEditor(it)
         }
     }
 
     override fun modificationCountChanged() {
-        runReadActionAfterActivityInitialised { project, toolbar ->
-            val editorService = getEditorService(project)
-            editorService.toggleToolbarForSelectedEditor(toolbar)
+        val editorService = project?.let {
+            if (it.isDisposed) {
+                null
+            } else {
+                getEditorService(it)
+            }
+        }
+        editorService?.removeDialectForSelectedEditor()
+
+        toolbar?.let {
+            editorService?.toggleToolbarForSelectedEditor(it)
         }
     }
 
     override fun <T : RawDataSource?> dataSourceAdded(manager: DataSourceManager<T>, dataSource: T & Any) {
-        runReadActionAfterActivityInitialised { _, toolbar ->
-            // An added DataSource can't possibly change the selection state hence just reloading the DataSources
-            toolbar.reloadDataSources()
-        }
+        // An added DataSource can't possibly change the selection state hence just reloading the DataSources
+        toolbar?.reloadDataSources()
     }
 
     override fun <T : RawDataSource?> dataSourceRemoved(manager: DataSourceManager<T>, dataSource: T & Any) {
-        runReadActionAfterActivityInitialised { _, toolbar ->
-            // A removed DataSource might be our selected one so we first remove it and then reload the DataSources
-            // Unselection when happened is expected to trigger state change listener so that will update
-            // also the attached resources to the selected editor and the stored DataSource in ToolbarSettings
-            toolbar.unselectDataSource(dataSource as LocalDataSource)
-            toolbar.reloadDataSources()
-        }
+        // A removed DataSource might be our selected one so we first remove it and then reload the DataSources
+        // Unselection when happened is expected to trigger state change listener so that will update
+        // also the attached resources to the selected editor and the stored DataSource in ToolbarSettings
+        toolbar?.unselectDataSource(dataSource as LocalDataSource)
+        toolbar?.reloadDataSources()
     }
 
     override fun <T : RawDataSource?> dataSourceChanged(manager: DataSourceManager<T>?, dataSource: T?) {
-        runReadActionAfterActivityInitialised { _, toolbar ->
-            toolbar.reloadDataSources()
-        }
+        toolbar?.reloadDataSources()
     }
 
     override fun onTerminated(dataSource: LocalDataSource, configuration: ConsoleRunConfiguration?) {
-        runReadActionAfterActivityInitialised { _, toolbar ->
-            toolbar.unselectDataSource(dataSource)
-        }
+        toolbar?.unselectDataSource(dataSource)
     }
 }

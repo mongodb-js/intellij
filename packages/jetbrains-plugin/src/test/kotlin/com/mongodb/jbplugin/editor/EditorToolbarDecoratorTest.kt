@@ -72,34 +72,11 @@ class EditorToolbarDecoratorTest {
                 decorator.getToolbarForTests()!!
             )
         }
-
-        @Test
-        fun `dispatches activity started for other listeners to also trigger their work`(project: Project) = runTest {
-            val decorator = spy(EditorToolbarDecorator(TestScope()))
-            decorator.execute(project)
-            runCurrent()
-
-            verify(decorator, times(1)).dispatchActivityStarted()
-        }
     }
 
     @Nested
     @DisplayName("when selectionChanged is triggered")
     inner class EditorToolbarDecoratorSelectionChanged {
-        @Test
-        fun `waits for activity to start before doing anything`(project: Project) = runTest {
-            val decorator = spy(EditorToolbarDecorator(TestScope()))
-            val changeEvent = mock<FileEditorManagerEvent>()
-            decorator.selectionChanged(changeEvent)
-
-            assertEquals(decorator.onActivityStartedListeners.size, 1)
-
-            decorator.execute(project)
-            runCurrent()
-
-            assertEquals(decorator.onActivityStartedListeners.size, 0)
-        }
-
         @Test
         fun `toggles toolbar using EditorService`(project: Project) = runTest {
             val decorator = spy(EditorToolbarDecorator(TestScope()))
@@ -122,19 +99,6 @@ class EditorToolbarDecoratorTest {
     @DisplayName("when modificationCountChanged is triggered")
     inner class EditorToolbarDecoratorModificationCountChanged {
         @Test
-        fun `waits for activity to start before doing anything`(project: Project) = runTest {
-            val decorator = spy(EditorToolbarDecorator(TestScope()))
-            decorator.modificationCountChanged()
-
-            assertEquals(decorator.onActivityStartedListeners.size, 1)
-
-            decorator.execute(project)
-            runCurrent()
-
-            assertEquals(decorator.onActivityStartedListeners.size, 0)
-        }
-
-        @Test
         fun `toggles toolbar using EditorService`(project: Project) = runTest {
             val decorator = spy(EditorToolbarDecorator(TestScope()))
             val editorService = mock<MdbEditorService>()
@@ -154,22 +118,6 @@ class EditorToolbarDecoratorTest {
     @Nested
     @DisplayName("when dataSourceAdded is triggered")
     inner class EditorToolbarDecoratorDataSourceAdded {
-        @Test
-        fun `waits for activity to start before doing anything`(project: Project) = runTest {
-            // Mocks for our assertions
-            val dataSource = mock<LocalDataSource>()
-            val dataSourceManager = mock<LocalDataSourceManager>()
-            val decorator = spy(EditorToolbarDecorator(TestScope()))
-            decorator.dataSourceAdded(dataSourceManager, dataSource)
-
-            assertEquals(decorator.onActivityStartedListeners.size, 1)
-
-            decorator.execute(project)
-            runCurrent()
-
-            assertEquals(decorator.onActivityStartedListeners.size, 0)
-        }
-
         @Test
         fun `refreshes the toolbar with the added DataSource`(
             project: Project
@@ -239,22 +187,6 @@ class EditorToolbarDecoratorTest {
     @Nested
     @DisplayName("when dataSourceChanged is triggered")
     inner class EditorToolbarDecoratorDataSourceChanged {
-        @Test
-        fun `waits for activity to start before doing anything`(project: Project) = runTest {
-            // Mocks for our assertions
-            val dataSource = mock<LocalDataSource>()
-            val dataSourceManager = mock<LocalDataSourceManager>()
-            val decorator = spy(EditorToolbarDecorator(TestScope()))
-            decorator.dataSourceChanged(dataSourceManager, dataSource)
-
-            assertEquals(decorator.onActivityStartedListeners.size, 1)
-
-            decorator.execute(project)
-            runCurrent()
-
-            assertEquals(decorator.onActivityStartedListeners.size, 0)
-        }
-
         @Test
         fun `refreshes the toolbar with the changed DataSource`(
             project: Project
@@ -329,22 +261,6 @@ class EditorToolbarDecoratorTest {
     @DisplayName("when dataSourceRemoved is triggered")
     inner class EditorToolbarDecoratorDataSourceRemoved {
         @Test
-        fun `waits for activity to start before doing anything`(project: Project) = runTest {
-            // Mocks for our assertions
-            val dataSource = mock<LocalDataSource>()
-            val dataSourceManager = mock<LocalDataSourceManager>()
-            val decorator = spy(EditorToolbarDecorator(TestScope()))
-            decorator.dataSourceRemoved(dataSourceManager, dataSource)
-
-            assertEquals(decorator.onActivityStartedListeners.size, 1)
-
-            decorator.execute(project)
-            runCurrent()
-
-            assertEquals(decorator.onActivityStartedListeners.size, 0)
-        }
-
-        @Test
         fun `refreshes the toolbar with the removed DataSource`(
             project: Project
         ) = runTest {
@@ -410,21 +326,6 @@ class EditorToolbarDecoratorTest {
     @Nested
     @DisplayName("when onTerminated is triggered")
     inner class EditorToolbarDecoratorOnTerminate {
-        @Test
-        fun `waits for activity to start before doing anything`(project: Project) = runTest {
-            // Mocks for our assertions
-            val dataSource = mock<LocalDataSource>()
-            val decorator = spy(EditorToolbarDecorator(TestScope()))
-            decorator.onTerminated(dataSource, null)
-
-            assertEquals(decorator.onActivityStartedListeners.size, 1)
-
-            decorator.execute(project)
-            runCurrent()
-
-            assertEquals(decorator.onActivityStartedListeners.size, 0)
-        }
-
         @Test
         fun `refresh the DataSource list with the disconnected DataSource`(
             project: Project
