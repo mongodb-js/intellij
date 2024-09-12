@@ -263,10 +263,10 @@ internal class DataGripMongoDbDriver(
  */
 private object UnitCodec : Codec<Unit> {
     override fun encode(
-writer: BsonWriter,
- value: Unit,
- encoderContext: EncoderContext
-) {
+        writer: BsonWriter,
+        value: Unit,
+        encoderContext: EncoderContext
+    ) {
     }
 
     override fun getEncoderClass(): Class<Unit> = Unit::class.java
@@ -295,7 +295,7 @@ fun LocalDataSource.isConnected(): Boolean =
         .activeConnections
         .any { connection ->
             connection.connectionPoint.dataSource == dataSource &&
-                runCatching {
-                    !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(TIMEOUT)
-                }.getOrDefault(false)
+                    runCatching {
+                        !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(TIMEOUT)
+                    }.getOrDefault(false)
         }

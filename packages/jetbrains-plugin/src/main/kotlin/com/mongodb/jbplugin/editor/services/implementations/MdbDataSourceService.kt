@@ -44,7 +44,7 @@ class MdbDataSourceService(
             onLoadingStateChanged(DatabasesLoadingState.Started)
             try {
                 val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
-                val databases = readModel.suspendedSlice(dataSource, ListDatabases.Slice)
+                val databases = readModel.slice(dataSource, ListDatabases.Slice)
                 onLoadingStateChanged(
                     DatabasesLoadingState.Finished(databases.databases.map { it.name })
                 )
