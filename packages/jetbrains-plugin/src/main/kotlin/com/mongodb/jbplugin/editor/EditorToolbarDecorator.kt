@@ -54,7 +54,7 @@ class EditorToolbarDecorator(
     // we override the stored project and toolbar everytime it is called
     override suspend fun execute(project: Project) {
         ApplicationManager.getApplication().runReadAction {
-            val toolbarSettings = useToolbarSettings()
+            val toolbarSettings = project.useToolbarSettings()
             val editorService = getEditorService(project)
             val dataSourceService = getDataSourceService(project)
 
