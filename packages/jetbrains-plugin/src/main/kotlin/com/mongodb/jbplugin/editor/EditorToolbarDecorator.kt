@@ -14,6 +14,7 @@ import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.psi.util.PsiModificationTracker
 import com.mongodb.jbplugin.editor.models.implementations.ProjectDataSourceModel
 import com.mongodb.jbplugin.editor.models.implementations.ProjectDatabaseModel
+import com.mongodb.jbplugin.editor.services.MdbPluginDisposable
 import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
 import com.mongodb.jbplugin.editor.services.implementations.useToolbarSettings
@@ -34,41 +35,38 @@ class EditorToolbarDecorator(
     PsiModificationTracker.Listener,
     DataSourceManager.Listener,
     JdbcDriverManager.Listener {
-    // The indicator that the project activity has started. Is used mostly by runReadActionAfterActivityStart
-    // to either trigger the listener right away or queue it for when the activity starts and initialises the necessary
-    // lateinit variables
-    private var activityStarted: Boolean = false
-
     // Set of listeners waiting for the activity to get started
-    internal val onActivityStartedListeners = ConcurrentSet<() -> Unit>()
+    internal val onActivityStartedListeners =
+        ConcurrentSet<(project: Project, toolbar: MdbJavaEditorToolbar) -> Unit>()
 
     // These variables are lateinit because we initialise them when the project activity starts using execute method
     // below. We need to keep a hold of them because other listeners also use them in some way
-    private lateinit var project: Project
-    private lateinit var toolbar: MdbJavaEditorToolbar
+    private var project: Project? = null
+    private var toolbar: MdbJavaEditorToolbar? = null
 
     // The activity (EditorToolbarDecorator) implements different listeners which may or may not get triggered before
     // our ProjectActivity has started which means there is a chance that those listeners may find uninitialised state
     // and start failing. To prevent that we make use of this queueing mechanism until activity starts
-    private fun runReadActionAfterActivityStart(block: () -> Unit) {
-        if (!activityStarted) {
+    private fun runReadActionAfterActivityInitialised(
+        block: (project: Project, toolbar: MdbJavaEditorToolbar) -> Unit
+    ) {
+        if (project == null || toolbar == null) {
             onActivityStartedListeners.add(block)
         } else {
             ApplicationManager.getApplication().runReadAction {
-                block()
+                block(project!!, toolbar!!)
             }
         }
     }
 
     // Internal only because we spy on the method in tests
     internal fun dispatchActivityStarted() {
-        activityStarted = true
         ApplicationManager.getApplication().runReadAction {
             val listeners = onActivityStartedListeners
             onActivityStartedListeners.clear()
             for (listener in listeners) {
                 try {
-                    listener()
+                    listener(this.project!!, this.toolbar!!)
                 } catch (e: Exception) {
                     log.warn("Error while running onActivityStarted listener", e)
                 }
@@ -78,7 +76,9 @@ class EditorToolbarDecorator(
 
     // Internal only because we spy on the method in tests
     internal fun setupSubscriptionsForProject(project: Project) {
-        val messageBusConnection = project.messageBus.connect()
+        // Registering messageBus.connect to our MdbPluginDisposable ensures that the subscriptions are cleared
+        // when either the plugin unloads or the project is closed
+        val messageBusConnection = project.messageBus.connect(MdbPluginDisposable.getInstance(project))
         messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
         messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
         messageBusConnection.subscribe(DataSourceManager.TOPIC, this)
@@ -86,8 +86,10 @@ class EditorToolbarDecorator(
     }
 
     @TestOnly
-    internal fun getToolbarForTests(): MdbJavaEditorToolbar = toolbar
+    internal fun getToolbarForTests(): MdbJavaEditorToolbar? = toolbar
 
+    // execute can get called multiple times during an IntelliJ session which is why
+    // we override the stored project and toolbar everytime it is called
     override suspend fun execute(project: Project) {
         ApplicationManager.getApplication().runReadAction {
             val toolbarSettings = useToolbarSettings()
@@ -105,43 +107,42 @@ class EditorToolbarDecorator(
                 editorService = editorService
             )
 
-            if (!::toolbar.isInitialized) {
-                this.project = project
-                this.setupSubscriptionsForProject(project)
-                this.toolbar = MdbJavaEditorToolbar(
-                    dataSourceModel = dataSourceModel,
-                    databaseModel = databaseModel,
-                )
-            }
+            this.project = project
+            this.setupSubscriptionsForProject(project)
 
-            editorService.toggleToolbarForSelectedEditor(toolbar)
+            this.toolbar = MdbJavaEditorToolbar(
+                dataSourceModel = dataSourceModel,
+                databaseModel = databaseModel,
+            )
+
+            editorService.toggleToolbarForSelectedEditor(this.toolbar!!)
             dispatchActivityStarted()
         }
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        runReadActionAfterActivityStart {
+        runReadActionAfterActivityInitialised { project, toolbar ->
             val editorService = getEditorService(project)
             editorService.toggleToolbarForSelectedEditor(toolbar)
         }
     }
 
     override fun modificationCountChanged() {
-        runReadActionAfterActivityStart {
+        runReadActionAfterActivityInitialised { project, toolbar ->
             val editorService = getEditorService(project)
             editorService.toggleToolbarForSelectedEditor(toolbar)
         }
     }
 
     override fun <T : RawDataSource?> dataSourceAdded(manager: DataSourceManager<T>, dataSource: T & Any) {
-        runReadActionAfterActivityStart {
+        runReadActionAfterActivityInitialised { _, toolbar ->
             // An added DataSource can't possibly change the selection state hence just reloading the DataSources
             toolbar.reloadDataSources()
         }
     }
 
     override fun <T : RawDataSource?> dataSourceRemoved(manager: DataSourceManager<T>, dataSource: T & Any) {
-        runReadActionAfterActivityStart {
+        runReadActionAfterActivityInitialised { _, toolbar ->
             // A removed DataSource might be our selected one so we first remove it and then reload the DataSources
             // Unselection when happened is expected to trigger state change listener so that will update
             // also the attached resources to the selected editor and the stored DataSource in ToolbarSettings
@@ -151,13 +152,13 @@ class EditorToolbarDecorator(
     }
 
     override fun <T : RawDataSource?> dataSourceChanged(manager: DataSourceManager<T>?, dataSource: T?) {
-        runReadActionAfterActivityStart {
+        runReadActionAfterActivityInitialised { _, toolbar ->
             toolbar.reloadDataSources()
         }
     }
 
     override fun onTerminated(dataSource: LocalDataSource, configuration: ConsoleRunConfiguration?) {
-        runReadActionAfterActivityStart {
+        runReadActionAfterActivityInitialised { _, toolbar ->
             toolbar.unselectDataSource(dataSource)
         }
     }

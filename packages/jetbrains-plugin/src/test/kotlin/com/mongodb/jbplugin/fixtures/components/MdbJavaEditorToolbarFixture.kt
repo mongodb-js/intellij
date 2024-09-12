@@ -20,8 +20,8 @@ import kotlin.time.toJavaDuration
  * @param remoteRobot
  * @param remoteComponent
  */
-@DefaultXpath(by = "class", xpath = "//div[@class='MdbJavaEditorToolbar']")
-@FixtureName("MdbJavaEditorToolbar")
+@DefaultXpath(by = "class", xpath = "//div[@class='MdbJavaEditorToolbarPanel']")
+@FixtureName("MdbJavaEditorToolbarPanel")
 class MdbJavaEditorToolbarFixture(
     remoteRobot: RemoteRobot,
     remoteComponent: RemoteComponent,
