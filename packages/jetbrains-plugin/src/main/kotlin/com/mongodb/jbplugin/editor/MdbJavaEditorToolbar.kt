@@ -180,8 +180,8 @@ class MdbJavaEditorToolbar(
     )
 
     fun setToolbarState(state: ToolbarState) {
-        // Setting the combobox state does not trigger the state changed listener
         dataSourceComboBox.setComboBoxState(state.dataSources, state.selectedDataSource)
+        // Setting the combobox state above does not trigger the state changed listener
         // Which is why we manually select the data source on the actual model
         state.selectedDataSource?.let {
             dataSourceModel.onDataSourceSelected(state.selectedDataSource) {

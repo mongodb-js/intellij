@@ -35,8 +35,9 @@ class EditorToolbarDecorator(
     PsiModificationTracker.Listener,
     DataSourceManager.Listener,
     JdbcDriverManager.Listener {
-    // These variables are lateinit because we initialise them when the project activity starts using execute method
-    // below. We need to keep a hold of them because other listeners also use them in some way
+    // These variables are nullable because we initialise them when the project activity starts using execute method
+    // below, which can happen multiple times during an IntelliJ session. We need to keep a hold of them because other
+    // listeners also use them in some way
     private var project: Project? = null
     private var toolbar: MdbJavaEditorToolbar? = null
 
