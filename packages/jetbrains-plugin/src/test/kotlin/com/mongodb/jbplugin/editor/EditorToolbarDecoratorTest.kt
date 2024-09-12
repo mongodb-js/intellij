@@ -89,8 +89,8 @@ class EditorToolbarDecoratorTest {
             decorator.selectionChanged(changeEvent)
             runCurrent()
 
-            // First from execute and second from selectionChanged
-            verify(editorService, times(2)).toggleToolbarForSelectedEditor(
+            // First from execute but with false as applyReadAction and second from modificationCountChanged
+            verify(editorService, times(1)).toggleToolbarForSelectedEditor(
                 decorator.getToolbarForTests()!!,
                 true
             )
@@ -110,8 +110,8 @@ class EditorToolbarDecoratorTest {
             decorator.modificationCountChanged()
             runCurrent()
 
-            // First from execute and second from modificationCountChanged
-            verify(editorService, times(2)).toggleToolbarForSelectedEditor(
+            // First from execute but with false as applyReadAction and second from modificationCountChanged
+            verify(editorService, times(1)).toggleToolbarForSelectedEditor(
                 decorator.getToolbarForTests()!!,
                 true
             )
