@@ -29,7 +29,7 @@ class ProjectDataSourceModel(
             if (it is ConnectionState.ConnectionSuccess) {
                 toolbarSettings.dataSourceId = dataSource.uniqueId
                 editorService.attachDataSourceToSelectedEditor(dataSource)
-                editorService.reAnalyzeSelectedEditor()
+                editorService.reAnalyzeSelectedEditor(true)
             }
             onConnectionStateChanged(it)
         }
@@ -40,7 +40,7 @@ class ProjectDataSourceModel(
             toolbarSettings.dataSourceId = null
         }
         editorService.detachDataSourceFromSelectedEditor(dataSource)
-        editorService.reAnalyzeSelectedEditor()
+        editorService.reAnalyzeSelectedEditor(true)
     }
 
     override fun listDataSources() = dataSourceService.listMongoDbDataSources()

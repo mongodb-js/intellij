@@ -43,13 +43,23 @@ class MdbEditorService(private val project: Project) : EditorService {
             return@runReadAction context?.database
         }
 
-    override fun reAnalyzeSelectedEditor() {
+    override fun reAnalyzeSelectedEditor(applyReadAction: Boolean) {
         val selectedEditor = selectedEditor ?: return
-        try {
-            val psiFile = getPsiFile(selectedEditor) ?: throw Exception("PsiFile not found")
-            DaemonCodeAnalyzer.getInstance(this.project).restart(psiFile)
-        } catch (exception: Exception) {
-            log.info("Could not analyze file: ${exception.message}")
+        val analyzeFile = { psiReadAction: Boolean ->
+            try {
+                val psiFile =
+                    getPsiFile(selectedEditor, applyReadAction = psiReadAction) ?: throw Exception("PsiFile not found")
+                DaemonCodeAnalyzer.getInstance(this.project).restart(psiFile)
+            } catch (exception: Exception) {
+                log.info("Could not analyze file: ${exception.message}")
+            }
+        }
+        if (applyReadAction) {
+            ApplicationManager.getApplication().runReadAction {
+                analyzeFile(false)
+            }
+        } else {
+            analyzeFile(true)
         }
     }
 
@@ -102,7 +112,10 @@ class MdbEditorService(private val project: Project) : EditorService {
         Keys.attachedToolbar
     )
 
-    override fun toggleToolbarForSelectedEditor(toolbar: MdbJavaEditorToolbar) {
+    override fun toggleToolbarForSelectedEditor(
+        toolbar: MdbJavaEditorToolbar,
+        applyReadActionForFileAnalyses: Boolean
+    ) {
         val currentEditor = selectedEditor ?: return
         val selectedEditorDialect = getDialectForSelectedEditor()
 
@@ -119,17 +132,21 @@ class MdbEditorService(private val project: Project) : EditorService {
             if (selectedDatabase != null && databaseComboBoxVisible) {
                 attachDatabaseToSelectedEditor(selectedDatabase)
             }
-            reAnalyzeSelectedEditor()
+            reAnalyzeSelectedEditor(applyReadActionForFileAnalyses)
         } ?: run {
             toolbar.detachFromEditor(currentEditor)
             currentEditor.virtualFile?.removeUserData(Keys.attachedToolbar)
-            reAnalyzeSelectedEditor()
+            reAnalyzeSelectedEditor(applyReadActionForFileAnalyses)
         }
     }
 
-    private fun getPsiFile(editor: Editor): PsiFile? {
-        return ApplicationManager.getApplication().runReadAction<PsiFile?> {
-            return@runReadAction editor.virtualFile.findPsiFile(this.project)
+    private fun getPsiFile(editor: Editor, applyReadAction: Boolean = true): PsiFile? {
+        if (applyReadAction) {
+            return ApplicationManager.getApplication().runReadAction<PsiFile?> {
+                return@runReadAction editor.virtualFile.findPsiFile(this.project)
+            }
+        } else {
+            return editor.virtualFile.findPsiFile(this.project)
         }
     }
 }

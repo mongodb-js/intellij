@@ -13,7 +13,7 @@ import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 interface EditorService {
     val inferredDatabase: String?
     val selectedEditor: Editor?
-    fun reAnalyzeSelectedEditor()
+    fun reAnalyzeSelectedEditor(applyReadAction: Boolean)
     fun getDialectForSelectedEditor(): Dialect<PsiElement, Project>?
     fun removeDialectForSelectedEditor()
 
@@ -24,5 +24,5 @@ interface EditorService {
 
     fun isDatabaseComboBoxVisibleForSelectedEditor(): Boolean
     fun getToolbarFromSelectedEditor(): MdbJavaEditorToolbar?
-    fun toggleToolbarForSelectedEditor(toolbar: MdbJavaEditorToolbar)
+    fun toggleToolbarForSelectedEditor(toolbar: MdbJavaEditorToolbar, applyReadActionForFileAnalyses: Boolean)
 }

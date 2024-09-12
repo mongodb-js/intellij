@@ -31,7 +31,7 @@ class ProjectDatabaseModel(
     override fun onDatabaseSelected(database: String) {
         toolbarSettings.database = database
         editorService.attachDatabaseToSelectedEditor(database)
-        editorService.reAnalyzeSelectedEditor()
+        editorService.reAnalyzeSelectedEditor(true)
     }
 
     override fun onDatabaseUnselected(database: String) {
@@ -39,7 +39,7 @@ class ProjectDatabaseModel(
             toolbarSettings.database = null
         }
         editorService.detachDatabaseFromSelectedEditor(database)
-        editorService.reAnalyzeSelectedEditor()
+        editorService.reAnalyzeSelectedEditor(true)
     }
 
     override fun loadComboBoxState(

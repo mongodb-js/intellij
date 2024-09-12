@@ -81,7 +81,7 @@ class EditorToolbarDecorator(
                 databaseModel = databaseModel,
             )
 
-            editorService.toggleToolbarForSelectedEditor(this.toolbar!!)
+            editorService.toggleToolbarForSelectedEditor(this.toolbar!!, false)
         }
     }
 
@@ -95,7 +95,7 @@ class EditorToolbarDecorator(
         }
 
         toolbar?.let {
-            editorService?.toggleToolbarForSelectedEditor(it)
+            editorService?.toggleToolbarForSelectedEditor(it, true)
         }
     }
 
@@ -110,7 +110,7 @@ class EditorToolbarDecorator(
         editorService?.removeDialectForSelectedEditor()
 
         toolbar?.let {
-            editorService?.toggleToolbarForSelectedEditor(it)
+            editorService?.toggleToolbarForSelectedEditor(it, true)
         }
     }
 
