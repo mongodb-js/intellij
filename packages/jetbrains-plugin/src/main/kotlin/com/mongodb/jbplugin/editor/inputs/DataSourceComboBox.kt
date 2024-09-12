@@ -17,6 +17,8 @@ import java.awt.event.ItemListener
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
 import javax.swing.SwingConstants
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
 
 /**
  * @param parent
@@ -57,10 +59,25 @@ class DataSourceComboBox(
             onDataSourceSelected(event.item as LocalDataSource)
         }
     }
+    private val popupMenuListener = object : PopupMenuListener {
+        override fun popupMenuWillBecomeVisible(event: PopupMenuEvent) {}
+        override fun popupMenuWillBecomeInvisible(event: PopupMenuEvent) {
+            // We don't want to keep focus on the ComboBox because otherwise it hinders with the selectionChanged event
+            // of FileEditorManager.Listener and the event never gets fired. Doing this makes sure that the focus is not
+            // retained and transferred to the editor
+            comboBoxComponent.transferFocus()
+        }
+
+        override fun popupMenuCanceled(event: PopupMenuEvent) {
+            // Same stuff as above
+            comboBoxComponent.transferFocus()
+        }
+    }
 
     init {
         comboBoxComponent.putClientProperty(ANIMATION_IN_RENDERER_ALLOWED, true)
         comboBoxComponent.addItemListener(selectionChangedListener)
+        comboBoxComponent.addPopupMenuListener(popupMenuListener)
         comboBoxComponent.setRenderer { _, value, index, _, _ -> renderComboBoxItem(value, index) }
 
         populateComboBoxWithDataSources(initialDataSources)

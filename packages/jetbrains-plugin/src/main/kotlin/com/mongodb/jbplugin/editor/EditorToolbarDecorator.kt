@@ -6,7 +6,6 @@ import com.intellij.database.model.RawDataSource
 import com.intellij.database.psi.DataSourceManager
 import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
@@ -18,12 +17,8 @@ import com.mongodb.jbplugin.editor.services.MdbPluginDisposable
 import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
 import com.mongodb.jbplugin.editor.services.implementations.useToolbarSettings
-import io.ktor.util.collections.*
 import org.jetbrains.annotations.TestOnly
-
 import kotlinx.coroutines.CoroutineScope
-
-private val log = logger<EditorToolbarDecorator>()
 
 /**
  * @param coroutineScope
