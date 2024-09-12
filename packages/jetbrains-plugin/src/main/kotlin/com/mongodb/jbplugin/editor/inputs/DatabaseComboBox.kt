@@ -123,6 +123,12 @@ class DatabaseComboBox(
         selectDatabaseAndNotify(selectedDatabase)
     }
 
+    fun unselectDatabase(database: String) {
+        if (selectedDatabase == database) {
+            selectDatabaseAndNotify(null)
+        }
+    }
+
     fun onLoadingStateChanged(updatedLoadingState: DatabasesComboBoxLoadingState) {
         when (updatedLoadingState) {
             is DatabasesComboBoxLoadingState.Started -> loadingDatabases = true

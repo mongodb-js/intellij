@@ -107,6 +107,10 @@ class MdbJavaEditorToolbar(
     private fun onDataSourceUnselected(dataSource: LocalDataSource) {
         if (dataSourceModel.getStoredDataSource()?.uniqueId == dataSource.uniqueId) {
             dataSourceModel.onDataSourceUnselected(dataSource)
+            // We unselect the database to trigger a state change via model
+            databaseComboBox.selectedDatabase?.let {
+                databaseComboBox.unselectDatabase(it)
+            }
             databaseComboBox.setComboBoxState(emptyList(), null)
         }
     }
