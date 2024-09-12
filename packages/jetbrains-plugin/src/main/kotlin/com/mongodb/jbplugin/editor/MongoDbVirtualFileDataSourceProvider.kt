@@ -46,7 +46,8 @@ class MongoDbVirtualFileDataSourceProvider : VirtualFileDataSourceProvider() {
     object Keys {
         internal val attachedDataSource: Key<LocalDataSource> = Key.create("$KEY_PREFIX.AttachedDataSource")
         internal val attachedDatabase: Key<String> = Key.create("$KEY_PREFIX.AttachedDatabase")
-        internal val attachedDialect: Key<Dialect<PsiElement, Project>> = Key.create("$KEY_PREFIX.AttachedDialect")
+        internal val attachedDialect: Key<Dialect<PsiElement, Project>?> = Key.create("$KEY_PREFIX.AttachedDialect")
+        internal val attachedToolbar: Key<MdbJavaEditorToolbar> = Key.create("$KEY_PREFIX.AttachedToolbar")
     }
 
     override fun getDataSource(
