@@ -5,15 +5,24 @@
 
 package com.mongodb.jbplugin.editor.services.implementations
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
+import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.editor.services.ToolbarSettings
 import java.io.Serializable
 
-@Service
+// Setting this service as a PROJECT service ensures that our state is saved per Project
+@Service(Service.Level.PROJECT)
 @State(
     name = "com.mongodb.jbplugin.editor.ToolbarSettings",
-    storages = [Storage(value = "MongodbToolbarSettings.xml")]
+    storages = [
+        Storage(
+            // File used to persist these settings per project
+            value = "MongodbToolbarSettings.xml",
+            // Setting roamingType to DEFAULT ensures that these settings are carried forward during IntelliJ updates
+            // as well
+            roamingType = RoamingType.DEFAULT
+        )
+    ]
 )
 private class ToolbarSettingsStateComponent :
     SimplePersistentStateComponent<PersistentToolbarSettings>(PersistentToolbarSettings())
@@ -30,7 +39,6 @@ private class PersistentToolbarSettings : BaseState(),
  *
  * @return
  */
-fun useToolbarSettings(): ToolbarSettings =
-    ApplicationManager.getApplication().getService(
-        ToolbarSettingsStateComponent::class.java
-    ).state
+fun Project.useToolbarSettings(): ToolbarSettings = getService(
+    ToolbarSettingsStateComponent::class.java
+).state
