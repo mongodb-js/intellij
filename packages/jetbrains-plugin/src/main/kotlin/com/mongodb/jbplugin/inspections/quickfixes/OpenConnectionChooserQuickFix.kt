@@ -2,7 +2,6 @@ package com.mongodb.jbplugin.inspections.quickfixes
 
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +22,6 @@ class OpenConnectionChooserQuickFix(
         project: Project,
         descriptor: ProblemDescriptor,
     ) {
-        val editor = FileEditorManager.getInstance(project).selectedTextEditorWithRemotes[0] ?: return
-        MdbJavaEditorToolbar.showModalForSelection(editor, coroutineScope)
+        MdbJavaEditorToolbar.showModalForSelection(project)
     }
 }

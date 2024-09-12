@@ -1,26 +1,27 @@
+/**
+ * MdbJavaEditorToolbar: This file contains the toolbar class itself responsible for rendering and interacting with
+ * the toolbar and also a data class to encapsulate the current state of Toolbar itself
+ */
+
 package com.mongodb.jbplugin.editor
 
-import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
-import com.intellij.database.dataSource.connection.ConnectionRequestor
-import com.intellij.database.psi.DataSourceManager
-import com.intellij.database.run.ConsoleRunConfiguration
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.rd.util.launchChildBackground
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.JBPanel
-import com.jetbrains.rd.util.AtomicReference
-import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
-import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
-import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
-import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
-import com.mongodb.jbplugin.editor.inputs.DataSourceComboBox
-import com.mongodb.jbplugin.editor.inputs.DatabaseComboBox
-import com.mongodb.jbplugin.editor.inputs.DatabaseSelectedListener
-import com.mongodb.jbplugin.editor.inputs.DatabaseUnselectedListener
+import com.mongodb.jbplugin.editor.inputs.*
+import com.mongodb.jbplugin.editor.models.DataSourceModel
+import com.mongodb.jbplugin.editor.models.DatabaseModel
+import com.mongodb.jbplugin.editor.models.implementations.ProjectDataSourceModel
+import com.mongodb.jbplugin.editor.models.implementations.ProjectDatabaseModel
+import com.mongodb.jbplugin.editor.services.ConnectionState
+import com.mongodb.jbplugin.editor.services.implementations.InMemoryToolbarSettings
+import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
+import com.mongodb.jbplugin.editor.services.implementations.getEditorService
 
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
@@ -28,171 +29,218 @@ import javax.swing.JComponent
 import javax.swing.JDialog
 import javax.swing.JPanel
 
-import kotlinx.coroutines.CoroutineScope
-
 private val log = logger<MdbJavaEditorToolbar>()
 
-typealias OnConnectedListener = (LocalDataSource) -> Unit
-typealias OnDisconnectedListener = () -> Unit
+/**
+ * Data class to encapsulate the current state of the Toolbar
+ *
+ * @property dataSources
+ * @property selectedDataSource
+ * @property databases
+ * @property selectedDatabase
+ */
+data class ToolbarState(
+    val dataSources: List<LocalDataSource>,
+    val selectedDataSource: LocalDataSource?,
+    val databases: List<String>,
+    val selectedDatabase: String?,
+)
 
 /**
- * Represents the toolbar that will be inserted into an active Java editor.
+ * Toolbar class that encapsulates rendering and interacting with the toolbar itself
  *
- * @param project
- * @param coroutineScope
- * @param onConnected
- * @param onDisconnected
- * @param onDatabaseSelected
- * @param onDatabaseUnselected
+ * @param dataSourceModel
+ * @param databaseModel
  */
 class MdbJavaEditorToolbar(
-    private val project: Project,
-    private val coroutineScope: CoroutineScope,
-    private val onConnected: OnConnectedListener,
-    private val onDisconnected: OnDisconnectedListener,
-    onDatabaseSelected: DatabaseSelectedListener,
-    onDatabaseUnselected: DatabaseUnselectedListener
-) : JBPanel<MdbJavaEditorToolbar>(BorderLayout()) {
-    internal val dataSourceComboBox: DataSourceComboBox = DataSourceComboBox(
-        onDataSourceSelected = this::onDataSourceSelected,
-        onDataSourceUnselected = this::onDataSourceUnselected
+    private val dataSourceModel: DataSourceModel,
+    private val databaseModel: DatabaseModel,
+) {
+    // The entire panel that spans from left to the right and gets attached to the editor itself
+    private val mainPanel = MdbJavaEditorToolbarPanel()
+
+    // The panel that houses our dropdowns and gets attached to the mainPanel above
+    private val dropdownsPanel = JPanel()
+
+    // A value which we use only to decide whether to list databases on selection of a DataSource
+    // Set when the toolbar is rendered for an editor
+    private var databaseComboBoxVisible = false
+
+    // Initializing DataSourceComboBox lazily because it also kickstart a connection if a DataSource is to be
+    // pre-selected which is why it is better to do it only when we start showing the toolbar in attachToEditor
+    private val dataSourceComboBox: DataSourceComboBox by lazy {
+        val (selectedDataSource, dataSources) = dataSourceModel.loadComboBoxState()
+        DataSourceComboBox(
+            parent = dropdownsPanel,
+            onDataSourceSelected = ::onDataSourceSelected,
+            onDataSourceUnselected = ::onDataSourceUnselected,
+            initialDataSources = dataSources,
+            initialSelectedDataSource = selectedDataSource
+        )
+    }
+    private val databaseComboBox: DatabaseComboBox = DatabaseComboBox(
+        parent = dropdownsPanel,
+        onDatabaseSelected = databaseModel::onDatabaseSelected,
+        onDatabaseUnselected = databaseModel::onDatabaseUnselected,
     )
-    internal val databaseComboBox: DatabaseComboBox = DatabaseComboBox(
-        onDatabaseSelected = onDatabaseSelected,
-        onDatabaseUnselected = onDatabaseUnselected
-    )
-    private val dropdowns = JPanel()
-    private var showsDatabases: Boolean = false
 
     init {
-        dropdowns.layout = BoxLayout(dropdowns, BoxLayout.X_AXIS)
-
-        dropdowns.add(dataSourceComboBox)
-        dropdowns.add(databaseComboBox)
-        add(dropdowns, BorderLayout.EAST)
+        // Setup UI
+        dropdownsPanel.layout = BoxLayout(dropdownsPanel, BoxLayout.X_AXIS)
+        mainPanel.add(dropdownsPanel, BorderLayout.EAST)
     }
 
-    fun showDatabaseSelector() {
-        dropdowns.remove(databaseComboBox)
-        dropdowns.add(databaseComboBox)
-        showsDatabases = true
-    }
-
-    fun hideDatabaseSelector() {
-        dropdowns.remove(databaseComboBox)
-        showsDatabases = false
-    }
-
-    internal fun onDataSourceSelected(dataSource: LocalDataSource) {
-        if (!dataSource.isConnected()) {
-            coroutineScope.launchChildBackground {
-                dataSourceComboBox.connecting = true
-                val connectionManager = DatabaseConnectionManager.getInstance()
-                val connectionHandler =
-                    connectionManager
-                        .build(project, dataSource)
-                        .setRequestor(ConnectionRequestor.Anonymous())
-                        .setAskPassword(true)
-                        .setRunConfiguration(
-                            ConsoleRunConfiguration.newConfiguration(project).apply {
-                                setOptionsFromDataSource(dataSource)
-                            },
-                        )
-
-                val connectionJob = runCatching { connectionHandler.create()?.get() }
-                connectionJob.onFailure {
-                    dataSourceComboBox.connecting = false
-                    dataSourceComboBox.failedConnection = dataSource
-                    reloadDatabases()
-                    return@launchChildBackground
-                }
-
-                val connection = connectionJob.getOrNull()
-                dataSourceComboBox.connecting = false
-                reloadDatabases()
-
-                // could not connect, do nothing
-                if (connection == null || !dataSource.isConnected()) {
-                    dataSourceComboBox.selectedDataSource = null // remove data source because we didn't connect
-                    return@launchChildBackground
-                }
-
-                runGracefullyFailing {
-                    onConnected(dataSource)
-                }
+    // Listener for when a DataSource is selected
+    private fun onDataSourceSelected(dataSource: LocalDataSource) {
+        dataSourceModel.onDataSourceSelected(dataSource) {
+            if (it is ConnectionState.ConnectionSuccess && databaseComboBoxVisible) {
+                databaseModel.loadComboBoxState(
+                    selectedDataSource = dataSource,
+                    onComboBoxLoadingStateChanged = databaseComboBox::onLoadingStateChanged
+                )
             }
+            dataSourceComboBox.connectionStateChanged(it)
+        }
+    }
+
+    // Listener for when a DataSource is unselected
+    private fun onDataSourceUnselected(dataSource: LocalDataSource) {
+        if (dataSourceModel.getStoredDataSource()?.uniqueId == dataSource.uniqueId) {
+            dataSourceModel.onDataSourceUnselected(dataSource)
+            // We unselect the database to trigger a state change via model
+            databaseComboBox.selectedDatabase?.let {
+                databaseComboBox.unselectDatabase(it)
+            }
+            databaseComboBox.setComboBoxState(emptyList(), null)
+        }
+    }
+
+    private fun showDatabasesComboBox() {
+        if (!databaseComboBoxVisible) {
+            databaseComboBoxVisible = true
+            databaseComboBox.attachToParent()
+            dataSourceComboBox.selectedDataSource?.let {
+                databaseModel.loadComboBoxState(
+                    selectedDataSource = it,
+                    onComboBoxLoadingStateChanged = databaseComboBox::onLoadingStateChanged
+                )
+            }
+        }
+    }
+
+    private fun hideDatabasesComboBox() {
+        if (databaseComboBoxVisible) {
+            databaseComboBoxVisible = false
+            databaseComboBox.removeFromParent()
+        }
+    }
+
+    fun attachToEditor(editor: Editor, showDatabaseComboBox: Boolean) {
+        dataSourceComboBox.attachToParent()
+        if (showDatabaseComboBox) {
+            showDatabasesComboBox()
         } else {
-            runGracefullyFailing {
-                onConnected(dataSource)
+            hideDatabasesComboBox()
+        }
+        (editor as? EditorEx)?.permanentHeaderComponent = mainPanel
+        editor.headerComponent = mainPanel
+    }
+
+    fun detachFromEditor(editor: Editor) {
+        if (editor.headerComponent is MdbJavaEditorToolbarPanel) {
+            (editor as? EditorEx)?.permanentHeaderComponent = null
+            editor.headerComponent = null
+        }
+    }
+
+    fun attachToParent(parent: JComponent, showDatabaseComboBox: Boolean) {
+        dataSourceComboBox.attachToParent()
+        if (showDatabaseComboBox) {
+            showDatabasesComboBox()
+        } else {
+            hideDatabasesComboBox()
+        }
+        parent.add(dropdownsPanel)
+    }
+
+    fun reloadDataSources() {
+        // Setting the combobox state does not trigger the state changed listener which is exactly
+        // what we want here as we're not really changing the selection, just reloading the DataSources
+        dataSourceComboBox.setComboBoxState(
+            dataSourceModel.listDataSources(),
+            dataSourceComboBox.selectedDataSource,
+        )
+    }
+
+    fun unselectDataSource(dataSource: LocalDataSource) {
+        dataSourceComboBox.unselectDataSource(dataSource)
+    }
+
+    fun getToolbarState(): ToolbarState = ToolbarState(
+        dataSources = dataSourceComboBox.dataSources,
+        selectedDataSource = dataSourceComboBox.selectedDataSource,
+        databases = databaseComboBox.databases,
+        selectedDatabase = databaseComboBox.selectedDatabase
+    )
+
+    fun setToolbarState(state: ToolbarState) {
+        dataSourceComboBox.setComboBoxState(state.dataSources, state.selectedDataSource)
+        // Setting the combobox state above does not trigger the state changed listener
+        // Which is why we manually select the data source on the actual model
+        state.selectedDataSource?.let {
+            dataSourceModel.onDataSourceSelected(state.selectedDataSource) {
+                // We purposely ignore the callback calls here because we already have our state set
             }
-            reloadDatabases()
+        }
+
+        // Same for databaseComboBox
+        databaseComboBox.setComboBoxState(state.databases, state.selectedDatabase)
+        state.selectedDatabase?.let {
+            databaseModel.onDatabaseSelected(state.selectedDatabase)
         }
     }
 
-    internal fun onDataSourceUnselected() {
-        runGracefullyFailing {
-            onDisconnected()
-        }
-        reloadDatabases()
-    }
-
-    fun reloadDataSources(dataSources: List<LocalDataSource>) {
-        dataSourceComboBox.dataSources = dataSources.filter { it.isMongoDbDataSource() }
-    }
-
-    fun reloadDatabases() {
-        if (!showsDatabases) {
-            return
-        }
-
-        dataSourceComboBox.selectedDataSource?.let {
-            val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
-            val databases = readModel.slice(dataSourceComboBox.selectedDataSource!!, ListDatabases.Slice)
-            databaseComboBox.databases = databases.databases.map { it.name }
-        } ?: run {
-            databaseComboBox.databases = emptyList()
-        }
-    }
-
-    fun disconnect(dataSource: LocalDataSource) {
-        if (dataSource.isMongoDbDataSource() &&
-            !dataSource.isConnected() &&
-            dataSourceComboBox.selectedDataSource?.uniqueId == dataSource.uniqueId
-        ) {
-            dataSourceComboBox.selectedDataSource = null
-        }
-    }
+    // Subclassing the JBPanel here mostly to make testing easier
+    private class MdbJavaEditorToolbarPanel : JBPanel<Nothing>(BorderLayout())
 
     companion object {
-        fun showModalForSelection(editor: Editor, coroutineScope: CoroutineScope) {
-            val project = editor.project ?: return
+        fun showModalForSelection(project: Project) {
+            val editorService = getEditorService(project)
+            val toolbar = editorService.getToolbarFromSelectedEditor()
+            toolbar ?: run {
+                log.warn("Could not show modal for selection, toolbar on attached editor is null")
+                return
+            }
 
             ApplicationManager.getApplication().invokeLater {
-                val selectedDataSource = AtomicReference<LocalDataSource?>(null)
+                val (_, selectedDataSource, _, selectedDatabase) = toolbar.getToolbarState()
 
-                val toolbar =
-                    MdbJavaEditorToolbar(
-                        editor.project!!,
-                        coroutineScope, {
-                            selectedDataSource.getAndSet(it)
-                        }, {
-                            selectedDataSource.getAndSet(null)
-                        }, {
+                val dataSourceService = getDataSourceService(project)
+                val toolbarSettings = InMemoryToolbarSettings(
+                    selectedDataSource?.uniqueId,
+                    selectedDatabase
+                )
+                val dataSourceModel = ProjectDataSourceModel(
+                    toolbarSettings = toolbarSettings,
+                    editorService = editorService,
+                    dataSourceService = dataSourceService,
+                )
+                val databaseModel = ProjectDatabaseModel(
+                    toolbarSettings = toolbarSettings,
+                    editorService = editorService,
+                    dataSourceService = dataSourceService,
+                )
 
-                        }, {
+                val localToolbar =
+                    MdbJavaEditorToolbar(dataSourceModel = dataSourceModel, databaseModel = databaseModel)
 
-                        })
-
-                val localDataSourceManager =
-                    DataSourceManager.byDataSource(project, LocalDataSource::class.java)
-                        ?: return@invokeLater
-                toolbar.reloadDataSources(localDataSourceManager.dataSources)
-
-                val dialog = SelectConnectionDialogWrapper(project, toolbar)
+                val dialog = SelectConnectionDialogWrapper(
+                    project,
+                    localToolbar,
+                    editorService.isDatabaseComboBoxVisibleForSelectedEditor(),
+                )
                 if (dialog.showAndGet()) {
-                    EditorToolbarDecorator
-                        .getToolbarFromEditor(editor)
-                        ?.dataSourceComboBox?.selectedDataSource = selectedDataSource.get()
+                    toolbar.setToolbarState(localToolbar.getToolbarState())
                 }
             }
         }
@@ -200,10 +248,12 @@ class MdbJavaEditorToolbar(
         /**
          * @param project
          * @param toolbar
+         * @param databaseComboBoxVisible
          */
-        internal class SelectConnectionDialogWrapper(
+        private class SelectConnectionDialogWrapper(
             project: Project,
             private val toolbar: MdbJavaEditorToolbar,
+            private val databaseComboBoxVisible: Boolean
         ) : DialogWrapper(project, false) {
             init {
                 init()
@@ -211,17 +261,9 @@ class MdbJavaEditorToolbar(
 
             override fun createCenterPanel(): JComponent =
                 JPanel(BorderLayout()).apply {
-                    add(toolbar)
+                    toolbar.attachToParent(this, databaseComboBoxVisible)
                     (peer.window as? JDialog)?.isUndecorated = true
                 }
         }
-    }
-}
-
-private fun runGracefullyFailing(lambda: () -> Unit) {
-    runCatching {
-        lambda()
-    }.onFailure {
-        log.info("Ignoring error because we are in a gracefully fallback block.", it)
     }
 }
