@@ -18,12 +18,8 @@ import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
-import org.bson.BsonReader
-import org.bson.BsonWriter
 import org.bson.Document
-import org.bson.codecs.Codec
 import org.bson.codecs.DecoderContext
-import org.bson.codecs.EncoderContext
 import org.bson.codecs.configuration.CodecRegistries.fromRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.conversions.Bson
@@ -34,12 +30,16 @@ import org.owasp.encoder.Encode
 
 import kotlin.reflect.KClass
 import kotlin.time.Duration
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 
 private const val TIMEOUT = 5
+
+/**
+ * Currently we are using mongosh through the GraalVM, and doesn't support parallelism. So
+ * we are running the queries in a dedicated single thread.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+private val mongosh = Dispatchers.IO.limitedParallelism(1)
 
 /**
  * The driver itself. Shouldn't be used directly, but through the
@@ -90,7 +90,7 @@ internal class DataGripMongoDbDriver(
         timeout: Duration,
     ): T =
         withContext(
-            Dispatchers.IO,
+            mongosh,
         ) {
             runQuery(
                 """
@@ -111,7 +111,7 @@ internal class DataGripMongoDbDriver(
         result: KClass<T>,
         timeout: Duration,
     ): T? =
-        withContext(Dispatchers.IO) {
+        withContext(mongosh) {
             runQuery(
                 """EJSON.serialize(
                       db.getSiblingDB("${namespace.database.encodeForJs()}")
@@ -130,7 +130,7 @@ internal class DataGripMongoDbDriver(
         result: KClass<T>,
         limit: Int,
         timeout: Duration,
-    ) = withContext(Dispatchers.IO) {
+    ) = withContext(mongosh) {
         runQuery(
             """
                 EJSON.serialize(
@@ -148,7 +148,7 @@ internal class DataGripMongoDbDriver(
         namespace: Namespace,
         query: Bson,
         timeout: Duration,
-    ) = withContext(Dispatchers.IO) {
+    ) = withContext(mongosh) {
         runQuery(
             """
             db.getSiblingDB("${namespace.database.encodeForJs()}")
@@ -166,7 +166,7 @@ internal class DataGripMongoDbDriver(
         resultClass: KClass<T>,
         timeout: Duration,
     ): List<T> =
-        withContext(Dispatchers.IO) {
+        withContext(mongosh) {
             val connection = getConnection()
             val remoteConnection = connection.remoteConnection
             val statement = remoteConnection.prepareStatement(queryString.trimIndent())
@@ -254,25 +254,6 @@ internal class DataGripMongoDbDriver(
             fn(myConnections)
             myConnectionsField.isAccessible = false
         }
-    }
-}
-
-/**
- * The Java driver doesn't know how to serialize/deserialize Unit (Kotlin's void)
- * so we are adding our custom implementation that is noop.
- */
-private object UnitCodec : Codec<Unit> {
-    override fun encode(
-        writer: BsonWriter,
-        value: Unit,
-        encoderContext: EncoderContext
-    ) {
-    }
-
-    override fun getEncoderClass(): Class<Unit> = Unit::class.java
-
-    override fun decode(reader: BsonReader, decoderContext: DecoderContext) {
-        return
     }
 }
 
