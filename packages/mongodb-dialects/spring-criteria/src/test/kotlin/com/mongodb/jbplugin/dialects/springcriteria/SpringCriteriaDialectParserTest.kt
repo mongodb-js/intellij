@@ -217,7 +217,7 @@ class Repository {
         referenceToValid as HasFieldReference.Known<PsiElement>
         referenceToValidTrue as HasValueReference.Constant
 
-        assertEquals("and", andOperator.component<Named>()!!.name)
+        assertEquals(Name.AND, andOperator.component<Named>()!!.name)
         assertEquals("released", referenceToReleased.fieldName)
         assertEquals(true, referenceToTrue.value)
 
@@ -289,7 +289,7 @@ class Repository {
         referenceToValid as HasFieldReference.Known<PsiElement>
         referenceToValidTrue as HasValueReference.Constant
 
-        assertEquals("or", orOperator.component<Named>()!!.name)
+        assertEquals(Name.OR, orOperator.component<Named>()!!.name)
         assertEquals("released", referenceToReleased.fieldName)
         assertEquals(true, referenceToTrue.value)
 
@@ -362,7 +362,7 @@ class Repository {
         referenceToValid as HasFieldReference.Known<PsiElement>
         referenceToValidTrue as HasValueReference.Constant
 
-        assertEquals("nor", norOperator.component<Named>()!!.name)
+        assertEquals(Name.NOR, norOperator.component<Named>()!!.name)
         assertEquals("released", referenceToReleased.fieldName)
         assertEquals(true, referenceToTrue.value)
 
