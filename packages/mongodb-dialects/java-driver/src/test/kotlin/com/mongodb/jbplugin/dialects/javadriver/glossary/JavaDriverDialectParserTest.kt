@@ -194,7 +194,7 @@ public final class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals("_id", (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName)
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
@@ -233,7 +233,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "myField",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -279,7 +279,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "myField",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -329,7 +329,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val and = hasChildren.children[0]
-        assertEquals("and", and.component<Named>()!!.name)
+        assertEquals(Name.AND, and.component<Named>()!!.name)
         val andChildren = and.component<HasChildren<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
@@ -393,7 +393,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -443,7 +443,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -493,7 +493,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -542,7 +542,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val and = hasChildren.children[0]
-        assertEquals("and", and.component<Named>()!!.name)
+        assertEquals(Name.AND, and.component<Named>()!!.name)
         val andChildren = and.component<HasChildren<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
@@ -610,7 +610,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -621,7 +621,7 @@ public class Repository {
         )
 
         val unset = hasChildren.children[1]
-        assertEquals("unset", unset.component<Named>()!!.name)
+        assertEquals(Name.UNSET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
             (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -664,7 +664,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -675,7 +675,7 @@ public class Repository {
         )
 
         val unset = hasChildren.children[1]
-        assertEquals("set", unset.component<Named>()!!.name)
+        assertEquals(Name.SET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
             (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -722,7 +722,7 @@ public class Repository {
             parsedQuery.component<HasChildren<Unit?>>()!!
 
         val eq = hasChildren.children[0]
-        assertEquals("eq", eq.component<Named>()!!.name)
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
             (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
@@ -733,11 +733,11 @@ public class Repository {
         )
 
         val combine = hasChildren.children[1]
-        assertEquals("combine", combine.component<Named>()!!.name)
+        assertEquals(Name.COMBINE, combine.component<Named>()!!.name)
         assertEquals(2, combine.component<HasChildren<Unit?>>()!!.children.size)
 
         val children = combine.component<HasChildren<Unit?>>()!!.children
-        assertEquals("set", children[0].component<Named>()!!.name)
-        assertEquals("unset", children[1].component<Named>()!!.name)
+        assertEquals(Name.SET, children[0].component<Named>()!!.name)
+        assertEquals(Name.UNSET, children[1].component<Named>()!!.name)
     }
 }

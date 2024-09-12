@@ -20,6 +20,7 @@ enum class Name(val canonical: String) {
     BITS_ALL_SET("bitsAllSet"),
     BITS_ANY_CLEAR("bitsAnyClear"),
     BITS_ANY_SET("bitsAnySet"),
+    COMBINE("combine"),
     ELEM_MATCH("elementMatch"),
     EQ("eq"),
     EXISTS("exists"),
@@ -42,9 +43,11 @@ enum class Name(val canonical: String) {
     NOT("not"),
     OR("or"),
     REGEX("regex"),
+    SET("set"),
     SIZE("size"),
     TEXT("text"),
     TYPE("type"),
+    UNSET("unset"),
 ;
 
     override fun toString(): String = canonical
