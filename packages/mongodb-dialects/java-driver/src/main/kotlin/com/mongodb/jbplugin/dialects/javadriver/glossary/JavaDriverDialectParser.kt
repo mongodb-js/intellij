@@ -15,8 +15,9 @@ private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
-    override fun isCandidateForQuery(source: PsiElement): Boolean =
- runCatching { findStartOfQuery(source) }.getOrNull() != null
+    override fun isCandidateForQuery(source: PsiElement) = runCatching {
+        findStartOfQuery(source)
+    }.getOrNull() != null
 
     override fun attachment(source: PsiElement): PsiElement = findStartOfQuery(source)!!
 
@@ -271,7 +272,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val fieldReference =
             fieldNameAsString?.let {
                 HasFieldReference.Known(expression, it)
-            } ?: HasFieldReference.Unknown
+            } ?: HasFieldReference.Unknown(expression)
 
         return fieldReference
     }

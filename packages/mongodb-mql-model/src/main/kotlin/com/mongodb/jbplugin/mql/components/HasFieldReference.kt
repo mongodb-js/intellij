@@ -9,7 +9,7 @@ import com.mongodb.jbplugin.mql.Component
 data class HasFieldReference<S>(
     val reference: FieldReference<S>,
 ) : Component {
-    data object Unknown : FieldReference<Any>
+    data class Unknown<S>(val source: S) : FieldReference<S>
 
     /**
      * @param S

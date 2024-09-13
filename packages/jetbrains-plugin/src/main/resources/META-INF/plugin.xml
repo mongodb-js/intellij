@@ -88,6 +88,13 @@
             implementation="com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider" />
         <completion.contributor language="JAVA"
                                 implementationClass="com.mongodb.jbplugin.autocomplete.MongoDbCompletionContributor" />
+        <typedHandler order="first"
+                id="MongoDbAutocompletionPopupHandler"
+                implementation="com.mongodb.jbplugin.autocomplete.MongoDbAutocompletionPopupHandler"
+        />
+        <completion.confidence language="JAVA" order="first"
+                               id="MongoDbStringCompletionConfidence"
+                               implementationClass="com.mongodb.jbplugin.autocomplete.MongoDbStringCompletionConfidence" />
     </extensions>
     <applicationListeners>
     </applicationListeners>

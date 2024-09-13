@@ -33,10 +33,8 @@ class CachedQueryService(
 ) {
     private val queryCacheKey = Key.create<CachedValue<Node<PsiElement>>>("QueryCache")
 
-    fun queryAt(expression: PsiElement): Node<PsiElement>? {
-        val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java) ?: return null
-        val dataSource = fileInExpression.dataSource
-
+    fun queryAt(expression: PsiElement, forceParsing: Boolean = false): Node<PsiElement>? {
+        val dataSource = expression.containingFile.dataSource
         val dialect = expression.containingFile.dialect ?: return null
         if (!dialect.parser.isCandidateForQuery(expression)) {
             return null
@@ -44,7 +42,7 @@ class CachedQueryService(
 
         val attachment = dialect.parser.attachment(expression)
         val psiManager = PsiManager.getInstance(expression.project)
-        if (!psiManager.areElementsEquivalent(expression, attachment)) {
+        if (!forceParsing && !psiManager.areElementsEquivalent(expression, attachment)) {
             return null
         }
 

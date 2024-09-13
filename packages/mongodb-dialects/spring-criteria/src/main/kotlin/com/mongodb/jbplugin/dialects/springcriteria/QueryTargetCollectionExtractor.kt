@@ -8,17 +8,17 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
 object QueryTargetCollectionExtractor {
-    private val unknown = HasCollectionReference(
-        HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
+    private val unknownRef: HasCollectionReference<PsiElement> = HasCollectionReference(
+        HasCollectionReference.Unknown(null, null)
     )
 
     fun extractCollection(sourceExpression: PsiElement): HasCollectionReference<PsiElement> {
-        val baseExpression = sourceExpression.parentOfType<PsiMethod>() ?: return unknown
+        val baseExpression = sourceExpression.parentOfType<PsiMethod>() ?: return unknownRef
 
         val templateClass = JavaPsiFacade.getInstance(baseExpression.project).findClass(
             "org.springframework.data.mongodb.core.MongoTemplate",
             GlobalSearchScope.everythingScope(baseExpression.project)
-        ) ?: return unknown
+        ) ?: return unknownRef
 
         val validMethods = setOf("query", "find")
         val queryMethodCall = baseExpression.findAllChildrenOfType(PsiMethodCallExpression::class.java)
@@ -29,14 +29,13 @@ object QueryTargetCollectionExtractor {
 
         if (queryMethodCall != null && queryMethodCall.argumentList.expressionCount > 0) {
             val queryArg = queryMethodCall.argumentList.expressions.last()
-            val resolvedType = queryArg as? PsiClassObjectAccessExpression ?: return unknown
-            val resolvedClass = PsiTypesUtil.getPsiClass(resolvedType.operand.type) ?: return unknown
-            val resolvedCollection = ModelCollectionExtractor.fromPsiClass(resolvedClass)
-            return resolvedCollection?.let {
-                HasCollectionReference(HasCollectionReference.OnlyCollection(queryArg, it))
-            } ?: unknown
+            val resolvedType = queryArg as? PsiClassObjectAccessExpression ?: return unknownRef
+            val resolvedClass = PsiTypesUtil.getPsiClass(resolvedType.operand.type) ?: return unknownRef
+            val (resolvedCollection, psiRef) = ModelCollectionExtractor.fromPsiClass(resolvedClass) ?: return unknownRef
+
+            HasCollectionReference(HasCollectionReference.OnlyCollection(psiRef, resolvedCollection))
         }
 
-        return unknown
+        return unknownRef
     }
 }
