@@ -48,12 +48,13 @@ enum class Name(val canonical: String) {
     TEXT("text"),
     TYPE("type"),
     UNSET("unset"),
+    UNKNOWN("<unknown operator>"),
 ;
 
     override fun toString(): String = canonical
 
     companion object {
-        fun from(canonical: String): Name = entries.first { it.canonical == canonical }
+        fun from(canonical: String): Name = entries.firstOrNull { it.canonical == canonical } ?: UNKNOWN
     }
 }
 

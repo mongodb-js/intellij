@@ -281,7 +281,7 @@ internal class DataGripMongoDbDriver(
 
     private fun planByMappingStage(stage: Document, mapping: Map<String, ExplainPlan>): ExplainPlan? {
         val inputStage = stage.get("inputStage", Document::class.java)
- ?: return mapping.getOrDefault(stage["stage"], null)
+            ?: return mapping.getOrDefault(stage["stage"], null)
 
         return mapping.getOrDefault(inputStage["stage"], null)
     }
