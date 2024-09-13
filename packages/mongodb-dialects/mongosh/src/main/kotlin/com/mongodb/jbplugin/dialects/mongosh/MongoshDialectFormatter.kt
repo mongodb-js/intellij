@@ -109,7 +109,7 @@ private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean =
             if (firstCall) {
                 emitObjectEnd()
             }
-        } else if (setOf(
+        } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-76
                 Name.GT,
                 Name.GTE,
                 Name.LT,
@@ -128,7 +128,9 @@ private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean =
             if (firstCall) {
                 emitObjectEnd()
             }
-        } else if (setOf(Name.AND, Name.OR, Name.NOR, Name.NOT).contains(named.name)) {
+        } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-77
+                Name.AND, Name.OR, Name.NOR, Name.NOT).contains(named.name)
+            ) {
             if (firstCall) {
                 emitObjectStart()
             }
