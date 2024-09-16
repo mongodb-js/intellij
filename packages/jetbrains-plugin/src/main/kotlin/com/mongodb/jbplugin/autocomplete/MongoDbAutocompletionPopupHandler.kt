@@ -38,8 +38,8 @@ import kotlinx.coroutines.flow.collectLatest
 class MongoDbAutocompletionPopupHandler(
     private val coroutineScope: CoroutineScope
 ) : TypedHandlerDelegate() {
-    private val events = MutableSharedFlow<AutocompletionEvent>(replay = 1,
- onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val events =
+        MutableSharedFlow<AutocompletionEvent>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     init {
         /*
@@ -74,12 +74,12 @@ class MongoDbAutocompletionPopupHandler(
     }
 
     override fun beforeCharTyped(
-typedChar: Char,
- project: Project,
- editor: Editor,
- file: PsiFile,
- fileType: FileType
-): Result {
+        typedChar: Char,
+        project: Project,
+        editor: Editor,
+        file: PsiFile,
+        fileType: FileType
+    ): Result {
         if (typedChar == '"') {
             coroutineScope.launchChildBackground {
                 events.emit(AutocompletionEvent(file, editor))
@@ -89,13 +89,13 @@ typedChar: Char,
         return Result.CONTINUE
     }
 
-/**
- * @property file
- * @property editor
- */
-private data class AutocompletionEvent(
-        val file: PsiFile,
-        val editor: Editor
+    /**
+     * @property file
+     * @property editor
+     */
+    private data class AutocompletionEvent(
+            val file: PsiFile,
+            val editor: Editor
     )
 }
 
@@ -106,9 +106,9 @@ private data class AutocompletionEvent(
  */
 class MongoDbStringCompletionConfidence : CompletionConfidence() {
     override fun shouldSkipAutopopup(
-contextElement: PsiElement,
- psiFile: PsiFile,
- offset: Int
+        contextElement: PsiElement,
+        psiFile: PsiFile,
+        offset: Int
 ): ThreeState {
         if (contextElement is PsiJavaToken) {
             return ThreeState.NO
