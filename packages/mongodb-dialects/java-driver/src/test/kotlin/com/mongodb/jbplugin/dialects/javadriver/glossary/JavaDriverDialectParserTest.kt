@@ -161,7 +161,7 @@ public final class Repository {
         val unknownReference =
             parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Unknown
 
-        assertInstanceOf(HasCollectionReference.Unknown::class.java, unknownReference)
+        assertEquals(HasCollectionReference.Unknown, unknownReference)
     }
 
     @ParsingTest(
