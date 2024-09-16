@@ -4,10 +4,12 @@ import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.accessadapter.slice.BuildInfo
@@ -31,8 +33,10 @@ class CachedQueryService(
 ) {
     private val queryCacheKey = Key.create<CachedValue<Node<PsiElement>>>("QueryCache")
 
-    fun queryAt(expression: PsiElement, forceParsing: Boolean = false): Node<PsiElement>? {
-        val dataSource = expression.containingFile.dataSource
+    fun queryAt(expression: PsiElement): Node<PsiElement>? {
+        val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java) ?: return null
+        val dataSource = fileInExpression.dataSource
+
         val dialect = expression.containingFile.dialect ?: return null
         if (!dialect.parser.isCandidateForQuery(expression)) {
             return null
@@ -40,7 +44,7 @@ class CachedQueryService(
 
         val attachment = dialect.parser.attachment(expression)
         val psiManager = PsiManager.getInstance(expression.project)
-        if (!forceParsing && !psiManager.areElementsEquivalent(expression, attachment)) {
+        if (!psiManager.areElementsEquivalent(expression, attachment)) {
             return null
         }
 

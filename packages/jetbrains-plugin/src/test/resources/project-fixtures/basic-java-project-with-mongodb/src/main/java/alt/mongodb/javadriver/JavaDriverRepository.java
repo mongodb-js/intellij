@@ -24,7 +24,10 @@ public class JavaDriverRepository {
         return client.getDatabase("sample_mflix")
                 .getCollection("movies")
                 .find(
-                        Filters.eq("awards.wins", 1)
+                        Filters.and(
+                                Filters.eq(IMDB_VOTES, 1),
+                                Filters.eq(AWARDS_WINS, 1)
+                        )
                 )
                 .into(new ArrayList<>());
     }
