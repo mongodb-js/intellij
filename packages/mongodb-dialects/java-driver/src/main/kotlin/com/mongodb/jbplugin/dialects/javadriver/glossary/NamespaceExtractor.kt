@@ -10,7 +10,6 @@ import com.intellij.psi.util.PsiTreeUtil.findChildrenOfAnyType
 import com.intellij.psi.util.PsiTreeUtil.findChildrenOfType
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
-import com.mongodb.jbplugin.mql.components.HasFieldReference
 
 private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField>>
 
@@ -205,7 +204,7 @@ object NamespaceExtractor {
         }
 
         return HasCollectionReference(
-            HasCollectionReference.Unknown(database?.second, collection?.second)
+            HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
         )
     }
 
@@ -328,7 +327,7 @@ object NamespaceExtractor {
             }
 
         if (database == null || collection == null) {
-            return HasCollectionReference.Unknown(dbExpression, callExpr.argumentList.expressions[0])
+            return HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
         }
 
         return HasCollectionReference.Known(
@@ -482,4 +481,4 @@ private fun PsiType?.guessAssignmentConcept(project: Project): AssignmentConcept
 }
 
 private fun HasCollectionReference.CollectionReference<PsiElement>.isNotUnknown(): Boolean =
-    this !is HasCollectionReference.Unknown<PsiElement>
+    !this.equals(HasCollectionReference.Unknown)

@@ -116,6 +116,16 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val isInQuery = isInQuery(source)
         val isString = source.parentOfType<PsiLiteralExpression>()?.tryToResolveAsConstantString() != null
 
+        /*
+         * IntelliJ might detect that we are not in a string, but in a whitespace (before the string) due to, probably,
+         * some internal race conditions. In this case, we will check the parent, which will be an ExpressionList, that
+         * will contain all tokens and the string we actually want. Check if any of them is a reference to a field.
+         */
+        if (source is PsiWhiteSpace) {
+            val parentExpressionList = source.parent
+            return parentExpressionList.children.any { isReferenceToField(it) }
+        }
+
         return isInQuery && isString
     }
 

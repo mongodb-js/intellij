@@ -52,7 +52,7 @@ class MongoDbCompletionContributor : CompletionContributor() {
     }
 }
 
-private object Database {
+internal object Database {
     val place: ElementPattern<PsiElement> =
         psiElement()
             .and(isConnected())
@@ -82,7 +82,7 @@ private object Database {
     }
 }
 
-private object Collection {
+internal object Collection {
     val place: ElementPattern<PsiElement> =
         psiElement()
             .and(isConnected())
@@ -117,7 +117,7 @@ private object Collection {
     }
 }
 
-private object Field {
+internal object Field {
     val place: ElementPattern<PsiElement> =
         psiElement()
             .and(isConnected())

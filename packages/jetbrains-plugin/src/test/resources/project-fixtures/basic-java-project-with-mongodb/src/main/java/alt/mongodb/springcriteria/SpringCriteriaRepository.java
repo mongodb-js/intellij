@@ -22,7 +22,7 @@ public class SpringCriteriaRepository {
 
     private List<Movie> allMoviesWithRatingAtLeast(int rating) {
         return template.find(
-                query(where( "tomatoes.viewer.rating").gte(rating)),
+                query(where("awards.wins").gte(rating)),
                 Movie.class
         );
     }

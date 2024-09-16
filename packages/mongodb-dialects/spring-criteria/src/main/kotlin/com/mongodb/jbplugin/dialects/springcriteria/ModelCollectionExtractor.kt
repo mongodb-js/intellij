@@ -1,28 +1,24 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiElement
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
 
 private const val AT_DOCUMENT_ANNOTATION = "org.springframework.data.mongodb.core.mapping.Document"
 
 object ModelCollectionExtractor {
-    fun fromPsiClass(clazz: PsiClass): Pair<String, PsiElement?>? {
+    fun fromPsiClass(clazz: PsiClass): String? {
         val annotation = clazz.getAnnotation(AT_DOCUMENT_ANNOTATION)
         annotation?.let {
-            val valueAttr = annotation.findAttributeValue("value")
-            val collectionAttr = annotation.findAttributeValue("collection")
-
-            val collectionName = valueAttr?.tryToResolveAsConstantString()
+            val collectionName = annotation.findAttributeValue("value")?.tryToResolveAsConstantString()
                 .takeIf { !it.isNullOrBlank() }
-                ?: collectionAttr?.tryToResolveAsConstantString()
+                ?: annotation.findAttributeValue("collection")?.tryToResolveAsConstantString()
                     .takeIf { !it.isNullOrBlank() }
 
             collectionName?.let {
-                return (it to listOfNotNull(valueAttr, collectionAttr).firstOrNull())
+                return collectionName
             }
 
-            return (toCollectionName(clazz) to listOfNotNull(valueAttr, collectionAttr).firstOrNull())
+            return toCollectionName(clazz)
         }
 
         // not in the current class, check parent classes and interfaces

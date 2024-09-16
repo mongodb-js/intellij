@@ -9,12 +9,16 @@ import com.mongodb.jbplugin.mql.Component
 data class HasFieldReference<S>(
     val reference: FieldReference<S>,
 ) : Component {
-    data class Unknown<S>(val source: S) : FieldReference<S>
-
     /**
      * @param S
      */
     sealed interface FieldReference<S>
+
+/**
+ * @param S
+ * @property source
+ */
+data class Unknown<S>(val source: S) : FieldReference<S>
 
     /**
      * @param S
