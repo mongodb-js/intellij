@@ -282,7 +282,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val fieldReference =
             fieldNameAsString?.let {
                 HasFieldReference.Known(expression, it)
-            } ?: HasFieldReference.Unknown(expression)
+            } ?: HasFieldReference.Unknown
 
         return fieldReference
     }
