@@ -16,7 +16,7 @@ import java.util.*
 /**
  * Represents any of the valid BSON types.
  */
-interface BsonType {
+sealed interface BsonType {
     /**
      * Checks whether the underlying type is assignable to the provided type
      * Example usage:

@@ -5,10 +5,12 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
-* [INTELLIJ-73](https://jira.mongodb.org/browse/INTELLIJ-73): Support query generation for queries with equality
-filters and basic support for range filters and logical operators.
-* [INTELLIJ-93](https://jira.mongodb.org/browse/INTELLIJ-93): Run explain plan of queries and show index warnings in
-code.
+* [INTELLIJ-91](https://jira.mongodb.org/browse/INTELLIJ-91): Ability to trigger autocompletion automatically for string constants
+in a query.
+* [INTELLIJ-73](https://jira.mongodb.org/browse/INTELLIJ-73): Ability to run Java queries, both with the Java Driver and
+Spring Criteria, in the Data Explorer console.
+* [INTELLIJ-93](https://jira.mongodb.org/browse/INTELLIJ-93): Inline warning when a query does not use an index and
+a quick action to generate the index template.
 * [INTELLIJ-74](https://jira.mongodb.org/browse/INTELLIJ-74): Generate index template from code inspection in queries not
 covered by an index.
 * [INTELLIJ-70](https://jira.mongodb.org/browse/INTELLIJ-70): Code action that allows running a Java query from within the code
