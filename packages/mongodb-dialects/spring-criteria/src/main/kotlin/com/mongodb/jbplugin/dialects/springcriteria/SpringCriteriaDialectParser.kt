@@ -10,10 +10,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.HasChildren
-import com.mongodb.jbplugin.mql.components.HasFieldReference
-import com.mongodb.jbplugin.mql.components.HasValueReference
-import com.mongodb.jbplugin.mql.components.Named
+import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val CRITERIA_CLASS_FQN = "org.springframework.data.mongodb.core.query.Criteria"
@@ -100,7 +97,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
 
         val predicate = Node<PsiElement>(
             fieldNameCall, listOf(
-                Named(name),
+                Named(name.toName()),
                 fieldReference,
                 valueReference
             )
@@ -115,7 +112,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
 
     private fun operatorName(currentCriteriaMethod: PsiMethod): Named {
         val name = currentCriteriaMethod.name.replace("Operator", "")
-        val named = Named(name)
+        val named = Named(name.toName())
         return named
     }
 }
@@ -176,3 +173,8 @@ private fun PsiMethodCallExpression.innerMethodCallExpression(): PsiMethodCallEx
 
     return ref
 }
+
+private fun String.toName(): Name = when (this) {
+        "is" -> Name.EQ
+        else -> Name.from(this)
+    }

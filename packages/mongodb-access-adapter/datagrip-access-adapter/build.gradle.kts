@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.bson.kotlin)
     implementation(project(":packages:mongodb-access-adapter"))
     implementation(project(":packages:mongodb-mql-model"))
+    implementation(project(":packages:mongodb-dialects"))
+    implementation(project(":packages:mongodb-dialects:mongosh"))
 
     testImplementation("com.jetbrains.intellij.platform:test-framework-junit5:241.15989.155") {
         exclude("ai.grazie.spell")

@@ -1,16 +1,27 @@
 package com.mongodb.jbplugin.dialects.mongosh
 
 import com.mongodb.jbplugin.dialects.DialectFormatter
-import com.mongodb.jbplugin.mql.BsonType
-import com.mongodb.jbplugin.mql.IndexAnalyzer
-import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.HasCollectionReference
-import com.mongodb.jbplugin.mql.components.HasTargetCluster
+import com.mongodb.jbplugin.dialects.mongosh.backend.MongoshBackend
+import com.mongodb.jbplugin.mql.*
+import com.mongodb.jbplugin.mql.components.*
 import io.github.z4kn4fein.semver.Version
 import org.owasp.encoder.Encode
 
 object MongoshDialectFormatter : DialectFormatter {
-    override fun <S> formatQuery(query: Node<S>, explain: Boolean) = ""
+    override fun <S> formatQuery(query: Node<S>, explain: Boolean): String = MongoshBackend().apply {
+        emitDbAccess()
+        emitCollectionReference(query.component<HasCollectionReference<S>>())
+        emitFunctionName("find")
+        emitFunctionCall({
+            emitQueryBody(query, firstCall = true)
+        })
+        if (explain) {
+            emitPropertyAccess()
+            emitFunctionName("explain")
+            emitFunctionCall()
+        }
+    }.computeOutput()
+
     override fun <S> indexCommandForQuery(query: Node<S>): String = when (val index = IndexAnalyzer.analyze(query)) {
         is IndexAnalyzer.SuggestedIndex.NoIndex -> ""
         is IndexAnalyzer.SuggestedIndex.MongoDbIndex -> {
@@ -28,20 +39,158 @@ object MongoshDialectFormatter : DialectFormatter {
             val encodedDbName = Encode.forJavaScript(dbName)
             val encodedColl = Encode.forJavaScript(collName)
 
-            val createIndexTemplate = List(index.fields.size) { i ->
-                """
-                "<your_field${i + 1}>": 1
-                """.trimIndent()
-            }.joinToString(separator = ", ", prefix = "{ ", postfix = " }")
+            val indexTemplate = index.fields.withIndex().joinToString(
+                separator = ", ",
+                prefix = "{ ",
+                postfix = " }"
+            ) {
+                """ "<your_field_${it.index + 1}>": 1 """.trim()
+            }
 
             """
                     // Potential fields to consider indexing: $fieldList
                     // Learn about creating an index: $docPrefix/core/data-model-operations/#indexes
                     db.getSiblingDB("$encodedDbName").getCollection("$encodedColl")
-                      .createIndex($createIndexTemplate)
+                      .createIndex($indexTemplate)
                 """.trimIndent()
         }
     }
 
     override fun formatType(type: BsonType) = ""
+}
+
+// It's just easier to read it inline, as it has a complex circular flow
+@Suppress("TOO_LONG_FUNCTION")
+private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean = false): MongoshBackend {
+    val named = node.component<Named>()
+    val fieldRef = node.component<HasFieldReference<S>>()
+    val valueRef = node.component<HasValueReference<S>>()
+    val hasChildren = node.component<HasChildren<S>>()
+
+    if (hasChildren != null && fieldRef == null && valueRef == null && named == null) {
+        // 1. has children, nothing else (root node)
+        if (firstCall) {
+            emitObjectStart()
+        }
+
+        hasChildren.children.forEach {
+            emitQueryBody(it)
+            emitObjectValueEnd()
+        }
+        if (firstCall) {
+            emitObjectEnd()
+        }
+    } else if (hasChildren == null && fieldRef != null && valueRef != null && named == null) {
+        // 2. no children, only a field: value case
+        if (firstCall) {
+            emitObjectStart()
+        }
+        emitObjectKey(resolveFieldReference(fieldRef))
+        emitContextValue(resolveValueReference(valueRef, fieldRef))
+        if (firstCall) {
+            emitObjectEnd()
+        }
+    } else named?.let {
+// 3. children and named
+        if (named.name == Name.EQ) {
+// normal a: b case
+            if (firstCall) {
+                emitObjectStart()
+            }
+            if (fieldRef != null && valueRef != null) {
+                emitObjectKey(resolveFieldReference(fieldRef))
+                emitContextValue(resolveValueReference(valueRef, fieldRef))
+            } else {
+                hasChildren?.children?.forEach {
+                    emitQueryBody(it)
+                    emitObjectValueEnd()
+                }
+            }
+            if (firstCall) {
+                emitObjectEnd()
+            }
+        } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-76
+                Name.GT,
+                Name.GTE,
+                Name.LT,
+                Name.LTE
+            ).contains(named.name) && fieldRef != null && valueRef != null
+        ) {
+// a: { $gt: 1 }
+            if (firstCall) {
+                emitObjectStart()
+            }
+            emitObjectKey(resolveFieldReference(fieldRef))
+            emitObjectStart()
+            emitObjectKey(registerConstant('$' + named.name.canonical))
+            emitContextValue(resolveValueReference(valueRef, fieldRef))
+            emitObjectEnd()
+            if (firstCall) {
+                emitObjectEnd()
+            }
+        } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-77
+                Name.AND, Name.OR, Name.NOR, Name.NOT).contains(named.name)
+            ) {
+            if (firstCall) {
+                emitObjectStart()
+            }
+            emitObjectKey(registerConstant('$' + named.name.canonical))
+            emitArrayStart()
+            hasChildren?.children?.forEach {
+                emitObjectStart()
+                emitQueryBody(it)
+                emitObjectEnd()
+                emitObjectValueEnd()
+            }
+            emitArrayEnd()
+            if (firstCall) {
+                emitObjectEnd()
+            }
+        }
+    }
+
+    return this
+}
+
+private fun <S> MongoshBackend.resolveValueReference(
+    valueRef: HasValueReference<S>,
+    fieldRef: HasFieldReference<S>
+) = when (val ref = valueRef.reference) {
+    is HasValueReference.Constant -> registerConstant(ref.value)
+    is HasValueReference.Runtime -> registerVariable(
+        (fieldRef.reference as? HasFieldReference.Known)?.fieldName ?: "<value>",
+        ref.type
+    )
+
+    else -> registerVariable(
+        "queryField",
+        BsonAny
+    )
+}
+
+private fun <S> MongoshBackend.resolveFieldReference(fieldRef: HasFieldReference<S>) =
+    when (val ref = fieldRef.reference) {
+        is HasFieldReference.Known -> registerConstant(ref.fieldName)
+        is HasFieldReference.Unknown -> registerVariable("field", BsonAny)
+    }
+
+private fun <S> MongoshBackend.emitCollectionReference(collRef: HasCollectionReference<S>?): MongoshBackend {
+    when (val ref = collRef?.reference) {
+        is HasCollectionReference.OnlyCollection -> {
+            emitDatabaseAccess(registerVariable("database", BsonString))
+            emitCollectionAccess(registerConstant(ref.collection))
+        }
+
+        is HasCollectionReference.Known -> {
+            emitDatabaseAccess(registerConstant(ref.namespace.database))
+            emitCollectionAccess(registerConstant(ref.namespace.collection))
+        }
+
+        else -> {
+            emitDatabaseAccess(registerVariable("database", BsonString))
+            emitCollectionAccess(registerVariable("collection", BsonString))
+        }
+    }
+
+    return this
 }
