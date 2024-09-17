@@ -10,15 +10,15 @@ import org.junit.jupiter.params.provider.MethodSource
 class NodeTest {
     @Test
     fun `is able to get a component if exists`() {
-        val node = Node<Unit?>(null, listOf(Named("myName")))
+        val node = Node<Unit?>(null, listOf(Named(Name.EQ)))
         val named = node.component<Named>()
 
-        assertEquals("myName", named!!.name)
+        assertEquals(Name.EQ, named!!.name)
     }
 
     @Test
     fun `returns null if a component does not exist`() {
-        val node = Node<Unit?>(null, listOf(Named("myName")))
+        val node = Node<Unit?>(null, listOf())
         val named = node.component<HasFieldReference<Unit?>>()
 
         assertNull(named)
@@ -182,7 +182,7 @@ class NodeTest {
                 ),
                 arrayOf(HasValueReference(HasValueReference.Runtime(null, BsonInt32)), HasValueReference::class.java),
                 arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
-                arrayOf(Named("abc"), Named::class.java),
+                arrayOf(Named(Name.EQ), Named::class.java),
             )
     }
 }

@@ -11,11 +11,13 @@ import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.connection.ConnectionRequestor
 import com.intellij.database.run.ConsoleRunConfiguration
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
+import com.mongodb.jbplugin.dialects.mongosh.MongoshDialect
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
 import org.bson.Document
@@ -30,6 +32,7 @@ import org.owasp.encoder.Encode
 
 import kotlin.reflect.KClass
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.*
 
 private const val TIMEOUT = 5
@@ -81,7 +84,27 @@ internal class DataGripMongoDbDriver(
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
-    override suspend fun <S> explain(query: Node<S>): ExplainPlan = ExplainPlan.CollectionScan
+    override suspend fun <S> explain(query: Node<S>): ExplainPlan = withContext(Dispatchers.IO) {
+        val queryScript = ApplicationManager.getApplication().runReadAction<String> {
+            MongoshDialect.formatter.formatQuery(query, explain = true)
+        }
+
+        val explainPlanBson = runQuery(queryScript, Document::class, timeout = 1.seconds).firstOrNull()
+        explainPlanBson ?: return@withContext ExplainPlan.CollectionScan
+
+        val queryPlanner = explainPlanBson.get("queryPlanner", Document::class.java)
+        val winningPlan = queryPlanner?.get("winningPlan", Document::class.java)
+
+        winningPlan ?: return@withContext ExplainPlan.CollectionScan
+
+        planByMappingStage(
+            winningPlan, mapOf(
+                "COLLSCAN" to ExplainPlan.CollectionScan,
+                "IXSCAN" to ExplainPlan.IndexScan,
+                "IDHACK" to ExplainPlan.IndexScan
+            )
+        ) ?: ExplainPlan.CollectionScan
+    }
 
     override suspend fun <T : Any> runCommand(
         database: String,
@@ -254,6 +277,13 @@ internal class DataGripMongoDbDriver(
             fn(myConnections)
             myConnectionsField.isAccessible = false
         }
+    }
+
+    private fun planByMappingStage(stage: Document, mapping: Map<String, ExplainPlan>): ExplainPlan? {
+        val inputStage = stage.get("inputStage", Document::class.java)
+            ?: return mapping.getOrDefault(stage["stage"], null)
+
+        return mapping.getOrDefault(inputStage["stage"], null)
     }
 }
 
