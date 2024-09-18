@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nls
  *
  * @property publicName Name of the field in Segment.
  */
-internal enum class TelemetryProperty(
+enum class TelemetryProperty(
     @Pattern("[a-z_]+")
     val publicName: String,
 ) {
@@ -48,10 +48,10 @@ internal enum class TelemetryProperty(
  * @property properties Map of fields sent to Segment.
  * @see TelemetryService
  */
-internal sealed class TelemetryEvent(
+sealed class TelemetryEvent(
     @Nls(capitalization = Nls.Capitalization.Title)
-    internal val name: String,
-    internal val properties: Map<TelemetryProperty, Any>,
+    val name: String,
+    val properties: Map<TelemetryProperty, Any>,
 ) {
     /**
      * Represents the event that is emitted when the plugin is started.

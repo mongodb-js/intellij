@@ -2,10 +2,7 @@ package com.mongodb.jbplugin.fixtures.components
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
-import com.intellij.remoterobot.fixtures.ComboBoxFixture
-import com.intellij.remoterobot.fixtures.ContainerFixture
-import com.intellij.remoterobot.fixtures.DefaultXpath
-import com.intellij.remoterobot.fixtures.FixtureName
+import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.findVisible
@@ -14,15 +11,15 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
-/** Component that represents the toolbar that contains the data sources
+/** Component that represents the popup that contains the data sources
  * and actions relevant to our MongoDB plugin in a Java Editor
  *
  * @param remoteRobot
  * @param remoteComponent
  */
-@DefaultXpath(by = "class", xpath = "//div[@class='MdbJavaEditorToolbarPanel']")
-@FixtureName("MdbJavaEditorToolbarPanel")
-class MdbJavaEditorToolbarFixture(
+@DefaultXpath(by = "class", xpath = "//div[@class='DialogRootPane']")
+@FixtureName("MdbJavaEditorToolbarPopup")
+class MdbJavaEditorToolbarPopupFixture(
     remoteRobot: RemoteRobot,
     remoteComponent: RemoteComponent,
 ) : ContainerFixture(
@@ -42,17 +39,17 @@ class MdbJavaEditorToolbarFixture(
                 )
             )
         }.isSuccess
-    fun detachDataSource() {
-        dataSources.selectItem("Detach data source")
-    }
+
+    fun ok() = find<JButtonFixture>(byXpath("//div[@text='OK']")).click()
+    fun cancel() = find<JButtonFixture>(byXpath("//div[@text='Cancel']")).click()
 }
 
 /**
- * Forcefully returns the toolbar, if it is not visible, throws an exception.
+ * Forcefully returns the popup, if it is not visible, throws an exception.
  *
  * @return
  */
-fun RemoteRobot.findJavaEditorToolbar(): MdbJavaEditorToolbarFixture = findVisible()
+fun RemoteRobot.findJavaEditorToolbarPopup(): MdbJavaEditorToolbarPopupFixture = findVisible()
 
 /**
  * Checks if the toolbar exists.
@@ -60,16 +57,16 @@ fun RemoteRobot.findJavaEditorToolbar(): MdbJavaEditorToolbarFixture = findVisib
  * @param timeout
  * @return
  */
-fun RemoteRobot.isJavaEditorToolbarHidden(timeout: Duration = 10.seconds): Boolean =
+fun RemoteRobot.isJavaEditorToolbarPopupHidden(timeout: Duration = 10.seconds): Boolean =
     run {
         waitFor(
             timeout.toJavaDuration(),
             100.milliseconds.toJavaDuration(),
         ) {
             return@waitFor runCatching {
-                findAll<MdbJavaEditorToolbarFixture>().isEmpty()
+                findAll<MdbJavaEditorToolbarPopupFixture>().isEmpty()
             }.getOrDefault(false)
         }
 
-        findAll<MdbJavaEditorToolbarFixture>().isEmpty()
+        findAll<MdbJavaEditorToolbarPopupFixture>().isEmpty()
     }

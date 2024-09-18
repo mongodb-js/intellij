@@ -158,6 +158,7 @@ tasks {
                 "idea.trust.all.projects" to true,
                 "ide.show.tips.on.startup.default.value" to false,
                 "idea.is.internal" to true,
+                "ide.debug.gutter.area" to true,
                 "robot-server.port" to "8082",
             ),
         )

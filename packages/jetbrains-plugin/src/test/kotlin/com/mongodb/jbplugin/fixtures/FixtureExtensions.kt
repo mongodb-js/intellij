@@ -14,6 +14,7 @@ import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.components.idea.maybeIdeaFrame
 import org.owasp.encoder.Encode
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
 
@@ -23,19 +24,28 @@ import kotlin.time.toJavaDuration
  * @param timeout
  * @return
  */
-inline fun <reified T : Fixture> RemoteRobot.findVisible(timeout: Duration = Duration.ofMinutes(1)) =
+inline fun <reified T : Fixture> RemoteRobot.findVisible(timeout: Duration = Duration.ofMinutes(1)): T =
     run {
+        val atomicHolder = AtomicReference<T>()
         waitFor(
             timeout,
             Duration.ofMillis(100),
             errorMessage = "Could not find component of class ${T::class.java.canonicalName}",
         ) {
             runCatching {
-                find(T::class.java).callJs<Boolean>("true")
+                val ref = find(T::class.java)
+                if (ref.callJs("true")) {
+                    atomicHolder.set(ref)
+                    true
+                } else {
+                    false
+                }
             }.getOrDefault(false)
         }
 
-        find(T::class.java)
+        atomicHolder.get() ?: throw IllegalStateException(
+            "Could not find component of class ${T::class.java.canonicalName}"
+        )
     }
 
 /**

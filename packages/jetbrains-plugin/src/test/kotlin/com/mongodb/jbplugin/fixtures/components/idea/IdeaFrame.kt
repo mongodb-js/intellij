@@ -8,13 +8,16 @@ package com.mongodb.jbplugin.fixtures.components.idea
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
-import com.intellij.remoterobot.fixtures.CommonContainerFixture
-import com.intellij.remoterobot.fixtures.DefaultXpath
-import com.intellij.remoterobot.fixtures.EditorFixture
-import com.intellij.remoterobot.fixtures.FixtureName
+import com.intellij.remoterobot.fixtures.*
+import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.steps.CommonSteps
+import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
+import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.owasp.encoder.Encode
+import java.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
 
@@ -44,6 +47,7 @@ class IdeaFrame(
             importPackage(com.intellij.openapi.vfs)
             importPackage(com.intellij.openapi.wm.impl)
             importClass(com.intellij.openapi.application.ApplicationManager)
+            importClass(com.intellij.openapi.fileEditor.FileEditorManager)
             
             const path = '$escapedPath'
             const frameHelper = ProjectFrameHelper.getFrameHelper(component)
@@ -59,17 +63,16 @@ class IdeaFrame(
                             file
                         );
                         fileEditorManager.openTextEditor(fileDescriptor, true)
-                        fileEditorManager.navigateToTextEditor(fileDescriptor)
                     }
                 })
-                ApplicationManager.getApplication().invokeLater(openFileFunction)
+                ApplicationManager.getApplication().invokeAndWait(openFileFunction)
             }
         """,
             true,
         )
     }
 
-    fun currentEditor(): EditorFixture = remoteRobot.findVisible(EditorFixture.locator)
+    fun currentTab(): TextEditorFixture = remoteRobot.findVisible(TextEditorFixture.locator, Duration.ofSeconds(1))
 
     fun addDataSourceWithUrl(
         name: String,
@@ -127,6 +130,46 @@ class IdeaFrame(
         )
     }
 
+    fun waitUntilConnectedToMongoDb(name: String, timeout: Duration = Duration.ofMinutes(1)) {
+        eventually(timeout) {
+            assertTrue(
+                callJs<Boolean>(
+                    """
+                    importClass(java.lang.System)
+
+                    const DatabaseConnectionManager = global.get('loadDataGripPluginClass')(
+                        'com.intellij.database.dataSource.DatabaseConnectionManager'
+                    )
+                    
+                    const connectionManager = DatabaseConnectionManager.getMethod("getInstance").invoke(null)
+                    const activeConnections = connectionManager.getActiveConnections()
+                    var connected = false;
+                    
+                    for (connection of activeConnections) {                    
+                        if(connection.getConnectionPoint().getDataSource().name.equals("$name")) {
+                            try {
+                                connected = !connection.getRemoteConnection().isClosed() && 
+                                             connection.getRemoteConnection().isValid(10)
+                            } catch (e) {
+                                System.err.println(e.toString())
+                            }
+                            
+                            if (connected) {
+                                break
+                            }
+                        }
+                    }
+                    
+                    connected
+                """.trimIndent(),
+                    runInEdt = true
+                )
+            )
+        }
+
+        CommonSteps(remoteRobot).wait(1)
+    }
+
     fun cleanDataSources() {
         runJs(
             """
@@ -149,8 +192,6 @@ class IdeaFrame(
             for (let i = 0; i < dataSources.size(); i++) {
                 dataSourceManager.removeDataSource(dataSources.get(i));
             }
-            const dataSource = global.get("dataSource");
-            dataSourceManager.removeDataSource(dataSource)
             """.trimIndent(),
             runInEdt = true,
         )
@@ -180,6 +221,18 @@ class IdeaFrame(
         """,
             true,
         )
+    }
+
+    fun ensureNotificationIsVisible(title: String) {
+        remoteRobot.findVisible<JLabelFixture>(byXpath("//div[@visible_text='$title']"))
+    }
+
+    fun waitUntilNotificationIsGone(title: String, timeout: Duration = Duration.ofSeconds(2)) {
+        waitFor(timeout, interval = Duration.ofMillis(50)) {
+            runCatching {
+                !remoteRobot.find<JLabelFixture>(byXpath("//div[@visible_text='$title']")).isVisible()
+            }.getOrDefault(true)
+        }
     }
 }
 
