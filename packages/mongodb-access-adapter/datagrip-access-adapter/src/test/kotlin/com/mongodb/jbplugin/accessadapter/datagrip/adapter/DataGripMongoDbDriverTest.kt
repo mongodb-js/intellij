@@ -1,10 +1,18 @@
 package com.mongodb.jbplugin.accessadapter.datagrip.adapter
 
 import com.mongodb.client.model.Filters
+import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.IntegrationTest
 import com.mongodb.jbplugin.accessadapter.datagrip.MongoDbVersion
 import com.mongodb.jbplugin.accessadapter.toNs
+import com.mongodb.jbplugin.mql.BsonString
+import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.components.HasChildren
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasValueReference
 import org.bson.Document
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -168,5 +176,71 @@ class DataGripMongoDbDriverTest {
             )
 
         assertEquals(2, result)
+    }
+
+    @Test
+    fun `it is able to run an explain plan given a query and returns a collscan if no index available`(
+        driver: MongoDbDriver,
+    ) = runBlocking {
+        val namespace = Namespace("myDb", "myCollection")
+
+        val query = Node(
+            Unit, listOf(
+                HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
+                HasChildren(
+                    listOf(
+                        Node(
+                            Unit, listOf(
+                                HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString)),
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val explainPlanResult = driver.explain(query)
+        assertEquals(ExplainPlan.CollectionScan, explainPlanResult)
+    }
+
+    @Test
+    fun `it is able to run an explain plan given a query and returns a indexscan if an index available`(
+        driver: MongoDbDriver,
+    ) = runBlocking {
+        val namespace = Namespace("myDb", "myCollection")
+
+        driver.runCommand(
+            namespace.database,
+            Document(mapOf(
+                "createIndexes" to namespace.collection,
+                "indexes" to arrayOf(
+                    Document(mapOf(
+                        "key" to Document("myField", 1),
+                        "name" to "myField_1"
+                    ))
+                )
+            )),
+            Unit::class
+        )
+
+        val query = Node(
+            Unit, listOf(
+                HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
+                HasChildren(
+                    listOf(
+                        Node(
+                            Unit, listOf(
+                                HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString)),
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val explainPlanResult = driver.explain(query)
+        assertEquals(ExplainPlan.IndexScan, explainPlanResult)
     }
 }
