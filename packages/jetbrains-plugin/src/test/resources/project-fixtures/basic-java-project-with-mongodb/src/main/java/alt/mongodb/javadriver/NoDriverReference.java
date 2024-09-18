@@ -1,1 +1,4 @@
-package alt.mongodb.javadriver;public class NoDriverReference {}
+package alt.mongodb.javadriver;
+
+public class NoDriverReference {
+}
