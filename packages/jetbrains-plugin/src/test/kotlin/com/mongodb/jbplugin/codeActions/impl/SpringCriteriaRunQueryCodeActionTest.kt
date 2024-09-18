@@ -40,13 +40,13 @@ class BookRepository {
 }
         """,
     )
-    fun `does not show a gutter icon if not connected`(
+    fun `does show a gutter icon if not connected`(
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(SpringCriteriaDialect)
         val gutters = fixture.findAllGutters()
-        assertTrue(gutters.isEmpty())
+        assertTrue(gutters.isNotEmpty())
     }
 
     @ParsingTest(
