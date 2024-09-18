@@ -20,7 +20,6 @@ class MongoDbRunQueryActionUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        remoteRobot.ideaFrame().cleanDataSources()
         remoteRobot.ideaFrame().addDataSourceWithUrl(javaClass.simpleName, url)
     }
 
@@ -33,7 +32,7 @@ class MongoDbRunQueryActionUiTest {
     @RequiresProject("basic-java-project-with-mongodb")
     fun `allows clicking on the gutter of a file and canceling`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
-        remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
+        remoteRobot.findRunQueryGutter(atLine = 24).click()
         // because we are disconnected, we should now try to connect
         val popup = remoteRobot.findJavaEditorToolbarPopup()
         popup.cancel()
@@ -44,7 +43,7 @@ class MongoDbRunQueryActionUiTest {
     fun `opens the popup, connects and opens the datagrip console`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
         remoteRobot.findJavaEditorToolbar().detachDataSource()
-        remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
+        remoteRobot.findRunQueryGutter(atLine = 24).click()
         // because we are disconnected, we should now try to connect
         val popup = remoteRobot.findJavaEditorToolbarPopup()
         popup.dataSources.selectItem(
@@ -72,7 +71,7 @@ class MongoDbRunQueryActionUiTest {
         remoteRobot.findJavaEditorToolbar().detachDataSource()
         remoteRobot.findJavaEditorToolbar().dataSources.selectItem(javaClass.simpleName)
         remoteRobot.ideaFrame().waitUntilConnectedToMongoDb(javaClass.simpleName)
-        remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
+        remoteRobot.findRunQueryGutter(atLine = 24).click()
         // check that we open a console
         eventually(Duration.ofMinutes(1)) {
             val currentEditor = remoteRobot.ideaFrame().currentTab()

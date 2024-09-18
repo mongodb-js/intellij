@@ -8,6 +8,7 @@ import com.intellij.remoterobot.fixtures.DefaultXpath
 import com.intellij.remoterobot.fixtures.FixtureName
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.utils.waitFor
+import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -43,7 +44,9 @@ class MdbJavaEditorToolbarFixture(
             )
         }.isSuccess
     fun detachDataSource() {
-        dataSources.selectItem("Detach data source")
+        eventually {
+            dataSources.selectItem("Detach data source")
+        }
     }
 }
 
