@@ -170,6 +170,15 @@ class IdeaFrame(
         CommonSteps(remoteRobot).wait(1)
     }
 
+    fun hideIntellijAiAd() {
+        runCatching {
+            val aiMenu = remoteRobot.find<JButtonFixture>(byXpath("//div[@accessiblename='AI Assistant']"))
+            aiMenu.rightClick()
+            val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
+            hideAiMenu.clickItem("Hide")
+        }
+    }
+
     fun cleanDataSources() {
         runJs(
             """
