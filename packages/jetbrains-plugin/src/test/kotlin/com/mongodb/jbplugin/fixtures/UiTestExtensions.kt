@@ -22,6 +22,7 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.imageio.ImageIO
+import kotlin.io.path.Path
 
 /**
  * Extension annotation for tests. Use it for UI tests.
@@ -119,13 +120,13 @@ private class UiTestExtension :
                 ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
 
         remoteRobot.keyboard { escape() }
-// remoteRobot.closeProject()
+        remoteRobot.closeProject()
 
         requiresProject?.let {
             // If we have the @RequireProject annotation, load that project on startup
-// remoteRobot.openProject(
-// Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
-// )
+            remoteRobot.openProject(
+                Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
+            )
 
             remoteRobot.ideaFrame().hideIntellijAiAd()
             remoteRobot.ideaFrame().disablePowerSaveMode()
@@ -145,7 +146,7 @@ private class UiTestExtension :
     }
 
     override fun afterEach(context: ExtensionContext?) {
-// remoteRobot.closeProject()
+        remoteRobot.closeProject()
     }
 
     private fun saveScreenshot(testName: String) {
