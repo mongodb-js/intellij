@@ -70,7 +70,7 @@ internal class LogMessage {
         return LogMessageBuilder(gson, key)
             .put("pluginVersion", BuildInformation.pluginVersion)
             .put("powerSaveMode", PowerSaveMode.isEnabled())
-            .put("userId", runtimeInformation.userId)
+            .put("ideaUserId", runtimeInformation.userId)
             .put("os", runtimeInformation.osName)
             .put("arch", runtimeInformation.arch)
             .put("jvmVendor", runtimeInformation.jvmVendor)
