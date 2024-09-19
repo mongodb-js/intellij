@@ -11,15 +11,21 @@ import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.steps.CommonSteps
+import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.owasp.encoder.Encode
+
 import java.time.Duration
+
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
 /**
  * Fixture that represents the frame itself. You can add more functions here if you want to interact
@@ -171,7 +177,8 @@ class IdeaFrame(
     }
 
     fun disablePowerSaveMode() {
-        runJs("""
+        step("Disable Power Save Mode") {
+            runJs("""
             importClass(com.intellij.ide.PowerSaveMode)
             importClass(com.intellij.openapi.application.ApplicationManager)
             
@@ -183,15 +190,50 @@ class IdeaFrame(
         
             ApplicationManager.getApplication().invokeLater(disableIt)
         """.trimIndent())
-        CommonSteps(remoteRobot).waitForSmartMode(60)
+        }
+    }
+
+    fun waitUntilProjectIsInSync() {
+        eventually {
+            step("Wait until Gradle project is in sync") {
+                runBlocking {
+                    withTimeout(1.seconds) {
+                        runJs(
+                            """
+                    importClass(com.intellij.openapi.externalSystem.service.project.manage.ExternalProjectsManagerImpl)
+                    importPackage(com.intellij.openapi.wm.impl)
+                    
+                    const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+                    const project = frameHelper.getProject()
+                    
+                    let iAmDone = { flag: false }
+                    const notifyIAmDone = new Runnable({
+                        run: function() {
+                            iAmDone.flag = true;
+                        }
+                    })
+        
+        
+                    ExternalProjectsManagerImpl.getInstance(project).runWhenInitialized(notifyIAmDone)
+                    while (!iAmDone.flag) {}
+                    
+                    iAmDone.flag
+        """.trimIndent()
+                        )
+                    }
+                }
+            }
+        }
     }
 
     fun hideIntellijAiAd() {
-        runCatching {
-            val aiMenu = remoteRobot.find<JButtonFixture>(byXpath("//div[@accessiblename='AI Assistant']"))
-            aiMenu.rightClick()
-            val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
-            hideAiMenu.clickItem("Hide")
+        step("Hide IntelliJ AI Ad (uses a lot of space in a small window)") {
+            runCatching {
+                val aiMenu = remoteRobot.find<JButtonFixture>(byXpath("//div[@accessiblename='AI Assistant']"))
+                aiMenu.rightClick()
+                val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
+                hideAiMenu.clickItem("Hide")
+            }
         }
     }
 

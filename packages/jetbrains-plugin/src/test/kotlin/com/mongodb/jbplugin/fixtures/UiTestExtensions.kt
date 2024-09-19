@@ -6,9 +6,12 @@
 package com.mongodb.jbplugin.fixtures
 
 import com.automation.remarks.junit5.Video
+import com.intellij.database.util.common.containsElements
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.stepsProcessing.StepLogger
+import com.intellij.remoterobot.stepsProcessing.StepWorker
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import com.intellij.remoterobot.utils.keyboard
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
@@ -19,7 +22,6 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.imageio.ImageIO
-import kotlin.io.path.Path
 
 /**
  * Extension annotation for tests. Use it for UI tests.
@@ -66,6 +68,10 @@ private class UiTestExtension :
     ): Any = remoteRobot
 
     override fun beforeAll(context: ExtensionContext?) {
+        if (!StepWorker.processors.containsElements { it is StepLogger }) {
+            StepWorker.registerProcessor(StepLogger())
+        }
+
         remoteRobot = RemoteRobot(remoteRobotUrl)
 
         remoteRobot.runJs(
@@ -113,16 +119,17 @@ private class UiTestExtension :
                 ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
 
         remoteRobot.keyboard { escape() }
-        remoteRobot.closeProject()
+// remoteRobot.closeProject()
 
         requiresProject?.let {
             // If we have the @RequireProject annotation, load that project on startup
-            remoteRobot.openProject(
-                Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
-            )
+// remoteRobot.openProject(
+// Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
+// )
 
-            remoteRobot.ideaFrame().disablePowerSaveMode()
             remoteRobot.ideaFrame().hideIntellijAiAd()
+            remoteRobot.ideaFrame().disablePowerSaveMode()
+            remoteRobot.ideaFrame().waitUntilProjectIsInSync()
         }
     }
 
@@ -138,7 +145,7 @@ private class UiTestExtension :
     }
 
     override fun afterEach(context: ExtensionContext?) {
-        remoteRobot.closeProject()
+// remoteRobot.closeProject()
     }
 
     private fun saveScreenshot(testName: String) {
