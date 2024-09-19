@@ -207,6 +207,17 @@ class IdeaFrame(
                     runInEdt = true
                 ))
             }
+
+            // exiting smart mode does not mean we are in smart mode!
+            // so try a few times and wish for luck, there is no better API it seems.
+            // Reasoning: you are in dumb mode, you load some project metadata, go to smart mode
+            // then realise that you have dependencies to download and index, so you go back to dumb
+            // mode until everything is done.
+            // happily enough, this won't take time if smart mode is already on, so it should
+            // be fast.
+            for (i in 0..5) {
+                CommonSteps(remoteRobot).waitForSmartMode(60)
+            }
         }
     }
 
