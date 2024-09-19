@@ -10,6 +10,8 @@ import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.rd.util.launchChildBackground
@@ -101,11 +103,7 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
                                 }
                             }
                         } else {
-                            val editor = DatagripConsoleEditor.openConsoleForDataSource(
-                                query.source.project,
-                                dataSource
-                            )
-                            editor?.appendText(formattedQuery)
+                            openDataGripConsole(query, dataSource, formattedQuery)
                         }
                     }
                 }
@@ -119,8 +117,10 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
         newDataSource: LocalDataSource,
         formattedQuery: String
     ) {
-        val editor = DatagripConsoleEditor.openConsoleForDataSource(query.source.project, newDataSource)
-        editor?.appendText(formattedQuery)
+        ApplicationManager.getApplication().invokeLater {
+            val editor = DatagripConsoleEditor.openConsoleForDataSource(query.source.project, newDataSource)
+            editor?.appendText(formattedQuery)
+        }
     }
 
     private fun createNotificationBalloon(newDataSource: LocalDataSource) =

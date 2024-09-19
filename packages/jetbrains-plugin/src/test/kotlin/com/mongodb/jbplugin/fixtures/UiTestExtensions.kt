@@ -12,6 +12,7 @@ import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import com.intellij.remoterobot.utils.keyboard
+import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import okhttp3.Request
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
@@ -122,6 +123,7 @@ private class UiTestExtension :
             )
 
             CommonSteps(remoteRobot).waitForSmartMode(60)
+            remoteRobot.ideaFrame().hideIntellijAiAd()
         }
     }
 
