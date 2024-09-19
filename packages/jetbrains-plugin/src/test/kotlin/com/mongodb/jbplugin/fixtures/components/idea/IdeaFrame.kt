@@ -191,7 +191,7 @@ class IdeaFrame(
     }
 
     fun waitUntilProjectIsInSync() {
-        eventually {
+        eventually(timeout = Duration.ofMinutes(60)) {
             step("Wait until Gradle project is in sync") {
                 runJs(
                     """
