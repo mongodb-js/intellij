@@ -12,6 +12,7 @@ package com.mongodb.jbplugin.observability
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.intellij.ide.PowerSaveMode
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.mongodb.jbplugin.meta.BuildInformation
@@ -68,6 +69,7 @@ internal class LogMessage {
 
         return LogMessageBuilder(gson, key)
             .put("pluginVersion", BuildInformation.pluginVersion)
+            .put("powerSaveMode", PowerSaveMode.isEnabled())
             .put("userId", runtimeInformation.userId)
             .put("os", runtimeInformation.osName)
             .put("arch", runtimeInformation.arch)
