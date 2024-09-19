@@ -14,6 +14,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
+import com.mongodb.jbplugin.meta.BuildInformation
 
 /**
  * @param gson
@@ -66,12 +67,13 @@ internal class LogMessage {
         val runtimeInformation = runtimeInformationService.get()
 
         return LogMessageBuilder(gson, key)
+            .put("pluginVersion", BuildInformation.pluginVersion)
             .put("userId", runtimeInformation.userId)
             .put("os", runtimeInformation.osName)
             .put("arch", runtimeInformation.arch)
             .put("jvmVendor", runtimeInformation.jvmVendor)
             .put("jvmVersion", runtimeInformation.jvmVersion)
-            .put("buildVersion", runtimeInformation.buildVersion)
             .put("ide", runtimeInformation.applicationName)
+            .put("ideVersion", runtimeInformation.buildVersion)
     }
 }
