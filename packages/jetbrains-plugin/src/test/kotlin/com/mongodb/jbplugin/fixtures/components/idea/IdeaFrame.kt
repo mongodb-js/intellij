@@ -191,7 +191,7 @@ class IdeaFrame(
     }
 
     fun waitUntilProjectIsInSync() {
-        eventually(timeout = Duration.ofMinutes(60)) {
+        eventually(timeout = Duration.ofMinutes(10)) {
             step("Wait until Gradle project is in sync") {
                 assertTrue(callJs<Boolean>(
                     """
@@ -215,8 +215,8 @@ class IdeaFrame(
             // mode until everything is done.
             // happily enough, this won't take time if smart mode is already on, so it should
             // be fast.
-            for (i in 0..5) {
-                CommonSteps(remoteRobot).waitForSmartMode(60)
+            for (i in 0..10) {
+                CommonSteps(remoteRobot).waitForSmartMode(5)
             }
         }
     }

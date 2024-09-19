@@ -37,11 +37,13 @@ annotation class UiTest
  * Projects are saved in the resources folder, in project-fixtures/NAME_OF_PROJECT
  *
  * @property value
+ * @property smartMode
  */
 @Target(AnnotationTarget.FUNCTION)
 @Video
 annotation class RequiresProject(
     val value: String,
+    val smartMode: Boolean = false,
 )
 
 /**
@@ -125,12 +127,15 @@ private class UiTestExtension :
         requiresProject?.let {
             // If we have the @RequireProject annotation, load that project on startup
             remoteRobot.openProject(
-                Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
+                Path("src/test/resources/project-fixtures/${it.value}").toAbsolutePath().toString(),
             )
 
+            if (it.smartMode) {
+                remoteRobot.ideaFrame().disablePowerSaveMode()
+                remoteRobot.ideaFrame().waitUntilProjectIsInSync()
+            }
+
             remoteRobot.ideaFrame().hideIntellijAiAd()
-            remoteRobot.ideaFrame().disablePowerSaveMode()
-            remoteRobot.ideaFrame().waitUntilProjectIsInSync()
         }
     }
 

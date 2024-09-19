@@ -29,7 +29,7 @@ class MongoDbRunQueryActionUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `allows clicking on the gutter of a file and canceling`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
         remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
@@ -39,7 +39,7 @@ class MongoDbRunQueryActionUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `opens the popup, connects and opens the datagrip console`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
         remoteRobot.findJavaEditorToolbar().detachDataSource()
@@ -65,7 +65,7 @@ class MongoDbRunQueryActionUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `waits until the connection is successful if there is an attached datasource`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
         remoteRobot.findJavaEditorToolbar().detachDataSource()
