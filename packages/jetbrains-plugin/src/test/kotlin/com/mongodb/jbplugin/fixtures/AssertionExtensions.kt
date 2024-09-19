@@ -53,12 +53,12 @@ fun eventually(timeout: Duration = Duration.ofSeconds(1), fn: () -> Unit) {
  * @param fn
  * @return
  */
-fun <T> eventually(timeout: Duration = Duration.ofSeconds(1), fn: () -> T): T = waitFor<T>(timeout, Duration.ofMillis(
+fun <T> eventually(timeout: Duration = Duration.ofSeconds(1), fn: () -> T): T? = waitFor<T?>(timeout, Duration.ofMillis(
 50
 )) {
         val result = runCatching {
             fn()
         }
 
-        result.isSuccess to result.getOrThrow()
+        result.isSuccess to result.getOrNull()
     }
