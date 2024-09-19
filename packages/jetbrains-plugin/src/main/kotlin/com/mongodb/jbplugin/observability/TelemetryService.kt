@@ -49,7 +49,9 @@ internal class TelemetryService : AppLifecycleListener {
             .properties(
                 event.properties.entries.associate {
                     it.key.publicName to it.value
-                },
+                } + mapOf(
+                    TelemetryProperty.PLUGIN_VERSION.publicName to BuildInformation.pluginVersion
+                )
             )
 
         analytics.enqueue(message)

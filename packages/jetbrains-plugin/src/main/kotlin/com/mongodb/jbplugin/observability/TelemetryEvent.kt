@@ -21,6 +21,7 @@ enum class TelemetryProperty(
     @Pattern("[a-z_]+")
     val publicName: String,
 ) {
+    PLUGIN_VERSION("plugin_version"),
     IS_ATLAS("is_atlas"),
     ATLAS_HOST("atlas_hostname"),
     IS_LOCAL_ATLAS("is_local_atlas"),

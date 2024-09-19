@@ -6,8 +6,10 @@ import com.mongodb.jbplugin.fixtures.IntegrationTest
 import com.mongodb.jbplugin.fixtures.mockLogMessage
 import com.mongodb.jbplugin.fixtures.mockRuntimeInformationService
 import com.mongodb.jbplugin.fixtures.withMockedService
+import com.mongodb.jbplugin.meta.BuildInformation
 import com.mongodb.jbplugin.settings.PluginSettings
 import com.segment.analytics.Analytics
+import com.segment.analytics.messages.TrackMessage
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 
@@ -28,7 +30,8 @@ internal class TelemetryServiceTest {
             argThat {
                 build().let {
                     it.anonymousId() == "654321" &&
-                        it.type().name == "track"
+                            it.type().name == "track" &&
+                            (it as TrackMessage).properties()?.get("plugin_version") == BuildInformation.pluginVersion
                 }
             },
         )

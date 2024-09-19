@@ -5,6 +5,7 @@ import com.intellij.openapi.application.Application
 import com.mongodb.jbplugin.fixtures.IntegrationTest
 import com.mongodb.jbplugin.fixtures.mockRuntimeInformationService
 import com.mongodb.jbplugin.fixtures.withMockedService
+import com.mongodb.jbplugin.meta.BuildInformation
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -20,6 +21,16 @@ class LogMessageTest {
         val parsedMessage = gson.fromJson<Map<String, Any>>(message, Map::class.java)
 
         assertEquals("My Message", parsedMessage["message"])
+    }
+
+    @Test
+    fun `should add the current plugin version`(application: Application) {
+        application.withMockedService(mockRuntimeInformationService())
+
+        val message = LogMessage().message("My Message").build()
+        val parsedMessage = gson.fromJson<Map<String, Any>>(message, Map::class.java)
+
+        assertEquals(BuildInformation.pluginVersion, parsedMessage["pluginVersion"])
     }
 
     @Test
