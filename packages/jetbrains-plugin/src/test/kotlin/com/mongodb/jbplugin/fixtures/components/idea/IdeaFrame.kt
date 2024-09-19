@@ -193,7 +193,7 @@ class IdeaFrame(
     fun waitUntilProjectIsInSync() {
         eventually(timeout = Duration.ofMinutes(60)) {
             step("Wait until Gradle project is in sync") {
-                runJs(
+                assertTrue(callJs<Boolean>(
                     """
                     importPackage(com.intellij.openapi.wm.impl)
                     importClass(com.intellij.openapi.module.ModuleManager)
@@ -205,7 +205,7 @@ class IdeaFrame(
                     modules.length > 0
                     """.trimIndent(),
                     runInEdt = true
-                )
+                ))
             }
         }
     }
