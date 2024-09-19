@@ -170,6 +170,22 @@ class IdeaFrame(
         CommonSteps(remoteRobot).wait(1)
     }
 
+    fun disablePowerSaveMode() {
+        runJs("""
+            importClass(com.intellij.ide.PowerSaveMode)
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            
+            const disableIt = new Runnable({
+                    run: function() {
+                        PowerSaveMode.setEnabled(false)
+                    }
+                })
+        
+            ApplicationManager.getApplication().invokeLater(disableIt)
+        """.trimIndent())
+        CommonSteps(remoteRobot).waitForSmartMode(60)
+    }
+
     fun hideIntellijAiAd() {
         runCatching {
             val aiMenu = remoteRobot.find<JButtonFixture>(byXpath("//div[@accessiblename='AI Assistant']"))

@@ -9,7 +9,6 @@ import com.automation.remarks.junit5.Video
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import com.intellij.remoterobot.utils.keyboard
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
@@ -122,7 +121,7 @@ private class UiTestExtension :
                 Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
             )
 
-            CommonSteps(remoteRobot).waitForSmartMode(60)
+            remoteRobot.ideaFrame().disablePowerSaveMode()
             remoteRobot.ideaFrame().hideIntellijAiAd()
         }
     }
