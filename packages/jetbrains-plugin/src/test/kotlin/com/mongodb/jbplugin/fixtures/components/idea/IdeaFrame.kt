@@ -22,10 +22,7 @@ import org.owasp.encoder.Encode
 import java.time.Duration
 
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 
 /**
  * Fixture that represents the frame itself. You can add more functions here if you want to interact
@@ -196,32 +193,19 @@ class IdeaFrame(
     fun waitUntilProjectIsInSync() {
         eventually {
             step("Wait until Gradle project is in sync") {
-                runBlocking {
-                    withTimeout(1.seconds) {
-                        runJs(
-                            """
-                    importClass(com.intellij.openapi.externalSystem.service.project.manage.ExternalProjectsManagerImpl)
+                runJs(
+                    """
                     importPackage(com.intellij.openapi.wm.impl)
-                    
+                    importClass(com.intellij.openapi.module.ModuleManager)
+
                     const frameHelper = ProjectFrameHelper.getFrameHelper(component)
                     const project = frameHelper.getProject()
+                    const modules = ModuleManager.getInstance(project).getModules()
                     
-                    let iAmDone = { flag: false }
-                    const notifyIAmDone = new Runnable({
-                        run: function() {
-                            iAmDone.flag = true;
-                        }
-                    })
-        
-        
-                    ExternalProjectsManagerImpl.getInstance(project).runWhenInitialized(notifyIAmDone)
-                    while (!iAmDone.flag) {}
-                    
-                    iAmDone.flag
-        """.trimIndent()
-                        )
-                    }
-                }
+                    modules.length > 0
+                    """.trimIndent(),
+                    runInEdt = true
+                )
             }
         }
     }
