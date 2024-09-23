@@ -184,7 +184,7 @@ private fun assertGeneratedQuery(
  script: () -> Node<Unit>
 ) {
     val generated = MongoshDialectFormatter.formatQuery(script(), explain)
-    assertEquals(js, generated)
+    assertEquals(js, generated.query)
 }
 
 private fun assertGeneratedIndex(@Language("js") js: String, script: () -> Node<Unit>) {
