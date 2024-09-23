@@ -12,8 +12,11 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
-import com.mongodb.jbplugin.editor.inputs.*
+import com.intellij.util.ui.JBUI
+import com.mongodb.jbplugin.editor.inputs.DataSourceComboBox
+import com.mongodb.jbplugin.editor.inputs.DatabaseComboBox
 import com.mongodb.jbplugin.editor.models.DataSourceModel
 import com.mongodb.jbplugin.editor.models.DatabaseModel
 import com.mongodb.jbplugin.editor.models.implementations.ProjectDataSourceModel
@@ -22,12 +25,13 @@ import com.mongodb.jbplugin.editor.services.ConnectionState
 import com.mongodb.jbplugin.editor.services.implementations.InMemoryToolbarSettings
 import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
-
+import com.mongodb.jbplugin.i18n.Icons
+import com.mongodb.jbplugin.i18n.Icons.scaledToText
+import com.mongodb.jbplugin.i18n.MdbToolbarMessages
+import com.mongodb.jbplugin.observability.useLogMessage
+import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
-import javax.swing.BoxLayout
-import javax.swing.JComponent
-import javax.swing.JDialog
-import javax.swing.JPanel
+import javax.swing.*
 
 private val log = logger<MdbJavaEditorToolbar>()
 
@@ -204,11 +208,16 @@ class MdbJavaEditorToolbar(
     private class MdbJavaEditorToolbarPanel : JBPanel<Nothing>(BorderLayout())
 
     companion object {
-        fun showModalForSelection(project: Project) {
+        fun showModalForSelection(
+            project: Project,
+            onConnectionStateChange: (status: ConnectionState, dataSource: LocalDataSource) -> Unit = { _, _ -> }
+        ) {
             val editorService = getEditorService(project)
             val toolbar = editorService.getToolbarFromSelectedEditor()
             toolbar ?: run {
-                log.warn("Could not show modal for selection, toolbar on attached editor is null")
+                log.warn(
+                    useLogMessage("Could not show modal for selection, toolbar on attached editor is null").build()
+                )
                 return
             }
 
@@ -235,12 +244,21 @@ class MdbJavaEditorToolbar(
                     MdbJavaEditorToolbar(dataSourceModel = dataSourceModel, databaseModel = databaseModel)
 
                 val dialog = SelectConnectionDialogWrapper(
+                    MdbToolbarMessages.message("connection.chooser.popup.information.message"),
                     project,
                     localToolbar,
                     editorService.isDatabaseComboBoxVisibleForSelectedEditor(),
                 )
+
                 if (dialog.showAndGet()) {
-                    toolbar.setToolbarState(localToolbar.getToolbarState())
+                    val toolbarState = localToolbar.getToolbarState()
+
+                    toolbar.setToolbarState(toolbarState)
+                    dataSourceService.connect(toolbarState.selectedDataSource!!) { connectionState ->
+                        ApplicationManager.getApplication().invokeLater {
+                            onConnectionStateChange(connectionState, toolbarState.selectedDataSource)
+                        }
+                    }
                 }
             }
         }
@@ -249,8 +267,10 @@ class MdbJavaEditorToolbar(
          * @param project
          * @param toolbar
          * @param databaseComboBoxVisible
+         * @property informationMessage
          */
         private class SelectConnectionDialogWrapper(
+            @Nls val informationMessage: String,
             project: Project,
             private val toolbar: MdbJavaEditorToolbar,
             private val databaseComboBoxVisible: Boolean
@@ -261,6 +281,9 @@ class MdbJavaEditorToolbar(
 
             override fun createCenterPanel(): JComponent =
                 JPanel(BorderLayout()).apply {
+                    add(JBLabel(informationMessage, Icons.information.scaledToText(), SwingConstants.LEFT).apply {
+                        border = JBUI.Borders.empty(10)
+                    }, BorderLayout.NORTH)
                     toolbar.attachToParent(this, databaseComboBoxVisible)
                     (peer.window as? JDialog)?.isUndecorated = true
                 }

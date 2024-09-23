@@ -45,6 +45,11 @@
                            bundle="messages.TelemetryBundle"
                            key="notification.group.name"
                            />
+        <notificationGroup id="com.mongodb.jbplugin.notifications.Connection"
+                           displayType="BALLOON"
+                           bundle="messages.TelemetryBundle"
+                           key="notification.group.name"
+        />
         <codeInsight.declarativeInlayProvider
                 group="com.mongodb.jbplugin"
                 implementationClass="com.mongodb.jbplugin.inlays.MongoDbQueryNamespaceInlay"

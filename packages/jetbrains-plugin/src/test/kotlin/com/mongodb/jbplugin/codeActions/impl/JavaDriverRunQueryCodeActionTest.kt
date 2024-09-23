@@ -40,13 +40,13 @@ public class Repository {
 }
         """,
     )
-    fun `does not show a gutter icon if not connected`(
+    fun `does show a gutter icon if not connected`(
         psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
         val gutters = fixture.findAllGutters()
-        assertTrue(gutters.isEmpty())
+        assertTrue(gutters.isNotEmpty())
     }
 
     @ParsingTest(

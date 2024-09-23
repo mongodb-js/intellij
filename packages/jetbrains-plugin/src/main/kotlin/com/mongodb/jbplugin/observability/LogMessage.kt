@@ -21,8 +21,8 @@ import com.mongodb.jbplugin.meta.BuildInformation
  * @param gson
  * @param message
  */
-internal class LogMessageBuilder(private val gson: Gson, message: String) {
-    private val properties: MutableMap<String, Any> = mutableMapOf("message" to message)
+class LogMessageBuilder(private val gson: Gson, message: String) {
+    val properties: MutableMap<String, Any> = mutableMapOf("message" to message)
 
     fun put(
         key: String,
@@ -48,16 +48,17 @@ internal class LogMessageBuilder(private val gson: Gson, message: String) {
  * class MyProbe {
  *  ...
  *     fun somethingProbed() {
- *        val logMessage = ApplicationManager.getApplication().getService(LogMessage::class.java)
- *        log.info(logMessage.message("My message").put("someOtherProp", 25).build())
+ *        log.info(useLogMessage("My message").put("someOtherProp", 25).build())
  *     }
  *  ...
  * }
  * ```
  *
+ * However, feel free to use it outside probes for additional logs that are not relevant for telemetry, like internal
+ * errors.
  */
 @Service
-internal class LogMessage {
+class LogMessage {
     private val gson = GsonBuilder().generateNonExecutableJson().disableJdkUnsafe().create()
 
     fun message(key: String): LogMessageBuilder {
@@ -79,3 +80,14 @@ internal class LogMessage {
             .put("ideVersion", runtimeInformation.buildVersion)
     }
 }
+
+/**
+ * Function to access the application level log message builder. Should be used for any important log as it includes
+ * in the log line additional information from the runtime environment.
+ *
+ * @param message
+ * @return
+ */
+fun useLogMessage(message: String) = ApplicationManager.getApplication().getService(LogMessage::class.java).message(
+    message
+)

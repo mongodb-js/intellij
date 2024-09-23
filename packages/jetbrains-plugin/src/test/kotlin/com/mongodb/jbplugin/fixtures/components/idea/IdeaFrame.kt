@@ -8,13 +8,19 @@ package com.mongodb.jbplugin.fixtures.components.idea
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
-import com.intellij.remoterobot.fixtures.CommonContainerFixture
-import com.intellij.remoterobot.fixtures.DefaultXpath
-import com.intellij.remoterobot.fixtures.EditorFixture
-import com.intellij.remoterobot.fixtures.FixtureName
+import com.intellij.remoterobot.fixtures.*
+import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.steps.CommonSteps
+import com.intellij.remoterobot.stepsProcessing.step
+import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
+import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.owasp.encoder.Encode
+
+import java.time.Duration
+
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
 
@@ -44,6 +50,7 @@ class IdeaFrame(
             importPackage(com.intellij.openapi.vfs)
             importPackage(com.intellij.openapi.wm.impl)
             importClass(com.intellij.openapi.application.ApplicationManager)
+            importClass(com.intellij.openapi.fileEditor.FileEditorManager)
             
             const path = '$escapedPath'
             const frameHelper = ProjectFrameHelper.getFrameHelper(component)
@@ -59,17 +66,16 @@ class IdeaFrame(
                             file
                         );
                         fileEditorManager.openTextEditor(fileDescriptor, true)
-                        fileEditorManager.navigateToTextEditor(fileDescriptor)
                     }
                 })
-                ApplicationManager.getApplication().invokeLater(openFileFunction)
+                ApplicationManager.getApplication().invokeAndWait(openFileFunction)
             }
         """,
             true,
         )
     }
 
-    fun currentEditor(): EditorFixture = remoteRobot.findVisible(EditorFixture.locator)
+    fun currentTab(): TextEditorFixture = remoteRobot.findVisible(TextEditorFixture.locator, Duration.ofSeconds(1))
 
     fun addDataSourceWithUrl(
         name: String,
@@ -127,6 +133,105 @@ class IdeaFrame(
         )
     }
 
+    fun waitUntilConnectedToMongoDb(name: String, timeout: Duration = Duration.ofMinutes(1)) {
+        eventually(timeout) {
+            assertTrue(
+                callJs<Boolean>(
+                    """
+                    importClass(java.lang.System)
+
+                    const DatabaseConnectionManager = global.get('loadDataGripPluginClass')(
+                        'com.intellij.database.dataSource.DatabaseConnectionManager'
+                    )
+                    
+                    const connectionManager = DatabaseConnectionManager.getMethod("getInstance").invoke(null)
+                    const activeConnections = connectionManager.getActiveConnections()
+                    var connected = false;
+                    
+                    for (connection of activeConnections) {                    
+                        if(connection.getConnectionPoint().getDataSource().name.equals("$name")) {
+                            try {
+                                connected = !connection.getRemoteConnection().isClosed() && 
+                                             connection.getRemoteConnection().isValid(10)
+                            } catch (e) {
+                                System.err.println(e.toString())
+                            }
+                            
+                            if (connected) {
+                                break
+                            }
+                        }
+                    }
+                    
+                    connected
+                """.trimIndent(),
+                    runInEdt = true
+                )
+            )
+        }
+
+        CommonSteps(remoteRobot).wait(1)
+    }
+
+    fun disablePowerSaveMode() {
+        step("Disable Power Save Mode") {
+            runJs("""
+            importClass(com.intellij.ide.PowerSaveMode)
+            importClass(com.intellij.openapi.application.ApplicationManager)
+            
+            const disableIt = new Runnable({
+                    run: function() {
+                        PowerSaveMode.setEnabled(false)
+                    }
+                })
+        
+            ApplicationManager.getApplication().invokeLater(disableIt)
+        """.trimIndent())
+        }
+    }
+
+    fun waitUntilProjectIsInSync() {
+        eventually(timeout = Duration.ofMinutes(10)) {
+            step("Wait until Gradle project is in sync") {
+                assertTrue(callJs<Boolean>(
+                    """
+                    importPackage(com.intellij.openapi.wm.impl)
+                    importClass(com.intellij.openapi.module.ModuleManager)
+
+                    const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+                    const project = frameHelper.getProject()
+                    const modules = ModuleManager.getInstance(project).getModules()
+                    
+                    modules.length > 0
+                    """.trimIndent(),
+                    runInEdt = true
+                ))
+            }
+
+            // exiting smart mode does not mean we are in smart mode!
+            // so try a few times and wish for luck, there is no better API it seems.
+            // Reasoning: you are in dumb mode, you load some project metadata, go to smart mode
+            // then realise that you have dependencies to download and index, so you go back to dumb
+            // mode until everything is done.
+            // happily enough, this won't take time if smart mode is already on, so it should
+            // be fast.
+            for (i in 0..10) {
+                CommonSteps(remoteRobot).waitForSmartMode(5)
+            }
+        }
+    }
+
+    fun hideIntellijAiAd() {
+        step("Hide IntelliJ AI Ad (uses a lot of space in a small window)") {
+            runCatching {
+                val aiMenu = remoteRobot.find<JButtonFixture>(byXpath("//div[@accessiblename='AI Assistant']"))
+                aiMenu.rightClick()
+                val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
+                hideAiMenu.clickItem("Hide")
+            }
+        }
+    }
+
     fun cleanDataSources() {
         runJs(
             """
@@ -149,8 +254,6 @@ class IdeaFrame(
             for (let i = 0; i < dataSources.size(); i++) {
                 dataSourceManager.removeDataSource(dataSources.get(i));
             }
-            const dataSource = global.get("dataSource");
-            dataSourceManager.removeDataSource(dataSource)
             """.trimIndent(),
             runInEdt = true,
         )
@@ -180,6 +283,18 @@ class IdeaFrame(
         """,
             true,
         )
+    }
+
+    fun ensureNotificationIsVisible(title: String) {
+        remoteRobot.findVisible<JLabelFixture>(byXpath("//div[@visible_text='$title']"))
+    }
+
+    fun waitUntilNotificationIsGone(title: String, timeout: Duration = Duration.ofSeconds(2)) {
+        waitFor(timeout, interval = Duration.ofMillis(50)) {
+            runCatching {
+                !remoteRobot.find<JLabelFixture>(byXpath("//div[@visible_text='$title']")).isVisible()
+            }.getOrDefault(true)
+        }
     }
 }
 
