@@ -103,8 +103,9 @@ jobs:
           ./gradlew --quiet --console=plain ktlintCheck
       - name: Push Checkstyle report
         uses: jwgmeligmeyling/checkstyle-github-action@v1.2
+        if: success() || failure() # always run even if the previous step fails
         with:
-          path: '**/Check.xml'
+          path: '**/*Check.xml'
 
   unit-tests:
     name: 'Unit and Integration Tests'
