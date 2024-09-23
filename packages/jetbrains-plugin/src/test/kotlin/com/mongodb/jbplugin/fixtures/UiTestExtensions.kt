@@ -6,11 +6,15 @@
 package com.mongodb.jbplugin.fixtures
 
 import com.automation.remarks.junit5.Video
+import com.intellij.database.util.common.containsElements
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.stepsProcessing.StepLogger
+import com.intellij.remoterobot.stepsProcessing.StepWorker
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import com.intellij.remoterobot.utils.keyboard
+import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import okhttp3.Request
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
@@ -33,11 +37,13 @@ annotation class UiTest
  * Projects are saved in the resources folder, in project-fixtures/NAME_OF_PROJECT
  *
  * @property value
+ * @property smartMode
  */
 @Target(AnnotationTarget.FUNCTION)
 @Video
 annotation class RequiresProject(
     val value: String,
+    val smartMode: Boolean = false,
 )
 
 /**
@@ -65,6 +71,10 @@ private class UiTestExtension :
     ): Any = remoteRobot
 
     override fun beforeAll(context: ExtensionContext?) {
+        if (!StepWorker.processors.containsElements { it is StepLogger }) {
+            StepWorker.registerProcessor(StepLogger())
+        }
+
         remoteRobot = RemoteRobot(remoteRobotUrl)
 
         remoteRobot.runJs(
@@ -117,8 +127,15 @@ private class UiTestExtension :
         requiresProject?.let {
             // If we have the @RequireProject annotation, load that project on startup
             remoteRobot.openProject(
-                Path("src/test/resources/project-fixtures/${requiresProject.value}").toAbsolutePath().toString(),
+                Path("src/test/resources/project-fixtures/${it.value}").toAbsolutePath().toString(),
             )
+
+            if (it.smartMode) {
+                remoteRobot.ideaFrame().disablePowerSaveMode()
+                remoteRobot.ideaFrame().waitUntilProjectIsInSync()
+            }
+
+            remoteRobot.ideaFrame().hideIntellijAiAd()
         }
     }
 
