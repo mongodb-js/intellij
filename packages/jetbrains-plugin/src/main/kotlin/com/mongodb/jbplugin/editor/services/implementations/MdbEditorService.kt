@@ -21,6 +21,7 @@ import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.editor.services.EditorService
+import com.mongodb.jbplugin.observability.useLogMessage
 
 private val allDialects = listOf(
     JavaDriverDialect,
@@ -51,7 +52,7 @@ class MdbEditorService(private val project: Project) : EditorService {
                     getPsiFile(selectedEditor, applyReadAction = psiReadAction) ?: throw Exception("PsiFile not found")
                 DaemonCodeAnalyzer.getInstance(this.project).restart(psiFile)
             } catch (exception: Exception) {
-                log.info("Could not analyze file: ${exception.message}")
+                log.info(useLogMessage("Could not analyze file: ${exception.message}").build())
             }
         }
         if (applyReadAction) {

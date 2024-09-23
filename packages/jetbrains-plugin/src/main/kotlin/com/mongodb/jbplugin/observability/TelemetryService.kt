@@ -59,9 +59,9 @@ internal class TelemetryService : AppLifecycleListener {
 
     override fun appWillBeClosed(isRestart: Boolean) {
         val telemetryEnabled = useSettings().isTelemetryEnabled
-        val logMessage = ApplicationManager.getApplication().getService(LogMessage::class.java)
+
         logger.info(
-            logMessage.message("Shutting down Segment analytics because the IDE is closing.")
+            useLogMessage("Shutting down Segment analytics because the IDE is closing.")
                 .put("isRestart", isRestart)
                 .put("telemetryEnabled", telemetryEnabled)
                 .build(),
