@@ -1,11 +1,12 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
 import com.mongodb.jbplugin.dialects.DialectFormatter
+import com.mongodb.jbplugin.dialects.OutputQuery
 import com.mongodb.jbplugin.mql.*
 
 object JavaDriverDialectFormatter : DialectFormatter {
     override fun <S> formatQuery(query: Node<S>, explain: Boolean) =
-        throw UnsupportedOperationException()
+        OutputQuery.None
 
     override fun <S> indexCommandForQuery(query: Node<S>) =
         throw UnsupportedOperationException()

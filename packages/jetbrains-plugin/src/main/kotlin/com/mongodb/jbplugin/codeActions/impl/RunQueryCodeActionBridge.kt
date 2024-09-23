@@ -56,10 +56,10 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
             { CodeActionsMessages.message("code.action.run.query") },
             { _, _ ->
                 coroutineScope.launchChildBackground {
-                    val formattedQuery = MongoshDialect.formatter.formatQuery(query, explain = false)
+                    val outputQuery = MongoshDialect.formatter.formatQuery(query, explain = false)
                     coroutineScope.launchChildOnUi {
                         val editor = DatagripConsoleEditor.openConsoleForDataSource(query.source.project, dataSource)
-                        editor?.appendText(formattedQuery)
+                        editor?.appendText(outputQuery.query)
                     }
                 }
             },

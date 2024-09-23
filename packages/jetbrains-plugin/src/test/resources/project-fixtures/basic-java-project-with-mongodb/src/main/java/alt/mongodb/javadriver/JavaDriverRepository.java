@@ -20,9 +20,9 @@ public class JavaDriverRepository {
     public JavaDriverRepository(MongoClient client) {
         this.client = client;
     }
-    private List<Document> getGrade() {
+    private List<Document> getGrade(String myColl) {
         return client.getDatabase("sample_mflix")
-                .getCollection("movies")
+                .getCollection("")
                 .find(
                         Filters.and(
                                 Filters.eq(IMDB_VOTES, 1),

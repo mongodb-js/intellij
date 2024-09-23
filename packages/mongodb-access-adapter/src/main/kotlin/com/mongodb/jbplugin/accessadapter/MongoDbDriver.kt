@@ -22,6 +22,7 @@ import kotlin.time.Duration.Companion.seconds
  * Represents the result of an explain plan command.
  */
 sealed interface ExplainPlan {
+    data object NotRun : ExplainPlan
     data object CollectionScan : ExplainPlan
     data object IndexScan : ExplainPlan
 }

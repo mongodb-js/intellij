@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.dialects.mongosh
 
 import com.mongodb.jbplugin.dialects.DialectFormatter
+import com.mongodb.jbplugin.dialects.OutputQuery
 import com.mongodb.jbplugin.dialects.mongosh.backend.MongoshBackend
 import com.mongodb.jbplugin.mql.*
 import com.mongodb.jbplugin.mql.components.*
@@ -8,19 +9,26 @@ import io.github.z4kn4fein.semver.Version
 import org.owasp.encoder.Encode
 
 object MongoshDialectFormatter : DialectFormatter {
-    override fun <S> formatQuery(query: Node<S>, explain: Boolean): String = MongoshBackend().apply {
-        emitDbAccess()
-        emitCollectionReference(query.component<HasCollectionReference<S>>())
-        emitFunctionName("find")
-        emitFunctionCall({
-            emitQueryBody(query, firstCall = true)
-        })
-        if (explain) {
-            emitPropertyAccess()
-            emitFunctionName("explain")
-            emitFunctionCall()
+    override fun <S> formatQuery(query: Node<S>, explain: Boolean): OutputQuery {
+        val outputString = MongoshBackend().apply {
+            emitDbAccess()
+            emitCollectionReference(query.component<HasCollectionReference<S>>())
+            emitFunctionName("find")
+            emitFunctionCall({
+                emitQueryBody(query, firstCall = true)
+            })
+            if (explain) {
+                emitPropertyAccess()
+                emitFunctionName("explain")
+                emitFunctionCall()
+            }
+        }.computeOutput()
+
+        return when (query.component<HasCollectionReference<S>>()?.reference) {
+            is HasCollectionReference.Known -> OutputQuery.CanBeRun(outputString)
+            else -> OutputQuery.Incomplete(outputString)
         }
-    }.computeOutput()
+    }
 
     override fun <S> indexCommandForQuery(query: Node<S>): String = when (val index = IndexAnalyzer.analyze(query)) {
         is IndexAnalyzer.SuggestedIndex.NoIndex -> ""
