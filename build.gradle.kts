@@ -7,7 +7,27 @@ group = "com.mongodb"
 version = "0.0.1"
 
 plugins {
+    base
     id("com.github.ben-manes.versions")
+    id("jacoco-report-aggregation")
+}
+
+dependencies {
+    allprojects.filter { it.path != ":packages" }.forEach {
+        jacocoAggregation(project(it.path))
+    }
+}
+
+reporting {
+    reports {
+        val testCodeCoverageReport by creating(JacocoCoverageReport::class) {
+            testType = TestSuiteType.UNIT_TEST
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.named<JacocoReport>("testCodeCoverageReport"))
 }
 
 tasks {

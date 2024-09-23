@@ -3,8 +3,10 @@ import org.gradle.accessors.dm.LibrariesForLibs
 import org.gradle.kotlin.dsl.support.delegates.TaskContainerDelegate.*
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    id("java")
     kotlin("jvm")
     id("jacoco")
     id("org.jlleitschuh.gradle.ktlint")

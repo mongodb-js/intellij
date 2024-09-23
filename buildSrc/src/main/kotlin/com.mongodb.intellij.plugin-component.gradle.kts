@@ -38,9 +38,14 @@ intellij {
 
 project.afterEvaluate {
     if (pluginBundle.enableBundle.get() == false) {
-        tasks.filter { it.group == "intellij" }.forEach {
+        tasks.filter { it.group == "intellij" && (
+          it.name.startsWith("runIde") ||
+          it.name.startsWith("verify") ||
+          it.name.startsWith("build") ||
+          it.name.startsWith("publish") ||
+          it.name.startsWith("sign")
+          )}.forEach {
             it.enabled = false
-            it.group = "intellij (disabled)"
         }
     }
 }
@@ -51,8 +56,8 @@ dependencies {
     jmh(libs.testing.jmh.annotationProcessor)
     jmh(libs.testing.jmh.generatorByteCode)
 
-    testCompileOnly(libs.testing.intellij.ideImpl)
-    testCompileOnly(libs.testing.intellij.coreUi)
+    testImplementation(libs.testing.intellij.ideImpl)
+    testImplementation(libs.testing.intellij.coreUi)
 
     testImplementation(libs.mongodb.driver)
     testImplementation(libs.testing.spring.mongodb)
@@ -171,7 +176,7 @@ tasks {
         }
 
         jacoco {
-            toolVersion = "0.8.12"
+            toolVersion = libs.versions.jacoco.get()
             isScanForTestClasses = true
         }
     }
