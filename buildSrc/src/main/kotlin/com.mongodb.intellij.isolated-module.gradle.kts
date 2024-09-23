@@ -14,6 +14,7 @@ plugins {
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 val libs = the<LibrariesForLibs>()
