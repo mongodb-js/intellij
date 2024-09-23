@@ -1,6 +1,5 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.accessors.dm.LibrariesForLibs
-import com.diffplug.gradle.spotless.SpotlessExtension
 import org.gradle.kotlin.dsl.support.delegates.TaskContainerDelegate.*
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
@@ -8,7 +7,6 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 plugins {
     kotlin("jvm")
     id("jacoco")
-    id("com.diffplug.spotless")
     id("org.jlleitschuh.gradle.ktlint")
 }
 
@@ -74,13 +72,6 @@ tasks {
         executionData(
             files(withType(Test::class.java)).filter { it.name.endsWith(".exec") && it.exists() }
         )
-    }
-
-    configure<SpotlessExtension> {
-        kotlin {
-            diktat()
-                .configFile(rootProject.layout.projectDirectory.file("gradle/diktat.yml").asFile.absolutePath)
-        }
     }
 }
 

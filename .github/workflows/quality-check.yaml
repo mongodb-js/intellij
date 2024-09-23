@@ -100,7 +100,11 @@ jobs:
           cache: 'gradle'
       - name: Run Linter
         run: |
-          ./gradlew --quiet --console=plain spotlessCheck
+          ./gradlew --quiet --console=plain ktlintCheck
+      - name: Push Checkstyle report
+        uses: jwgmeligmeyling/checkstyle-github-action@v1.2
+        with:
+          path: '**/Check.xml'
 
   unit-tests:
     name: 'Unit Tests'

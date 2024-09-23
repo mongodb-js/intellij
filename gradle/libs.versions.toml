@@ -10,6 +10,11 @@ java-target="17"
 versions-plugin = "0.51.0"
 jacoco = "0.8.12"
 video-recorder = "2.0"
+test-retry = "1.6.0"
+intellij-plugin = "1.17.4"
+changelog-plugin = "2.2.1"
+ktlint-plugin = "12.1.1"
+
 # Library dependencies
 kotlin-stdlib = "1.9.24"
 kotlinx-coroutines = "1.8.0"
@@ -70,14 +75,12 @@ testing-spring-mongodb = { group = "org.springframework.data", name="spring-data
 
 ######################################################
 ## Libraries and plugins only used for the buildScript.
-buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = "1.9.23" }
+buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin-stdlib" }
 buildScript-plugin-versions = { group = "com.github.ben-manes", name = "gradle-versions-plugin", version.ref = "versions-plugin" }
-buildScript-plugin-spotless = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version = "6.25.0" }
-buildScript-plugin-testRetry = { group = "org.gradle", name = "test-retry-gradle-plugin", version = "1.6.0" }
-buildScript-plugin-intellij-plugin = { group = "org.jetbrains.intellij.plugins", name = "gradle-intellij-plugin", version = "1.17.4" }
-buildScript-plugin-intellij-changelog = { group = "org.jetbrains.intellij.plugins", name = "gradle-changelog-plugin", version = "2.2.1" }
+buildScript-plugin-testRetry = { group = "org.gradle", name = "test-retry-gradle-plugin", version.ref = "test-retry" }
+buildScript-plugin-intellij-plugin = { group = "org.jetbrains.intellij.plugins", name = "gradle-intellij-plugin", version.ref = "intellij-plugin" }
+buildScript-plugin-intellij-changelog = { group = "org.jetbrains.intellij.plugins", name = "gradle-changelog-plugin", version.ref = "changelog-plugin" }
 buildScript-plugin-jmh = { group = "me.champeau.jmh", name = "jmh-gradle-plugin", version = "0.7.2" }
 buildScript-plugin-jmhreport = { group = "gradle.plugin.io.morethan.jmhreport", name = "gradle-jmh-report", version = "0.9.6" }
-buildScript-plugin-diktat = { group = "com.saveourtool.diktat", name = "diktat-runner", version = "2.0.0" }
-buildScript-plugin-ktlint = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle", version = "12.1.1" }
+buildScript-plugin-ktlint = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle", version.ref = "ktlint-plugin" }
 ######################################################
