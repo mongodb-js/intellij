@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-91](https://jira.mongodb.org/browse/INTELLIJ-91): Ability to trigger autocompletion automatically for string constants
+in a query.
 * [INTELLIJ-73](https://jira.mongodb.org/browse/INTELLIJ-73): Ability to run Java queries, both with the Java Driver and
 Spring Criteria, in the Data Explorer console.
 * [INTELLIJ-93](https://jira.mongodb.org/browse/INTELLIJ-93): Inline warning when a query does not use an index and

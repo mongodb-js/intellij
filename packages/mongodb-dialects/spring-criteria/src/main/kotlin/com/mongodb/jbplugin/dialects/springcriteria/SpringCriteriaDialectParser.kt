@@ -2,12 +2,10 @@ package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
-import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
-import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
-import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
-import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
+import com.mongodb.jbplugin.dialects.javadriver.glossary.*
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
@@ -48,9 +46,28 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val isString = source.parentOfType<PsiLiteralExpression>(true)?.tryToResolveAsConstantString() != null
         val methodCall = source.parentOfType<PsiMethodCallExpression>() ?: return false
 
+        /*
+         * IntelliJ might detect that we are not in a string, but in a whitespace or a dot  due to, probably,
+         * some internal race conditions. In this case, we will check the parent, which will be an ExpressionList, that
+         * will contain all tokens and the string we actually want. In case it's a dot, we are here:
+         * where(). <--
+         * So we need to check the previous sibling to find if we are in a criteria expression.
+         */
+        if (source is PsiWhiteSpace || (source is PsiJavaToken && source.elementType?.toString() != "STRING_LITERAL")) {
+            val parentExpressionList = source.parent
+            val siblingAsMethodCall = source.prevSibling as? PsiMethodCallExpression ?: return false
+
+            return siblingAsMethodCall.isCriteriaExpression() ||
+                    parentExpressionList.children.filterIsInstance<PsiExpression>().any { isReferenceToField(it) }
+        }
+
         return isString && methodCall.isCriteriaExpression()
     }
 
+    /**
+     * This function is easier to read inline because it calls itself recursively.
+     */
+    @Suppress("TOO_LONG_FUNCTION")
     private fun parseQueryRecursively(
         fieldNameCall: PsiMethodCallExpression,
         until: PsiElement? = null
@@ -74,6 +91,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 return listOf(Node<PsiElement>(fieldNameCall, listOf(named, HasChildren(allSubQueries)))) +
                         parseQueryRecursively(nextField, until)
             }
+        }
+
+        if (fieldNameCall.argumentList.expressions.isEmpty()) {
+            return emptyList()
         }
 
         val fieldName = fieldNameCall.argumentList.expressions[0].tryToResolveAsConstantString()!!
