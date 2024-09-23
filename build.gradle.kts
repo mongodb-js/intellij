@@ -1,4 +1,6 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import groovy.json.JsonSlurper
+import java.net.URL
 
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
@@ -162,6 +164,32 @@ tasks {
         group = "environment"
         doLast {
             println(rootProject.version)
+        }
+    }
+
+    register("mainStatus") {
+        group = "environment"
+
+        doLast {
+            val checks = JsonSlurper().parse(URL("https://api.github.com/repos/mongodb-js/intellij/commits/main/check-runs")) as Map<String, Any>
+            val check_runs = checks["check_runs"] as List<Map<String, Any>>
+            var success: Boolean = true
+            for (check in check_runs) {
+                if (check["name"] == "Prepare Release") {
+                    continue
+                }
+
+                if (check["conclusion"] != "success") {
+                    System.err.println("[❌] Check ${check["name"]} is still with status ${check["status"]} and conclusion ${check["conclusion"]}: ${check["html_url"]}")
+                    success = false
+                } else {
+                    println("[✅] Check ${check["name"]} has finished successfully: ${check["html_url"]}")
+                }
+            }
+
+            if (!success) {
+                throw GradleException("Checks in main must be successful.")
+            }
         }
     }
 }
