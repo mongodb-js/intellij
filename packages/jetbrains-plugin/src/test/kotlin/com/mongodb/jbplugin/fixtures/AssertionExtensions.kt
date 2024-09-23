@@ -4,8 +4,22 @@
 
 package com.mongodb.jbplugin.fixtures
 
+import com.intellij.remoterobot.RemoteRobot
+import com.intellij.remoterobot.utils.keyboard
 import com.intellij.remoterobot.utils.waitFor
 import java.time.Duration
+
+/**
+ * Closes all open modals by using the ESC key. This should be enough for recovering on a lot of different test cases.
+ */
+fun RemoteRobot.closeAllOpenModals() {
+    // just do it a few times, to ensure we closed all modals
+    for (i in 0..5) {
+        keyboard {
+            escape()
+        }
+    }
+}
 
 /**
  * Waits until the block function finishes successfully up to 1 second (or the provided timeout).
@@ -24,13 +38,24 @@ import java.time.Duration
  *
  * @param timeout
  * @param fn
+ * @param recovery
  */
-fun eventually(timeout: Duration = Duration.ofSeconds(1), fn: () -> Unit) {
+fun eventually(
+    timeout: Duration = Duration.ofSeconds(1),
+    recovery: () -> Unit = {},
+    fn: () -> Unit
+) {
     waitFor(timeout, Duration.ofMillis(50)) {
-        runCatching {
+        val result = runCatching {
             fn()
             true
         }.getOrDefault(false)
+
+        if (!result) {
+            recovery()
+        }
+
+        result
     }
 }
 

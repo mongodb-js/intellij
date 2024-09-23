@@ -71,9 +71,9 @@ class MongoDbRunQueryActionUiTest {
         remoteRobot.findJavaEditorToolbar().detachDataSource()
         remoteRobot.findJavaEditorToolbar().dataSources.selectItem(javaClass.simpleName)
         remoteRobot.ideaFrame().waitUntilConnectedToMongoDb(javaClass.simpleName)
-        remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
         // check that we open a console
-        eventually(Duration.ofMinutes(1)) {
+        eventually(Duration.ofMinutes(1), recovery = remoteRobot::closeAllOpenModals) {
+            remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
             val currentEditor = remoteRobot.ideaFrame().currentTab()
             assertTrue(currentEditor.editor.fileName.startsWith("console"))
         }
