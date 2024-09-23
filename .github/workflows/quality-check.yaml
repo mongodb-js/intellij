@@ -130,15 +130,11 @@ jobs:
         uses: mikepenz/action-junit-report@v4
         if: success() || failure() # always run even if the previous step fails
         with:
-            report_paths: '**/testCodeCoverageReport.xml'
-      - uses: actions/upload-artifact@v4
-        name: Upload Test Coverage
-        with:
-          name: unit-test-coverage
-          path: "**/jacocoTestReport.xml"
+            report_paths: '**/build/test-results/test/TEST-*.xml'
       - uses: madrapps/jacoco-report@v1.6.1
+        if: success() || failure() # always run even if the previous step fails
         with:
-          paths: "**/jacocoTestReport.xml"
+          paths: "**/testCodeCoverageReport.xml"
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 70
           min-coverage-changed-files: 70
