@@ -6,13 +6,12 @@ import com.mongodb.jbplugin.fixtures.IntegrationTest
 import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.withMockedService
 import com.mongodb.jbplugin.observability.probe.PluginActivatedProbe
-import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
-import org.mockito.kotlin.verify
-
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Test
+import org.mockito.Mockito.mock
+import org.mockito.kotlin.verify
 
 @IntegrationTest
 class ActivatePluginPostStartupActivityTest {

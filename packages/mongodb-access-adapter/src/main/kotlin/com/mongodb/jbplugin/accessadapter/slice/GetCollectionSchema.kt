@@ -31,7 +31,12 @@ data class GetCollectionSchema(
                 )
             }
 
-            val sampleSomeDocs = from.findAll(namespace, Filters.empty(), Document::class, limit = 50)
+            val sampleSomeDocs = from.findAll(
+                namespace,
+                Filters.empty(),
+                Document::class,
+                limit = 50
+            )
             // we need to generate the schema from these docs
             val sampleSchemas = sampleSomeDocs.map(this::recursivelyBuildSchema)
             // now we want to merge them together
@@ -53,8 +58,17 @@ data class GetCollectionSchema(
         private fun recursivelyBuildSchema(value: Any?): BsonType =
             when (value) {
                 null -> BsonNull
-                is Document -> BsonObject(value.map { it.key to recursivelyBuildSchema(it.value) }.toMap())
-                is Map<*, *> -> BsonObject(value.map { it.key.toString() to recursivelyBuildSchema(it.value) }.toMap())
+                is Document -> BsonObject(
+                    value.map {
+                        it.key to recursivelyBuildSchema(it.value)
+                    }.toMap()
+                )
+                is Map<*, *> -> BsonObject(
+                    value.map {
+                        it.key.toString() to
+                            recursivelyBuildSchema(it.value)
+                    }.toMap()
+                )
                 is Collection<*> -> recursivelyBuildSchema(value.toTypedArray())
                 is Array<*> ->
                     BsonArray(

@@ -88,12 +88,16 @@ class NodeTest {
         // Does not modify the original node
         assertTrue(
             node.components<HasCollectionReference<*>>()
-                .all { collection -> collection.reference is HasCollectionReference.OnlyCollection })
+                .all { collection ->
+                    collection.reference is HasCollectionReference.OnlyCollection
+                }
+        )
 
         // creates a copy with the modified components as per our logic
         assertTrue(
             copiedNode.components<HasCollectionReference<*>>()
-                .all { collection -> collection.reference is HasCollectionReference.Unknown })
+                .all { collection -> collection.reference is HasCollectionReference.Unknown }
+        )
     }
 
     @Test
@@ -109,15 +113,19 @@ class NodeTest {
         val nodeReference = modifiedNode.component<HasCollectionReference<*>>()
         // Does not modify the original node
         assertTrue(
-            node.component<HasCollectionReference<*>>()?.let { it.reference is HasCollectionReference.OnlyCollection }
-                ?: false)
+            node.component<HasCollectionReference<*>>()?.let {
+                it.reference is HasCollectionReference.OnlyCollection
+            }
+                ?: false
+        )
 
         assertTrue(
             nodeReference
                 ?.let {
                     it.reference is HasCollectionReference.Known
                 }
-                ?: false)
+                ?: false
+        )
         assertEquals(
             (nodeReference?.reference as HasCollectionReference.Known).namespace.database,
             "foo"
@@ -163,25 +171,45 @@ class NodeTest {
         fun validComponents(): Array<Array<Any>> =
             arrayOf(
                 arrayOf(HasChildren<Unit?>(emptyList()), HasChildren::class.java),
-                arrayOf(HasCollectionReference(HasCollectionReference.Unknown), HasCollectionReference::class.java),
                 arrayOf(
-                    HasCollectionReference(HasCollectionReference.Known(1, 2, Namespace("db", "coll"))),
+                    HasCollectionReference(HasCollectionReference.Unknown),
+                    HasCollectionReference::class.java
+                ),
+                arrayOf(
+                    HasCollectionReference(
+                        HasCollectionReference.Known(1, 2, Namespace("db", "coll"))
+                    ),
                     HasCollectionReference::class.java,
                 ),
                 arrayOf(
                     HasCollectionReference(HasCollectionReference.OnlyCollection(1, "coll")),
                     HasCollectionReference::class.java,
                 ),
-                arrayOf(HasFieldReference(HasFieldReference.Unknown), HasFieldReference::class.java),
-                arrayOf(HasFieldReference(HasFieldReference.Known(null, "abc")), HasFieldReference::class.java),
+                arrayOf(
+                    HasFieldReference(HasFieldReference.Unknown),
+                    HasFieldReference::class.java
+                ),
+                arrayOf(
+                    HasFieldReference(HasFieldReference.Known(null, "abc")),
+                    HasFieldReference::class.java
+                ),
                 arrayOf(HasFilter<Unit?>(Node(null, emptyList())), HasFilter::class.java),
-                arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
+                arrayOf(
+                    HasValueReference(HasValueReference.Unknown),
+                    HasValueReference::class.java
+                ),
                 arrayOf(
                     HasValueReference(HasValueReference.Constant(null, 123, BsonInt32)),
                     HasValueReference::class.java
                 ),
-                arrayOf(HasValueReference(HasValueReference.Runtime(null, BsonInt32)), HasValueReference::class.java),
-                arrayOf(HasValueReference(HasValueReference.Unknown), HasValueReference::class.java),
+                arrayOf(
+                    HasValueReference(HasValueReference.Runtime(null, BsonInt32)),
+                    HasValueReference::class.java
+                ),
+                arrayOf(
+                    HasValueReference(HasValueReference.Unknown),
+                    HasValueReference::class.java
+                ),
                 arrayOf(Named(Name.EQ), Named::class.java),
             )
     }

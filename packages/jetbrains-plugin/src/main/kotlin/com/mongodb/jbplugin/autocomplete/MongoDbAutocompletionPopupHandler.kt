@@ -39,7 +39,10 @@ class MongoDbAutocompletionPopupHandler(
     private val coroutineScope: CoroutineScope
 ) : TypedHandlerDelegate() {
     private val events =
-        MutableSharedFlow<AutocompletionEvent>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+        MutableSharedFlow<AutocompletionEvent>(
+            replay = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
 
     init {
         /*
@@ -50,21 +53,32 @@ class MongoDbAutocompletionPopupHandler(
         coroutineScope.launchChildBackground {
             while (true) {
                 events.collectLatest { event ->
-                    if (event.file.dataSource == null || event.file.dataSource?.isConnected() == false) {
+                    if (event.file.dataSource == null ||
+                        event.file.dataSource?.isConnected() == false
+                    ) {
                         return@collectLatest
                     }
 
                     readAction {
-                        val elementAtCaret = event.file.findElementAt(event.editor.caretModel.offset)?.originalElement
-                            ?: return@readAction
+                        val elementAtCaret =
+                            event.file.findElementAt(
+                                event.editor.caretModel.offset
+                            )?.originalElement
+                                ?: return@readAction
                         if (
                             Database.place.accepts(elementAtCaret) ||
                             Collection.place.accepts(elementAtCaret) ||
                             Field.place.accepts(elementAtCaret)
-                            ) {
+                        ) {
                             ApplicationManager.getApplication().invokeLater {
-                                val autoPopupController = AutoPopupController.getInstance(event.editor.project!!)
-                                autoPopupController.scheduleAutoPopup(event.editor, CompletionType.BASIC, null)
+                                val autoPopupController = AutoPopupController.getInstance(
+                                    event.editor.project!!
+                                )
+                                autoPopupController.scheduleAutoPopup(
+                                    event.editor,
+                                    CompletionType.BASIC,
+                                    null
+                                )
                             }
                         }
                     }
@@ -94,8 +108,8 @@ class MongoDbAutocompletionPopupHandler(
      * @property editor
      */
     private data class AutocompletionEvent(
-            val file: PsiFile,
-            val editor: Editor
+        val file: PsiFile,
+        val editor: Editor
     )
 }
 
@@ -109,7 +123,7 @@ class MongoDbStringCompletionConfidence : CompletionConfidence() {
         contextElement: PsiElement,
         psiFile: PsiFile,
         offset: Int
-): ThreeState {
+    ): ThreeState {
         if (contextElement is PsiJavaToken) {
             return ThreeState.NO
         }

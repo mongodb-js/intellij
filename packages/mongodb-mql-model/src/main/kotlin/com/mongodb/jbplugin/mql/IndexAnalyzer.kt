@@ -30,7 +30,8 @@ object IndexAnalyzer {
      * @return
      */
     fun <S> analyze(query: Node<S>): SuggestedIndex<S> {
-        val collectionRef = query.component<HasCollectionReference<S>>() ?: return SuggestedIndex.NoIndex.cast()
+        val collectionRef =
+            query.component<HasCollectionReference<S>>() ?: return SuggestedIndex.NoIndex.cast()
         val fields = query.allFieldReferences().distinctBy { it.first }
         val indexFields = fields.map { SuggestedIndex.MongoDbIndexField(it.first, it.second) }
 
@@ -43,22 +44,26 @@ object IndexAnalyzer {
         val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
         val valueRef = component<HasValueReference<S>>()?.reference
         return if (fieldRef is HasFieldReference.Known) {
-            otherRefs + (valueRef?.let { reference ->
-                when (reference) {
-                    is HasValueReference.Constant<S> -> Pair(
-                        fieldRef.fieldName, fieldRef.source
-                    )
+            otherRefs + (
+                valueRef?.let { reference ->
+                    when (reference) {
+                        is HasValueReference.Constant<S> -> Pair(
+                            fieldRef.fieldName,
+                            fieldRef.source
+                        )
 
-                    is HasValueReference.Runtime<S> -> Pair(
-                        fieldRef.fieldName, fieldRef.source
-                    )
+                        is HasValueReference.Runtime<S> -> Pair(
+                            fieldRef.fieldName,
+                            fieldRef.source
+                        )
 
-                    else -> null
-                }
-            } ?: Pair(
-                fieldRef.fieldName,
-                fieldRef.source,
-            ))
+                        else -> null
+                    }
+                } ?: Pair(
+                    fieldRef.fieldName,
+                    fieldRef.source,
+                )
+                )
         } else {
             otherRefs
         }

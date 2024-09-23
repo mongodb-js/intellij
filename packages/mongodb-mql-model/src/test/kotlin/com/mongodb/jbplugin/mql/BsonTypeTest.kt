@@ -103,7 +103,11 @@ class BsonTypeTest {
                     // and any other type cannot be assigned to this type
                     arrayOf(simpleBsonTypes.subtract(setOf(bsonType)).random(), bsonType, false),
                     // not assignable because not all the types in AnyOf is assignable to this type
-                    arrayOf(BsonAnyOf(bsonType, simpleBsonTypes.subtract(setOf(bsonType)).random()), bsonType, false),
+                    arrayOf(
+                        BsonAnyOf(bsonType, simpleBsonTypes.subtract(setOf(bsonType)).random()),
+                        bsonType,
+                        false
+                    ),
                     // even an AnyOf with BsonNull won't be assignable to this type unless of-course the otherType
                     // itself is BsonNull
                     arrayOf(BsonAnyOf(bsonType, BsonNull), bsonType, bsonType == BsonNull),
@@ -167,7 +171,11 @@ class BsonTypeTest {
                 arrayOf(BsonArray(BsonAnyOf(BsonString)), BsonArray(BsonString), true),
                 // because BsonAnyOf has a BsonNull which can't be assigned to BsonArray
                 arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonString), false),
-                arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonAnyOf(BsonString, BsonNull)), true),
+                arrayOf(
+                    BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    true
+                ),
 
                 // BsonAny can be assigned
                 arrayOf(BsonAny, BsonArray(BsonDate), true),
@@ -181,7 +189,11 @@ class BsonTypeTest {
                 arrayOf(BsonArray(BsonNull), BsonArray(BsonDate), false),
                 arrayOf(BsonNull, BsonArray(BsonDate), false),
                 arrayOf(BsonAnyOf(BsonArray(BsonString)), BsonArray(BsonDate), false),
-                arrayOf(BsonArray(BsonAnyOf(BsonDate)), BsonArray(BsonAnyOf(BsonString, BsonNull)), false),
+                arrayOf(
+                    BsonArray(BsonAnyOf(BsonDate)),
+                    BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    false
+                ),
             )
 
         @JvmStatic

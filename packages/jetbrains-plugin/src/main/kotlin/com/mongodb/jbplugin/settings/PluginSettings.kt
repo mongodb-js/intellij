@@ -20,7 +20,9 @@ import java.io.Serializable
     name = "com.mongodb.jbplugin.settings.PluginSettings",
     storages = [Storage(value = "MongoDBPluginSettings.xml")],
 )
-class PluginSettingsStateComponent : SimplePersistentStateComponent<PluginSettings>(PluginSettings())
+class PluginSettingsStateComponent : SimplePersistentStateComponent<PluginSettings>(
+    PluginSettings()
+)
 
 /**
  * The settings themselves. They are tracked, so any change on the settings properties will be eventually

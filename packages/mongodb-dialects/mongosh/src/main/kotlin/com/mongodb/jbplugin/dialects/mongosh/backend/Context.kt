@@ -12,15 +12,15 @@ import com.mongodb.jbplugin.mql.BsonType
  */
 sealed interface ContextValue {
     /**
- * @property name
- * @property type
- */
-data class Variable(val name: String, val type: BsonType) : ContextValue
+     * @property name
+     * @property type
+     */
+    data class Variable(val name: String, val type: BsonType) : ContextValue
 
 /**
- * @property value
- */
-data class Constant(val value: Any?) : ContextValue
+     * @property value
+     */
+    data class Constant(val value: Any?) : ContextValue
 }
 
 /**

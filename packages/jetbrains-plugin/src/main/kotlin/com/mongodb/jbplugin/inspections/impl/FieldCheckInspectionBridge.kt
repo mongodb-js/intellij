@@ -52,7 +52,9 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             return registerNoDatabaseSelectedProblem(coroutineScope, problems, query.source)
         }
 
-        val readModelProvider = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
+        val readModelProvider = query.source.project.getService(
+            DataGripBasedReadModelProvider::class.java
+        )
 
         val result =
             FieldCheckingLinter.lintQuery(
@@ -63,7 +65,11 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
 
         result.warnings.forEach {
             when (it) {
-                is FieldCheckWarning.FieldDoesNotExist -> registerFieldDoesNotExistProblem(coroutineScope, problems, it)
+                is FieldCheckWarning.FieldDoesNotExist -> registerFieldDoesNotExistProblem(
+                    coroutineScope,
+                    problems,
+                    it
+                )
                 is FieldCheckWarning.FieldValueTypeMismatch ->
                     registerFieldValueTypeMismatch(coroutineScope, problems, it, formatter)
             }
@@ -128,7 +134,9 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             ProblemHighlightType.WARNING,
             OpenConnectionChooserQuickFix(
                 coroutineScope,
-                InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+                InspectionsAndInlaysMessages.message(
+                    "inspection.field.checking.quickfix.choose.new.connection"
+                ),
             ),
         )
     }
@@ -151,7 +159,9 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             ProblemHighlightType.WARNING,
             OpenConnectionChooserQuickFix(
                 coroutineScope,
-                InspectionsAndInlaysMessages.message("inspection.field.checking.quickfix.choose.new.connection"),
+                InspectionsAndInlaysMessages.message(
+                    "inspection.field.checking.quickfix.choose.new.connection"
+                ),
             ),
         )
     }

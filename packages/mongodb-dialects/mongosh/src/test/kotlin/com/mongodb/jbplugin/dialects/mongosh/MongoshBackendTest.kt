@@ -43,7 +43,7 @@ class MongoshBackendTest {
             var myValue = ""
 
             db.getSiblingDB(myDb).getCollection(myColl).find({ "field": myValue})
-""".trimIndent()
+            """.trimIndent()
         ) {
             emitDbAccess()
             emitDatabaseAccess(registerVariable("myDb", BsonString))
@@ -67,7 +67,7 @@ class MongoshBackendTest {
             var myValue = ""
 
             db.getSiblingDB(myDb).getCollection(myColl).update({ "field": myValue}, { "myUpdate": 1})
-""".trimIndent()
+            """.trimIndent()
         ) {
             emitDbAccess()
             emitDatabaseAccess(registerVariable("myDb", BsonString))
@@ -100,7 +100,9 @@ class MongoshBackendTest {
 
     @ParameterizedTest
     @MethodSource("bsonTypes")
-    fun `generates a valid default object given the type of the value`(testCase: Pair<BsonType, String>) {
+    fun `generates a valid default object given the type of the value`(
+        testCase: Pair<BsonType, String>
+    ) {
         val (type, expected) = testCase
         assertGeneratedJs(
             """
@@ -151,7 +153,12 @@ class MongoshBackendTest {
     }
 }
 
-private fun assertGeneratedJs(@Language("js") js: String, script: MongoshBackend.() -> MongoshBackend) {
+private fun assertGeneratedJs(
+    @Language(
+        "js"
+    ) js: String,
+    script: MongoshBackend.() -> MongoshBackend
+) {
     val generated = script(MongoshBackend(DefaultContext())).computeOutput()
     assertEquals(js, generated)
 }

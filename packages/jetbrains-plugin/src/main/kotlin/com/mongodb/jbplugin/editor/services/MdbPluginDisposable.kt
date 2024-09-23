@@ -51,6 +51,8 @@ class MdbPluginDisposable : Disposable {
          * @param project
          * @return
          */
-        fun getInstance(project: Project): MdbPluginDisposable = project.getService(MdbPluginDisposable::class.java)
+        fun getInstance(
+            project: Project
+        ): MdbPluginDisposable = project.getService(MdbPluginDisposable::class.java)
     }
 }

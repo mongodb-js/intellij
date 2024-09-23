@@ -30,8 +30,9 @@ internal class TelemetryServiceTest {
             argThat {
                 build().let {
                     it.anonymousId() == "654321" &&
-                            it.type().name == "track" &&
-                            (it as TrackMessage).properties()?.get("plugin_version") == BuildInformation.pluginVersion
+                        it.type().name == "track" &&
+                        (it as TrackMessage).properties()?.get("plugin_version") ==
+                        BuildInformation.pluginVersion
                 }
             },
         )
@@ -72,7 +73,9 @@ internal class TelemetryServiceTest {
     }
 
     @Test
-    fun `flushes and shutdowns the segment client when the ide is closing`(application: Application) {
+    fun `flushes and shutdowns the segment client when the ide is closing`(
+        application: Application
+    ) {
         application.withMockedService(mockRuntimeInformationService(userId = "654321"))
         application.withMockedService(mockLogMessage())
 

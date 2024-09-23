@@ -17,8 +17,8 @@ import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.mockDataSource
 import com.mongodb.jbplugin.fixtures.mockDatabaseConnection
 import com.mongodb.jbplugin.mql.*
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 
@@ -114,7 +114,10 @@ class BookRepository {
         val dbConnectionManager =
             mock<DatabaseConnectionManager>().also { cm ->
                 `when`(cm.build(any(), any())).thenAnswer {
-                    realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
+                    realConnectionManager.build(
+                        it.arguments[0] as Project,
+                        it.arguments[1] as DatabaseConnectionPoint
+                    )
                 }
             }
         val connection = mockDatabaseConnection(dataSource)
@@ -131,7 +134,9 @@ class BookRepository {
 
         fixture.specifyDialect(SpringCriteriaDialect)
 
-        `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
             GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
         )
 
@@ -186,7 +191,10 @@ class BookRepository {
         val dbConnectionManager =
             mock<DatabaseConnectionManager>().also { cm ->
                 `when`(cm.build(any(), any())).thenAnswer {
-                    realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
+                    realConnectionManager.build(
+                        it.arguments[0] as Project,
+                        it.arguments[1] as DatabaseConnectionPoint
+                    )
                 }
             }
         val connection = mockDatabaseConnection(dataSource)
@@ -208,7 +216,9 @@ class BookRepository {
             "bad_db",
         )
 
-        `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
             GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
         )
 
@@ -263,7 +273,10 @@ class BookRepository {
         val dbConnectionManager =
             mock<DatabaseConnectionManager>().also { cm ->
                 `when`(cm.build(any(), any())).thenAnswer {
-                    realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
+                    realConnectionManager.build(
+                        it.arguments[0] as Project,
+                        it.arguments[1] as DatabaseConnectionPoint
+                    )
                 }
             }
         val connection = mockDatabaseConnection(dataSource)
@@ -285,7 +298,9 @@ class BookRepository {
             "sample_books",
         )
 
-        `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
                     Namespace("sample_books", "book"),
@@ -345,7 +360,10 @@ class BookRepository {
         val dbConnectionManager =
             mock<DatabaseConnectionManager>().also { cm ->
                 `when`(cm.build(any(), any())).thenAnswer {
-                    realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
+                    realConnectionManager.build(
+                        it.arguments[0] as Project,
+                        it.arguments[1] as DatabaseConnectionPoint
+                    )
                 }
             }
         val connection = mockDatabaseConnection(dataSource)
@@ -367,7 +385,9 @@ class BookRepository {
             "sample_books",
         )
 
-        `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
                     Namespace("sample_books", "book"),

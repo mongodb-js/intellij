@@ -111,8 +111,9 @@ data class BsonObject(
         else -> false
     }
 
-    private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean = this.schema.all { (key, bsonType) ->
-            otherType.schema[key]?.let { bsonType.isAssignableTo(it) } ?: false
+    private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean =
+        this.schema.all { (key, bsonType) ->
+            otherType.schema[key]?.let { bsonType.isAssignableTo(it) } == true
         }
 }
 
@@ -182,7 +183,9 @@ fun <T> Class<T>?.toBsonType(value: T? = null): BsonType {
         BigDecimal::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
         Decimal128::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
         else ->
-            if (Collection::class.java.isAssignableFrom(this) || Array::class.java.isAssignableFrom(this)) {
+            if (Collection::class.java.isAssignableFrom(this) ||
+                Array::class.java.isAssignableFrom(this)
+            ) {
                 return BsonAnyOf(BsonNull, BsonArray(BsonAny)) // types are lost at runtime
             } else if (Map::class.java.isAssignableFrom(this)) {
                 value?.let {

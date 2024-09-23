@@ -18,7 +18,10 @@ data class CollectionSchema(
         return recursivelyGetType(splitJsonPath, schema)
     }
 
-    fun allFieldNamesQualified(): List<Pair<String, BsonType>> = recursivelyAllFieldNamesQualified(emptyList(), schema)
+    fun allFieldNamesQualified(): List<Pair<String, BsonType>> = recursivelyAllFieldNamesQualified(
+        emptyList(),
+        schema
+    )
 
     private fun recursivelyAllFieldNamesQualified(
         currentPath: List<String>,
@@ -26,16 +29,21 @@ data class CollectionSchema(
     ): List<Pair<String, BsonType>> =
         when (root) {
             is BsonArray -> recursivelyAllFieldNamesQualified(currentPath + "0", root.schema)
-            is BsonObject -> root.schema.flatMap { recursivelyAllFieldNamesQualified(currentPath + it.key, it.value) }
+            is BsonObject -> root.schema.flatMap {
+                recursivelyAllFieldNamesQualified(
+                    currentPath + it.key,
+                    it.value
+                )
+            }
             is BsonAnyOf ->
                 root.types
                     .flatMap {
                         recursivelyAllFieldNamesQualified(currentPath, it)
                     }
-.fold(emptySet<BsonType>()) { acc, el ->
+                    .fold(emptySet<BsonType>()) { acc, el ->
                         acc + el.second
                     }
-.let {
+                    .let {
                         listOf(Pair(currentPath.joinToString("."), BsonAnyOf(it)))
                     }
             else -> listOf(Pair(currentPath.joinToString("."), root))
@@ -57,7 +65,8 @@ data class CollectionSchema(
         when (root) {
             is BsonArray ->
                 if (isCurrentNumber) {
-                    val childType = recursivelyGetType(jsonPath.subList(1, jsonPath.size), root.schema)
+                    val childType =
+                        recursivelyGetType(jsonPath.subList(1, jsonPath.size), root.schema)
                     listOfOptions.add(childType)
                 } else {
                     listOfOptions.add(BsonNull)

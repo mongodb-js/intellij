@@ -49,7 +49,8 @@ abstract class AbstractMongoDbCodeActionBridge(
     private fun dispatchIfValidMongoDbQuery(expression: PsiElement): LineMarkerInfo<PsiElement>? {
         return ApplicationManager.getApplication().runReadAction<LineMarkerInfo<PsiElement>?> {
             val fileInExpression =
-                PsiTreeUtil.getParentOfType(expression, PsiFile::class.java) ?: return@runReadAction null
+                PsiTreeUtil.getParentOfType(expression, PsiFile::class.java)
+                    ?: return@runReadAction null
             val dataSource = fileInExpression.dataSource
             val dialect = expression.containingFile.dialect ?: return@runReadAction null
 

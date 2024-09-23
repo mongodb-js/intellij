@@ -9,10 +9,11 @@ object ModelCollectionExtractor {
     fun fromPsiClass(clazz: PsiClass): String? {
         val annotation = clazz.getAnnotation(AT_DOCUMENT_ANNOTATION)
         annotation?.let {
-            val collectionName = annotation.findAttributeValue("value")?.tryToResolveAsConstantString()
-                .takeIf { !it.isNullOrBlank() }
-                ?: annotation.findAttributeValue("collection")?.tryToResolveAsConstantString()
+            val collectionName =
+                annotation.findAttributeValue("value")?.tryToResolveAsConstantString()
                     .takeIf { !it.isNullOrBlank() }
+                    ?: annotation.findAttributeValue("collection")?.tryToResolveAsConstantString()
+                        .takeIf { !it.isNullOrBlank() }
 
             collectionName?.let {
                 return collectionName

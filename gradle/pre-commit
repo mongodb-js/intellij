@@ -1,13 +1,13 @@
 #!/bin/bash
 echo "*********************************************************"
-echo "Running git pre-commit hook. Running Spotless Apply... "
+echo "Running git pre-commit hook. Running KtLint... "
 echo "*********************************************************"
 
 # Gather the staged files - to make sure changes are saved only for these files.
 stagedFiles=$(git diff --staged --name-only)
 
-# run spotless apply
-./gradlew --quiet spotlessApply
+# run ktlint apply
+./gradlew --quiet ktlintFormat
 
 status=$?
 
@@ -23,10 +23,7 @@ if [ "$status" = 0 ] ; then
     exit 0
 else
     echo "*********************************************************"
-    echo "       ********************************************      "
-    echo 1>&2 "Spotless Apply found violations it could not fix."
-    echo "Run spotless apply in your terminal and fix the issues before trying to commit again."
-    echo "       ********************************************      "
+    echo 1>&2 "KtLint found violations it could not fix."
     echo "*********************************************************"
     #Exit
     exit 1

@@ -48,8 +48,8 @@ data class BuildInfo(
 ) {
     val atlasHost: String?
         get() = serverUrl?.hosts?.getOrNull(0)
-?.replace(Regex(""":\d+"""), "")
-        .takeIf { isAtlas }
+            ?.replace(Regex(""":\d+"""), "")
+            .takeIf { isAtlas }
     object Slice : com.mongodb.jbplugin.accessadapter.Slice<BuildInfo> {
         override val id = javaClass.canonicalName
         private val atlasRegex = Regex(""".*\.mongodb(-dev|-qa|-stage)?\.net(:\d+)?$""")
@@ -74,7 +74,10 @@ data class BuildInfo(
             val isAtlas = connectionString.hosts.all { it.matches(atlasRegex) }
             val isLocalAtlas = checkIsAtlasCliIfConnected(from)
 
-            val isAtlasStream = connectionString.hosts.all { it.matches(atlasRegex) && it.matches(atlasStreamRegex) }
+            val isAtlasStream = connectionString.hosts.all {
+                it.matches(atlasRegex) &&
+                    it.matches(atlasStreamRegex)
+            }
             val isDigitalOcean = connectionString.hosts.all { it.matches(digitalOceanRegex) }
             val nonGenuineVariant =
                 if (connectionString.hosts.all { it.matches(cosmosDbRegex) }) {
@@ -96,7 +99,7 @@ data class BuildInfo(
                 isLocalhost = isLocalHost,
                 isEnterprise =
                 buildInfoFromMongoDb.gitVersion?.contains("enterprise") == true ||
-                        buildInfoFromMongoDb.modules?.contains("enterprise") == true,
+                    buildInfoFromMongoDb.modules?.contains("enterprise") == true,
                 isAtlas = isAtlas,
                 isLocalAtlas = isLocalAtlas,
                 isAtlasStream = isAtlasStream,

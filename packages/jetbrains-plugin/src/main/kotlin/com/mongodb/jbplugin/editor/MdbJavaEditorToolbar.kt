@@ -210,13 +210,18 @@ class MdbJavaEditorToolbar(
     companion object {
         fun showModalForSelection(
             project: Project,
-            onConnectionStateChange: (status: ConnectionState, dataSource: LocalDataSource) -> Unit = { _, _ -> }
+            onConnectionStateChange: (
+                status: ConnectionState,
+                dataSource: LocalDataSource
+            ) -> Unit = { _, _ -> }
         ) {
             val editorService = getEditorService(project)
             val toolbar = editorService.getToolbarFromSelectedEditor()
             toolbar ?: run {
                 log.warn(
-                    useLogMessage("Could not show modal for selection, toolbar on attached editor is null").build()
+                    useLogMessage(
+                        "Could not show modal for selection, toolbar on attached editor is null"
+                    ).build()
                 )
                 return
             }
@@ -241,7 +246,10 @@ class MdbJavaEditorToolbar(
                 )
 
                 val localToolbar =
-                    MdbJavaEditorToolbar(dataSourceModel = dataSourceModel, databaseModel = databaseModel)
+                    MdbJavaEditorToolbar(
+                        dataSourceModel = dataSourceModel,
+                        databaseModel = databaseModel
+                    )
 
                 val dialog = SelectConnectionDialogWrapper(
                     MdbToolbarMessages.message("connection.chooser.popup.information.message"),
@@ -254,9 +262,14 @@ class MdbJavaEditorToolbar(
                     val toolbarState = localToolbar.getToolbarState()
 
                     toolbar.setToolbarState(toolbarState)
-                    dataSourceService.connect(toolbarState.selectedDataSource!!) { connectionState ->
+                    dataSourceService.connect(
+                        toolbarState.selectedDataSource!!
+                    ) { connectionState ->
                         ApplicationManager.getApplication().invokeLater {
-                            onConnectionStateChange(connectionState, toolbarState.selectedDataSource)
+                            onConnectionStateChange(
+                                connectionState,
+                                toolbarState.selectedDataSource
+                            )
                         }
                     }
                 }
@@ -281,9 +294,16 @@ class MdbJavaEditorToolbar(
 
             override fun createCenterPanel(): JComponent =
                 JPanel(BorderLayout()).apply {
-                    add(JBLabel(informationMessage, Icons.information.scaledToText(), SwingConstants.LEFT).apply {
-                        border = JBUI.Borders.empty(10)
-                    }, BorderLayout.NORTH)
+                    add(
+                        JBLabel(
+                            informationMessage,
+                            Icons.information.scaledToText(),
+                            SwingConstants.LEFT
+                        ).apply {
+                            border = JBUI.Borders.empty(10)
+                        },
+                        BorderLayout.NORTH
+                    )
                     toolbar.attachToParent(this, databaseComboBoxVisible)
                     (peer.window as? JDialog)?.isUndecorated = true
                 }

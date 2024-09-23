@@ -76,7 +76,8 @@ internal object Database {
                     readModelProvider,
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries = completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
+            val lookupEntries =
+                completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -111,7 +112,8 @@ internal object Collection {
                     database,
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries = completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
+            val lookupEntries =
+                completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -147,7 +149,8 @@ internal object Field {
                     Namespace(database, collection),
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries = completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
+            val lookupEntries =
+                completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -156,7 +159,9 @@ internal object Field {
 private object MongoDbElementPatterns {
     fun isConnected(): ElementPattern<PsiElement> =
         object : ElementPattern<PsiElement> {
-            override fun accepts(element: Any?) = isFileConnected((element as? PsiElement)?.containingFile)
+            override fun accepts(
+                element: Any?
+            ) = isFileConnected((element as? PsiElement)?.containingFile)
 
             override fun accepts(
                 element: Any?,
@@ -179,7 +184,10 @@ private object MongoDbElementPatterns {
                         psiFile.originalFile.virtualFile,
                     )
 
-                return !(dbDataSource == null || dbDataSource.localDataSource?.isConnected() == false)
+                return !(
+                    dbDataSource == null ||
+                        dbDataSource.localDataSource?.isConnected() == false
+                    )
             }
         }
 
@@ -189,7 +197,9 @@ private object MongoDbElementPatterns {
                 .create(entry)
                 .withInsertHandler { _, _ ->
                     val application = ApplicationManager.getApplication()
-                    val probe = application.getService(AutocompleteSuggestionAcceptedProbe::class.java)
+                    val probe = application.getService(
+                        AutocompleteSuggestionAcceptedProbe::class.java
+                    )
 
                     when (this.type) {
                         AutocompletionEntry.AutocompletionEntryType.DATABASE ->

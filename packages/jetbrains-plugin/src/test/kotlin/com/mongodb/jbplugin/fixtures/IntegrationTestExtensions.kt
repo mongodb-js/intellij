@@ -29,15 +29,13 @@ import com.mongodb.jbplugin.observability.RuntimeInformation
 import com.mongodb.jbplugin.observability.RuntimeInformationService
 import com.mongodb.jbplugin.settings.PluginSettings
 import com.mongodb.jbplugin.settings.useSettings
-import org.junit.jupiter.api.extension.*
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
-import org.mockito.kotlin.any
-
-import java.util.*
-
-import kotlin.io.path.Path
 import kotlinx.coroutines.test.TestScope
+import org.junit.jupiter.api.extension.*
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
+import java.util.*
+import kotlin.io.path.Path
 
 /**
  * Annotation to be used within the test. It provides, as a parameter of a test,

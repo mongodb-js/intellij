@@ -39,7 +39,9 @@ class MdbEditorService(private val project: Project) : EditorService {
 
     override val inferredDatabase: String?
         get() = ApplicationManager.getApplication().runReadAction<String?> {
-            val context = getDialectForSelectedEditor()?.connectionContextExtractor?.gatherContext(this.project)
+            val context = getDialectForSelectedEditor()?.connectionContextExtractor?.gatherContext(
+                this.project
+            )
             return@runReadAction context?.database
         }
 
@@ -48,7 +50,8 @@ class MdbEditorService(private val project: Project) : EditorService {
         val analyzeFile = { psiReadAction: Boolean ->
             try {
                 val psiFile =
-                    getPsiFile(selectedEditor, applyReadAction = psiReadAction) ?: throw Exception("PsiFile not found")
+                    getPsiFile(selectedEditor, applyReadAction = psiReadAction)
+                        ?: throw Exception("PsiFile not found")
                 DaemonCodeAnalyzer.getInstance(this.project).restart(psiFile)
             } catch (exception: Exception) {
                 log.info("Could not analyze file: ${exception.message}")

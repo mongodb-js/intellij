@@ -231,7 +231,9 @@ fun PsiMethodCallExpression.findMongoDbClassReference(project: Project): PsiExpr
     if (methodExpression.type?.isMongoDbClass(project) == true) {
         return methodExpression
     } else if (methodExpression.qualifierExpression is PsiMethodCallExpression) {
-        return (methodExpression.qualifierExpression as PsiMethodCallExpression).findMongoDbClassReference(project)
+        return (methodExpression.qualifierExpression as PsiMethodCallExpression).findMongoDbClassReference(
+            project
+        )
     } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
         return methodExpression.qualifierExpression
     } else {
@@ -254,7 +256,9 @@ fun PsiElement.findMongoDbCollectionReference(): PsiExpression? {
         } else if (methodExpression.qualifierExpression?.reference?.resolve() is PsiField) {
             return methodExpression.qualifierExpression
         } else {
-            return methodExpression.children.firstNotNullOfOrNull { it.findMongoDbCollectionReference() }
+            return methodExpression.children.firstNotNullOfOrNull {
+                it.findMongoDbCollectionReference()
+            }
         }
     } else if (this is PsiExpression) {
         if (this.type?.isMongoDbCollectionClass(project) == true) {
@@ -289,7 +293,10 @@ fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
         val facade = JavaPsiFacade.getInstance(this.project)
         val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(this)
         return true to resolvedValue
-    } else if (this is PsiField && this.initializer != null && this.hasModifier(JvmModifier.FINAL)) {
+    } else if (this is PsiField &&
+        this.initializer != null &&
+        this.hasModifier(JvmModifier.FINAL)
+    ) {
         return this.initializer!!.tryToResolveAsConstant()
     }
 
@@ -325,7 +332,9 @@ fun PsiType.toBsonType(): BsonType {
         return BsonDouble
     } else if (this.equalsToText("double") || this.equalsToText("java.lang.Double")) {
         return BsonDouble
-    } else if (this.equalsToText("java.lang.CharSequence") || this.equalsToText("java.lang.String")) {
+    } else if (this.equalsToText("java.lang.CharSequence") ||
+        this.equalsToText("java.lang.String")
+    ) {
         return BsonAnyOf(BsonString, BsonNull)
     } else if (this.equalsToText("java.util.Date") ||
         this.equalsToText("java.time.LocalDate") ||

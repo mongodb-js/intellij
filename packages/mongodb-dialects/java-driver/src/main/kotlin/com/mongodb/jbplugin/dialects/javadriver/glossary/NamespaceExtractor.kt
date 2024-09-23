@@ -448,7 +448,6 @@ private enum class AssignmentConcept {
     CLIENT,
     DATABASE,
     COLLECTION,
-    ;
 }
 
 /**
