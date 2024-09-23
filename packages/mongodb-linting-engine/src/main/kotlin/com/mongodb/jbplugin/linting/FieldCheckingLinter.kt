@@ -89,6 +89,10 @@ object FieldCheckingLinter {
         }
 
         val namespace = (queryNamespace.reference as HasCollectionReference.Known).namespace
+        if (!namespace.isValid) {
+            return FieldCheckResult.empty()
+        }
+
         val collection = readModelProvider.slice(dataSource, GetCollectionSchema.Slice(namespace)).schema
         val fieldAndValueRefs = query.getAllFieldAndValueReferences()
 

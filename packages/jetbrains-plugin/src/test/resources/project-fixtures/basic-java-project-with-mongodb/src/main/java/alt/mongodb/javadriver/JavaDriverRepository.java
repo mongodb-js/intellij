@@ -22,7 +22,7 @@ public class JavaDriverRepository {
     }
     private List<Document> getGrade(String myColl) {
         return client.getDatabase("sample_mflix")
-                .getCollection("")
+                .getCollection("movies")
                 .find(
                         Filters.and(
                                 Filters.eq(IMDB_VOTES, 1),

@@ -24,8 +24,12 @@ object MongoshDialectFormatter : DialectFormatter {
             }
         }.computeOutput()
 
-        return when (query.component<HasCollectionReference<S>>()?.reference) {
-            is HasCollectionReference.Known -> OutputQuery.CanBeRun(outputString)
+        return when (val ref = query.component<HasCollectionReference<S>>()?.reference) {
+            is HasCollectionReference.Known -> if (ref.namespace.isValid) {
+                    OutputQuery.CanBeRun(outputString)
+                } else {
+                    OutputQuery.Incomplete(outputString)
+                }
             else -> OutputQuery.Incomplete(outputString)
         }
     }
