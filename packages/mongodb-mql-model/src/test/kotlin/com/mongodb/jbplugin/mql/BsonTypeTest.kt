@@ -94,10 +94,17 @@ class BsonTypeTest {
 
             return simpleBsonTypes.flatMap { bsonType ->
                 listOf(
-                    // A type is assignable itself, Any and AnyOf
-                    // (if the union contains only the underlying type)
+                    // A type is assignable itself
                     arrayOf(bsonType, bsonType, true),
+                    // A type is assignable to a BsonArray if the underlying type is assignable as well
+                    arrayOf(bsonType, BsonArray(bsonType), true),
+                    // the same goes for Array of any
+                    arrayOf(bsonType, BsonArray(BsonAny), true),
+                    // the same goes for the BsonAnyOf combo as well
+                    arrayOf(bsonType, BsonArray(BsonAnyOf(bsonType)), true),
+                    // A BsonAny is also assignable to the type
                     arrayOf(BsonAny, bsonType, true),
+                    // A BsonAnyOf is assignable as long as the underlying type is assignable
                     arrayOf(BsonAnyOf(bsonType), bsonType, true),
 
                     // and any other type cannot be assigned to this type

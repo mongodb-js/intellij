@@ -44,6 +44,7 @@ sealed interface BsonType {
         else -> when (otherType) {
             is BsonAny -> true
             is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+            is BsonArray -> this.isAssignableTo(otherType.schema)
             else -> false
         }
     }
@@ -112,8 +113,8 @@ data class BsonObject(
     }
 
     private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean = this.schema.all { (key, bsonType) ->
-            otherType.schema[key]?.let { bsonType.isAssignableTo(it) } ?: false
-        }
+        otherType.schema[key]?.let { bsonType.isAssignableTo(it) } ?: false
+    }
 }
 
 /**
