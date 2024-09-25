@@ -51,11 +51,6 @@ sealed interface BsonType {
 }
 
 /**
- * A double (64 bit floating point)
- */
-data object BsonDouble : BsonType
-
-/**
  * BSON String
  */
 data object BsonString : BsonType
@@ -71,10 +66,20 @@ data object BsonBoolean : BsonType
 data object BsonDate : BsonType
 
 /**
+ * ObjectId
+ */
+data object BsonObjectId : BsonType
+
+/**
  * 32-bit integer
  */
 
-data object BsonInt32 : BsonType
+data object BsonInt32 : BsonType {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonInt64 -> true
+        else -> super.isAssignableTo(otherType)
+    }
+}
 
 /**
  * 64-bit integer
@@ -82,20 +87,50 @@ data object BsonInt32 : BsonType
 data object BsonInt64 : BsonType
 
 /**
+ * A double (64 bit floating point)
+ */
+data object BsonDouble : BsonType {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonDecimal128 -> true
+        else -> super.isAssignableTo(otherType)
+    }
+}
+
+/**
  * Decimal128 (128 bit floating point)
  */
 data object BsonDecimal128 : BsonType
-
-/**
- * ObjectId
- */
-data object BsonObjectId : BsonType
 
 /**
  * null / non existing field
  */
 
 data object BsonNull : BsonType
+
+/**
+ * This is not a BSON type per se, but need a value for an unknown
+ * bson type.
+ */
+data object BsonAny : BsonType
+
+/**
+ * This is not a BSON type per se, but a schema is dynamic and for a single
+ * field we can have multiple types of values, so we will map this scenario
+ * with the AnyOf type.
+ *
+ * @property types
+ */
+data class BsonAnyOf(
+    val types: Set<BsonType>,
+) : BsonType {
+    constructor(vararg types: BsonType) : this(types.toSet())
+
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonAny -> true
+        is BsonNull -> types.size == 1 && types.contains(BsonNull)
+        else -> this.types.subtract(setOf(BsonNull)).all { it.isAssignableTo(otherType) }
+    }
+}
 
 /**
  * Represents a map of key -> type.
@@ -131,28 +166,6 @@ data class BsonArray(
         is BsonArray -> this.schema.isAssignableTo(otherType.schema)
         else -> false
     }
-}
-
-/**
- * This is not a BSON type per se, but need a value for an unknown
- * bson type.
- */
-data object BsonAny : BsonType
-
-/**
- * This is not a BSON type per se, but a schema is dynamic and for a single
- * field we can have multiple types of values, so we will map this scenario
- * with the AnyOf type.
- *
- * @property types
- */
-data class BsonAnyOf(
-    val types: Set<BsonType>,
-) : BsonType {
-    constructor(vararg types: BsonType) : this(types.toSet())
-
-    override fun isAssignableTo(otherType: BsonType): Boolean =
-        this.types.all { it.isAssignableTo(otherType) }
 }
 
 /**
