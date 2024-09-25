@@ -288,7 +288,12 @@ class BsonTypeTest {
                 listOf(
                     arrayOf(
                         simpleType,
-                        BsonAnyOf(simpleType, simpleTypes.randomOtherThan(simpleType)),
+                        BsonAnyOf(
+                            simpleType,
+                            simpleTypes.randomOtherThan(
+                                setOf(simpleType, BsonInt64, BsonDecimal128)
+                            )
+                        ),
                         false
                     ),
                     arrayOf(simpleTypes.randomOtherThan(simpleType), BsonAnyOf(simpleType), false),

@@ -156,8 +156,10 @@ data class BsonObject(
         else -> false
     }
 
-    private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean = this.schema.all { (key, bsonType) ->
-        otherType.schema[key]?.let { bsonType.isAssignableTo(it) } ?: false
+    private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean {
+        return this.schema.all { (key, bsonType) ->
+            otherType.schema[key]?.let { bsonType.isAssignableTo(it) } ?: false
+        }
     }
 }
 
