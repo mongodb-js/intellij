@@ -43,7 +43,9 @@ sealed interface BsonType {
         is BsonAny -> true
         else -> when (otherType) {
             is BsonAny -> true
-            is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+            is BsonAnyOf -> otherType.types.subtract(setOf(BsonNull)).all {
+                this.isAssignableTo(it)
+            }
             is BsonArray -> this.isAssignableTo(otherType.schema)
             else -> false
         }
@@ -105,7 +107,14 @@ data object BsonDecimal128 : BsonType
  * null / non existing field
  */
 
-data object BsonNull : BsonType
+data object BsonNull : BsonType {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonNull -> true
+        is BsonAny -> true
+        is BsonAnyOf -> otherType.types.contains(BsonNull)
+        else -> false
+    }
+}
 
 /**
  * This is not a BSON type per se, but need a value for an unknown
@@ -196,7 +205,9 @@ fun <T> Class<T>?.toBsonType(value: T? = null): BsonType {
         BigDecimal::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
         Decimal128::class.java -> BsonAnyOf(BsonNull, BsonDecimal128)
         else ->
-            if (Collection::class.java.isAssignableFrom(this) || Array::class.java.isAssignableFrom(this)) {
+            if (Collection::class.java.isAssignableFrom(this) ||
+                Array::class.java.isAssignableFrom(this)
+            ) {
                 return BsonAnyOf(BsonNull, BsonArray(BsonAny)) // types are lost at runtime
             } else if (Map::class.java.isAssignableFrom(this)) {
                 value?.let {

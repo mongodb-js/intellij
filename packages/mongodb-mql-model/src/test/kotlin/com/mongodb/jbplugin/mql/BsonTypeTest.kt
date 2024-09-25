@@ -63,13 +63,21 @@ class BsonTypeTest {
             BsonDecimal128,
         )
 
-        private fun List<BsonType>.listExcluding(type: BsonType): List<BsonType> = subtract(setOf(type)).toList()
+        private fun List<BsonType>.listExcluding(type: BsonType): List<BsonType> = subtract(
+            setOf(type)
+        ).toList()
 
-        private fun List<BsonType>.listExcluding(types: Set<BsonType>): List<BsonType> = subtract(types).toList()
+        private fun List<BsonType>.listExcluding(types: Set<BsonType>): List<BsonType> = subtract(
+            types
+        ).toList()
 
-        private fun List<BsonType>.randomOtherThan(type: BsonType): BsonType = subtract(setOf(type)).random()
+        private fun List<BsonType>.randomOtherThan(type: BsonType): BsonType = subtract(
+            setOf(type)
+        ).random()
 
-        private fun List<BsonType>.randomOtherThan(types: Set<BsonType>): BsonType = subtract(types).random()
+        private fun List<BsonType>.randomOtherThan(types: Set<BsonType>): BsonType = subtract(
+            types
+        ).random()
 
         @JvmStatic
         fun `java to bson`(): Array<Any> =
@@ -118,7 +126,11 @@ class BsonTypeTest {
                     // Any other type is just not assignable to this BsonType
                     arrayOf(simpleTypes.randomOtherThan(simpleType), simpleType, false),
                     arrayOf(BsonAnyOf(simpleTypes.randomOtherThan(simpleType)), simpleType, false),
-                    arrayOf(BsonAnyOf(simpleTypes.randomOtherThan(simpleType), BsonNull), simpleType, false),
+                    arrayOf(
+                        BsonAnyOf(simpleTypes.randomOtherThan(simpleType), BsonNull),
+                        simpleType,
+                        false
+                    ),
 
                     // A null is not assignable to a strict type
                     arrayOf(BsonNull, simpleType, false),
@@ -145,7 +157,11 @@ class BsonTypeTest {
 
             // Any other type is just not assignable to this BsonType
             arrayOf(simpleTypes.randomOtherThan(setOf(BsonInt32, BsonInt64)), BsonInt64, false),
-            arrayOf(BsonAnyOf(simpleTypes.randomOtherThan(setOf(BsonInt32, BsonInt64))), BsonInt64, false),
+            arrayOf(
+                BsonAnyOf(simpleTypes.randomOtherThan(setOf(BsonInt32, BsonInt64))),
+                BsonInt64,
+                false
+            ),
             arrayOf(
                 BsonAnyOf(simpleTypes.randomOtherThan(setOf(BsonInt32, BsonInt64)), BsonNull),
                 BsonInt64,
@@ -174,7 +190,11 @@ class BsonTypeTest {
             arrayOf(BsonAnyOf(BsonDouble, BsonNull), BsonDecimal128, true),
 
             // Any other type is just not assignable to this BsonType
-            arrayOf(simpleTypes.randomOtherThan(setOf(BsonDouble, BsonDecimal128)), BsonDecimal128, false),
+            arrayOf(
+                simpleTypes.randomOtherThan(setOf(BsonDouble, BsonDecimal128)),
+                BsonDecimal128,
+                false
+            ),
             arrayOf(
                 BsonAnyOf(simpleTypes.randomOtherThan(setOf(BsonDouble, BsonDecimal128))),
                 BsonDecimal128,
@@ -246,7 +266,11 @@ class BsonTypeTest {
                     arrayOf(BsonAnyOf(simpleType, BsonNull), BsonAnyOf(simpleType, BsonNull), true),
                     // collection types assignability
                     arrayOf(BsonNull, BsonAnyOf(BsonArray(simpleType), BsonNull), true),
-                    arrayOf(BsonArray(simpleType), BsonAnyOf(BsonArray(simpleType), BsonNull), true),
+                    arrayOf(
+                        BsonArray(simpleType),
+                        BsonAnyOf(BsonArray(simpleType), BsonNull),
+                        true
+                    ),
                     arrayOf(
                         BsonNull,
                         BsonAnyOf(BsonObject(mapOf("simpleField" to simpleType)), BsonNull),
@@ -262,10 +286,23 @@ class BsonTypeTest {
 
             val negativeAssertions = types.flatMap { simpleType ->
                 listOf(
+                    arrayOf(
+                        simpleType,
+                        BsonAnyOf(simpleType, simpleTypes.randomOtherThan(simpleType)),
+                        false
+                    ),
                     arrayOf(simpleTypes.randomOtherThan(simpleType), BsonAnyOf(simpleType), false),
                     arrayOf(BsonNull, BsonAnyOf(simpleType), false),
-                    arrayOf(BsonAnyOf(simpleTypes.randomOtherThan(simpleType)), BsonAnyOf(simpleType), false),
-                    arrayOf(BsonAnyOf(simpleTypes.randomOtherThan(simpleType), BsonNull), BsonAnyOf(simpleType), false),
+                    arrayOf(
+                        BsonAnyOf(simpleTypes.randomOtherThan(simpleType)),
+                        BsonAnyOf(simpleType),
+                        false
+                    ),
+                    arrayOf(
+                        BsonAnyOf(simpleTypes.randomOtherThan(simpleType), BsonNull),
+                        BsonAnyOf(simpleType),
+                        false
+                    ),
                     // collection types assignability
                     arrayOf(
                         BsonArray(simpleTypes.randomOtherThan(simpleType)),
@@ -279,8 +316,16 @@ class BsonTypeTest {
                     ),
 
                     // Nullable AnyOf
-                    arrayOf(simpleTypes.randomOtherThan(simpleType), BsonAnyOf(simpleType, BsonNull), false),
-                    arrayOf(BsonAnyOf(simpleTypes.randomOtherThan(simpleType)), BsonAnyOf(simpleType, BsonNull), false),
+                    arrayOf(
+                        simpleTypes.randomOtherThan(simpleType),
+                        BsonAnyOf(simpleType, BsonNull),
+                        false
+                    ),
+                    arrayOf(
+                        BsonAnyOf(simpleTypes.randomOtherThan(simpleType)),
+                        BsonAnyOf(simpleType, BsonNull),
+                        false
+                    ),
                     arrayOf(
                         BsonAnyOf(simpleTypes.randomOtherThan(simpleType), BsonNull),
                         BsonAnyOf(simpleType, BsonNull),
@@ -293,87 +338,6 @@ class BsonTypeTest {
         }
 
         @JvmStatic
-        fun `simple BsonType match assertions`(): Array<Array<Any>> {
-            val simpleBsonTypes = listOf(
-                BsonDouble,
-                BsonString,
-                BsonBoolean,
-                BsonDate,
-                BsonInt32,
-                BsonInt64,
-                BsonDecimal128,
-                BsonObjectId,
-                BsonNull,
-            )
-
-            return simpleBsonTypes.flatMap { bsonType ->
-                listOf(
-                    // A type is assignable itself
-                    arrayOf(bsonType, bsonType, true),
-                    // A type is assignable to a BsonArray if the underlying type is assignable as well
-                    arrayOf(bsonType, BsonArray(bsonType), true),
-                    // the same goes for Array of any
-                    arrayOf(bsonType, BsonArray(BsonAny), true),
-                    // the same goes for the BsonAnyOf combo as well
-                    arrayOf(bsonType, BsonArray(BsonAnyOf(bsonType)), true),
-                    // A BsonAny is also assignable to the type
-                    arrayOf(BsonAny, bsonType, true),
-                    // A BsonAnyOf is assignable as long as the underlying type is assignable
-                    arrayOf(BsonAnyOf(bsonType), bsonType, true),
-
-                    // and any other type cannot be assigned to this type
-                    arrayOf(simpleBsonTypes.subtract(setOf(bsonType)).random(), bsonType, false),
-                    // not assignable because not all the types in AnyOf is assignable to this type
-                    arrayOf(BsonAnyOf(bsonType, simpleBsonTypes.subtract(setOf(bsonType)).random()), bsonType, false),
-                    // even an AnyOf with BsonNull won't be assignable to this type unless of-course the otherType
-                    // itself is BsonNull
-                    arrayOf(BsonAnyOf(bsonType, BsonNull), bsonType, bsonType == BsonNull),
-
-                    // collection types are not assignable to simple types
-                    arrayOf(BsonArray(bsonType), bsonType, false)
-                )
-            }.toTypedArray()
-        }
-
-        @JvmStatic
-        fun `BsonAnyOf match assertions`(): Array<Array<Any>> =
-            arrayOf(
-                // A simple type can be assigned to BsonAnyOf if the same type is in the underlying union of BsonAnyOf
-                arrayOf(BsonString, BsonAnyOf(BsonString), true),
-                arrayOf(BsonDouble, BsonAnyOf(BsonDouble), true),
-                arrayOf(BsonBoolean, BsonAnyOf(BsonBoolean), true),
-                arrayOf(BsonInt32, BsonAnyOf(BsonInt32), true),
-                arrayOf(BsonDate, BsonAnyOf(BsonDate), true),
-                arrayOf(BsonNull, BsonAnyOf(BsonNull), true),
-                // A BsonAny can be assigned as well
-                arrayOf(BsonAny, BsonAnyOf(BsonDate, BsonNull), true),
-
-                // A BsonAnyOf of exact same union can be assigned
-                arrayOf(BsonAnyOf(BsonString, BsonNull), BsonAnyOf(BsonString, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonDouble, BsonNull), BsonAnyOf(BsonDouble, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonBoolean, BsonNull), BsonAnyOf(BsonBoolean, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonInt32, BsonNull), BsonAnyOf(BsonInt32, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonDate, BsonNull), BsonAnyOf(BsonDate, BsonNull), true),
-
-                // A BsonAnyOf of a subset of union of the other type can also be assigned
-                arrayOf(BsonAnyOf(BsonString), BsonAnyOf(BsonString, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonDouble), BsonAnyOf(BsonDouble, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonBoolean), BsonAnyOf(BsonBoolean, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonInt32), BsonAnyOf(BsonInt32, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonDate), BsonAnyOf(BsonDate, BsonNull), true),
-                arrayOf(BsonAnyOf(BsonNull), BsonAnyOf(BsonDate, BsonNull), true),
-                arrayOf(
-                    BsonAnyOf(BsonInt32, BsonInt64),
-                    BsonAnyOf(BsonInt32, BsonInt64, BsonDecimal128, BsonNull),
-                    true
-                ),
-
-                // cannot assign because the union is not a subset
-                arrayOf(BsonAnyOf(BsonString, BsonNull), BsonAnyOf(BsonString), false),
-                arrayOf(BsonAnyOf(BsonString, BsonNull), BsonAnyOf(BsonString, BsonDate), false),
-            )
-
-        @JvmStatic
         fun `BsonArray match assertions`(): Array<Array<Any>> =
             arrayOf(
                 // Similar type arrays can be assigned to each other
@@ -384,10 +348,14 @@ class BsonTypeTest {
                 arrayOf(BsonArray(BsonDate), BsonArray(BsonDate), true),
                 arrayOf(BsonArray(BsonNull), BsonArray(BsonNull), true),
                 // BsonArray of BsonAnyOf type can be assigned when the underlying types of AnyOf matches that of the
-// other Array
+                // other Array
                 arrayOf(BsonArray(BsonAnyOf(BsonString)), BsonArray(BsonString), true),
                 arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonString), true),
-                arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonAnyOf(BsonString, BsonNull)), true),
+                arrayOf(
+                    BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    true
+                ),
 
                 // BsonAny can be assigned
                 arrayOf(BsonAny, BsonArray(BsonDate), true),
@@ -401,7 +369,11 @@ class BsonTypeTest {
                 arrayOf(BsonArray(BsonNull), BsonArray(BsonDate), false),
                 arrayOf(BsonNull, BsonArray(BsonDate), false),
                 arrayOf(BsonAnyOf(BsonArray(BsonString)), BsonArray(BsonDate), false),
-                arrayOf(BsonArray(BsonAnyOf(BsonDate)), BsonArray(BsonAnyOf(BsonString, BsonNull)), false),
+                arrayOf(
+                    BsonArray(BsonAnyOf(BsonDate)),
+                    BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    false
+                ),
             )
 
         @JvmStatic
