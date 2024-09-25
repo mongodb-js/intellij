@@ -98,12 +98,13 @@ internal class DataGripMongoDbDriver(
             Document::class,
             timeout = 1.seconds
         ).firstOrNull()
-        explainPlanBson ?: return@withContext ExplainPlan.CollectionScan
+
+        explainPlanBson ?: return@withContext ExplainPlan.NotRun
 
         val queryPlanner = explainPlanBson.get("queryPlanner", Document::class.java)
         val winningPlan = queryPlanner?.get("winningPlan", Document::class.java)
 
-        winningPlan ?: return@withContext ExplainPlan.CollectionScan
+        winningPlan ?: return@withContext ExplainPlan.NotRun
 
         planByMappingStage(
             winningPlan,
