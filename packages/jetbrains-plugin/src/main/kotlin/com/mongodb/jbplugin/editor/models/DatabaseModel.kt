@@ -17,7 +17,10 @@ sealed interface DatabasesComboBoxLoadingState {
      * @property databases
      * @property selectedDatabase
      */
-    data class Finished(val databases: List<String>, val selectedDatabase: String?) : DatabasesComboBoxLoadingState
+    data class Finished(
+        val databases: List<String>,
+        val selectedDatabase: String?
+    ) : DatabasesComboBoxLoadingState
 
     /**
      * @property exception

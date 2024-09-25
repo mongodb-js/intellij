@@ -21,6 +21,7 @@ import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.editor.services.EditorService
+import com.mongodb.jbplugin.observability.useLogMessage
 
 private val allDialects = listOf(
     JavaDriverDialect,
@@ -39,7 +40,9 @@ class MdbEditorService(private val project: Project) : EditorService {
 
     override val inferredDatabase: String?
         get() = ApplicationManager.getApplication().runReadAction<String?> {
-            val context = getDialectForSelectedEditor()?.connectionContextExtractor?.gatherContext(this.project)
+            val context = getDialectForSelectedEditor()?.connectionContextExtractor?.gatherContext(
+                this.project
+            )
             return@runReadAction context?.database
         }
 
@@ -48,10 +51,11 @@ class MdbEditorService(private val project: Project) : EditorService {
         val analyzeFile = { psiReadAction: Boolean ->
             try {
                 val psiFile =
-                    getPsiFile(selectedEditor, applyReadAction = psiReadAction) ?: throw Exception("PsiFile not found")
+                    getPsiFile(selectedEditor, applyReadAction = psiReadAction)
+                        ?: throw Exception("PsiFile not found")
                 DaemonCodeAnalyzer.getInstance(this.project).restart(psiFile)
             } catch (exception: Exception) {
-                log.info("Could not analyze file: ${exception.message}")
+                log.info(useLogMessage("Could not analyze file: ${exception.message}").build())
             }
         }
         if (applyReadAction) {

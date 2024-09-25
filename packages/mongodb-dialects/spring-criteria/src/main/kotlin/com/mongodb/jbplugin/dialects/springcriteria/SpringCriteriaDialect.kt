@@ -23,7 +23,10 @@ object SpringCriteriaDialect : Dialect<PsiElement, Project> {
         val psiFile = source.containingFile as? PsiJavaFile ?: return false
         val importStatements = psiFile.importList?.allImportStatements ?: emptyArray()
         return importStatements.any {
-            return@any it.importReference?.canonicalText?.startsWith("org.springframework.data.mongodb") == true
+            return@any it.importReference?.canonicalText?.startsWith(
+                "org.springframework.data.mongodb"
+            ) ==
+                true
         }
     }
 }

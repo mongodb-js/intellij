@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.dialects.mongosh
 
 import com.mongodb.jbplugin.dialects.DialectFormatter
+import com.mongodb.jbplugin.dialects.OutputQuery
 import com.mongodb.jbplugin.dialects.mongosh.backend.MongoshBackend
 import com.mongodb.jbplugin.mql.*
 import com.mongodb.jbplugin.mql.components.*
@@ -8,21 +9,36 @@ import io.github.z4kn4fein.semver.Version
 import org.owasp.encoder.Encode
 
 object MongoshDialectFormatter : DialectFormatter {
-    override fun <S> formatQuery(query: Node<S>, explain: Boolean): String = MongoshBackend().apply {
-        emitDbAccess()
-        emitCollectionReference(query.component<HasCollectionReference<S>>())
-        emitFunctionName("find")
-        emitFunctionCall({
-            emitQueryBody(query, firstCall = true)
-        })
-        if (explain) {
-            emitPropertyAccess()
-            emitFunctionName("explain")
-            emitFunctionCall()
-        }
-    }.computeOutput()
+    override fun <S> formatQuery(query: Node<S>, explain: Boolean): OutputQuery {
+        val outputString = MongoshBackend().apply {
+            emitDbAccess()
+            emitCollectionReference(query.component<HasCollectionReference<S>>())
+            emitFunctionName("find")
+            emitFunctionCall({
+                emitQueryBody(query, firstCall = true)
+            })
+            if (explain) {
+                emitPropertyAccess()
+                emitFunctionName("explain")
+                emitFunctionCall()
+            }
+        }.computeOutput()
 
-    override fun <S> indexCommandForQuery(query: Node<S>): String = when (val index = IndexAnalyzer.analyze(query)) {
+        return when (val ref = query.component<HasCollectionReference<S>>()?.reference) {
+            is HasCollectionReference.Known -> if (ref.namespace.isValid) {
+                OutputQuery.CanBeRun(outputString)
+            } else {
+                OutputQuery.Incomplete(outputString)
+            }
+            else -> OutputQuery.Incomplete(outputString)
+        }
+    }
+
+    override fun <S> indexCommandForQuery(query: Node<S>): String = when (
+        val index = IndexAnalyzer.analyze(
+            query
+        )
+    ) {
         is IndexAnalyzer.SuggestedIndex.NoIndex -> ""
         is IndexAnalyzer.SuggestedIndex.MongoDbIndex -> {
             val targetCluster = query.component<HasTargetCluster>()
@@ -33,7 +49,10 @@ object MongoshDialectFormatter : DialectFormatter {
             val (dbName, collName) = when (val collRef = index.collectionReference.reference) {
                 is HasCollectionReference.Unknown -> ("<database>" to "<collection>")
                 is HasCollectionReference.OnlyCollection -> ("<database>" to collRef.collection)
-                is HasCollectionReference.Known -> (collRef.namespace.database to collRef.namespace.collection)
+                is HasCollectionReference.Known -> (
+                    collRef.namespace.database to
+                        collRef.namespace.collection
+                    )
             }
 
             val encodedDbName = Encode.forJavaScript(dbName)
@@ -52,7 +71,7 @@ object MongoshDialectFormatter : DialectFormatter {
                     // Learn about creating an index: $docPrefix/core/data-model-operations/#indexes
                     db.getSiblingDB("$encodedDbName").getCollection("$encodedColl")
                       .createIndex($indexTemplate)
-                """.trimIndent()
+            """.trimIndent()
         }
     }
 
@@ -61,7 +80,10 @@ object MongoshDialectFormatter : DialectFormatter {
 
 // It's just easier to read it inline, as it has a complex circular flow
 @Suppress("TOO_LONG_FUNCTION")
-private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean = false): MongoshBackend {
+private fun <S> MongoshBackend.emitQueryBody(
+    node: Node<S>,
+    firstCall: Boolean = false
+): MongoshBackend {
     val named = node.component<Named>()
     val fieldRef = node.component<HasFieldReference<S>>()
     val valueRef = node.component<HasValueReference<S>>()
@@ -90,61 +112,69 @@ private fun <S> MongoshBackend.emitQueryBody(node: Node<S>, firstCall: Boolean =
         if (firstCall) {
             emitObjectEnd()
         }
-    } else named?.let {
+    } else {
+        named?.let {
 // 3. children and named
-        if (named.name == Name.EQ) {
+            if (named.name == Name.EQ) {
 // normal a: b case
-            if (firstCall) {
-                emitObjectStart()
-            }
-            if (fieldRef != null && valueRef != null) {
+                if (firstCall) {
+                    emitObjectStart()
+                }
+                if (fieldRef != null && valueRef != null) {
+                    emitObjectKey(resolveFieldReference(fieldRef))
+                    emitContextValue(resolveValueReference(valueRef, fieldRef))
+                } else {
+                    hasChildren?.children?.forEach {
+                        emitQueryBody(it)
+                        emitObjectValueEnd()
+                    }
+                }
+                if (firstCall) {
+                    emitObjectEnd()
+                }
+            } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-76
+                    Name.GT,
+                    Name.GTE,
+                    Name.LT,
+                    Name.LTE
+                ).contains(named.name) &&
+                fieldRef != null &&
+                valueRef != null
+            ) {
+// a: { $gt: 1 }
+                if (firstCall) {
+                    emitObjectStart()
+                }
                 emitObjectKey(resolveFieldReference(fieldRef))
+                emitObjectStart()
+                emitObjectKey(registerConstant('$' + named.name.canonical))
                 emitContextValue(resolveValueReference(valueRef, fieldRef))
-            } else {
+                emitObjectEnd()
+                if (firstCall) {
+                    emitObjectEnd()
+                }
+            } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-77
+                    Name.AND,
+                    Name.OR,
+                    Name.NOR,
+                    Name.NOT
+                ).contains(named.name)
+            ) {
+                if (firstCall) {
+                    emitObjectStart()
+                }
+                emitObjectKey(registerConstant('$' + named.name.canonical))
+                emitArrayStart()
                 hasChildren?.children?.forEach {
+                    emitObjectStart()
                     emitQueryBody(it)
+                    emitObjectEnd()
                     emitObjectValueEnd()
                 }
-            }
-            if (firstCall) {
-                emitObjectEnd()
-            }
-        } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-76
-                Name.GT,
-                Name.GTE,
-                Name.LT,
-                Name.LTE
-            ).contains(named.name) && fieldRef != null && valueRef != null
-        ) {
-// a: { $gt: 1 }
-            if (firstCall) {
-                emitObjectStart()
-            }
-            emitObjectKey(resolveFieldReference(fieldRef))
-            emitObjectStart()
-            emitObjectKey(registerConstant('$' + named.name.canonical))
-            emitContextValue(resolveValueReference(valueRef, fieldRef))
-            emitObjectEnd()
-            if (firstCall) {
-                emitObjectEnd()
-            }
-        } else if (setOf( // 1st basic attempt, to improve in INTELLIJ-77
-                Name.AND, Name.OR, Name.NOR, Name.NOT).contains(named.name)
-            ) {
-            if (firstCall) {
-                emitObjectStart()
-            }
-            emitObjectKey(registerConstant('$' + named.name.canonical))
-            emitArrayStart()
-            hasChildren?.children?.forEach {
-                emitObjectStart()
-                emitQueryBody(it)
-                emitObjectEnd()
-                emitObjectValueEnd()
-            }
-            emitArrayEnd()
-            if (firstCall) {
-                emitObjectEnd()
+                emitArrayEnd()
+                if (firstCall) {
+                    emitObjectEnd()
+                }
             }
         }
     }

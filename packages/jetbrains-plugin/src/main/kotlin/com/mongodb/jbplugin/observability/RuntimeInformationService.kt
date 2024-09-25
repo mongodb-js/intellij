@@ -45,7 +45,8 @@ class RuntimeInformationService {
     private val arch = getOrDefault("<arch>") { SystemInfo.OS_ARCH }
     private val jvmVendor = getOrDefault("<jvmVendor>") { SystemInfo.JAVA_VENDOR }
     private val jvmVersion = getOrDefault("<jvmVersion>") { SystemInfo.JAVA_VERSION }
-    private val buildVersion = getOrDefault("<fullVersion>") { ApplicationInfo.getInstance().fullVersion }
+    private val buildVersion =
+        getOrDefault("<fullVersion>") { ApplicationInfo.getInstance().fullVersion }
     private val applicationName = getOrDefault("<fullApplicationName>") {
         ApplicationInfo.getInstance().fullApplicationName
     }

@@ -1,13 +1,5 @@
 rootProject.name = "mongodb-jetbrains-plugin"
 
-pluginManagement {
-    repositories {
-        maven("https://oss.sonatype.org/content/repositories/snapshots/")
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
 include(
     "packages:mongodb-mql-model",
     "packages:mongodb-dialects",

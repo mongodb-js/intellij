@@ -111,7 +111,9 @@ public class Repository {
 
         val (dataSource, readModelProvider) = fixture.setupConnection()
 
-        `when`(readModelProvider.slice(eq(dataSource), eq(ListCollections.Slice("myDatabase")))).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(ListCollections.Slice("myDatabase")))
+        ).thenReturn(
             ListCollections(
                 listOf(
                     ListCollections.Collection("myCollection", "collection"),
@@ -163,7 +165,9 @@ public class Repository {
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
 
-        `when`(readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))
+        ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
                     namespace,
@@ -221,7 +225,9 @@ public class Repository {
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
 
-        `when`(readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))
+        ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
                     namespace,
@@ -279,7 +285,9 @@ public class Repository {
         val (dataSource, readModelProvider) = fixture.setupConnection()
         val namespace = Namespace("myDatabase", "myCollection")
 
-        `when`(readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))
+        ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
                     namespace,

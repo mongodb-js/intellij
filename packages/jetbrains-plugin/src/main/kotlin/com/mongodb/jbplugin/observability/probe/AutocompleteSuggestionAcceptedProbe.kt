@@ -6,14 +6,12 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.dialects.Dialect
-import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
-
-import java.util.concurrent.CopyOnWriteArrayList
-
-import kotlin.time.Duration.Companion.hours
+import com.mongodb.jbplugin.observability.useLogMessage
 import kotlinx.coroutines.*
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.time.Duration.Companion.hours
 
 private val logger: Logger = logger<AutocompleteSuggestionAcceptedProbe>()
 
@@ -79,21 +77,25 @@ class AutocompleteSuggestionAcceptedProbe(
 
         val application = ApplicationManager.getApplication()
         val telemetry = application.getService(TelemetryService::class.java)
-        val logMessage = application.getService(LogMessage::class.java)
 
         listCopy
             .groupingBy {
                 Pair(it.dialect, it.type)
             }
-.eachCount()
-            .map { TelemetryEvent.AutocompleteGroupEvent(it.key.first, it.key.second.publicName, it.value) }
+            .eachCount()
+            .map {
+                TelemetryEvent.AutocompleteGroupEvent(
+                    it.key.first,
+                    it.key.second.publicName,
+                    it.value
+                )
+            }
             .sortedBy { it.name }
             .forEach {
                 telemetry.sendEvent(it)
 
                 logger.info(
-                    logMessage
-                        .message("Autocomplete suggestion aggregated.")
+                    useLogMessage("Autocomplete suggestion aggregated.")
                         .mergeTelemetryEventProperties(it)
                         .build(),
                 )
@@ -117,7 +119,6 @@ class AutocompleteSuggestionAcceptedProbe(
             DATABASE("database"),
             COLLECTION("collection"),
             FIELD("field"),
-;
         }
     }
 }

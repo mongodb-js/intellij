@@ -59,7 +59,7 @@ object IndexCheckingLinter {
                     )
                 )
 
-            is ExplainPlan.IndexScan ->
+            else ->
                 IndexCheckResult(
                     emptyList()
                 )

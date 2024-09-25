@@ -17,8 +17,8 @@ import com.mongodb.jbplugin.editor.services.MdbPluginDisposable
 import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
 import com.mongodb.jbplugin.editor.services.implementations.useToolbarSettings
-import org.jetbrains.annotations.TestOnly
 import kotlinx.coroutines.CoroutineScope
+import org.jetbrains.annotations.TestOnly
 
 /**
  * @param coroutineScope
@@ -40,7 +40,9 @@ class EditorToolbarDecorator(
     internal fun setupSubscriptionsForProject(project: Project) {
         // Registering messageBus.connect to our MdbPluginDisposable ensures that the subscriptions are cleared
         // when either the plugin unloads or the project is closed
-        val messageBusConnection = project.messageBus.connect(MdbPluginDisposable.getInstance(project))
+        val messageBusConnection = project.messageBus.connect(
+            MdbPluginDisposable.getInstance(project)
+        )
         messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, this)
         messageBusConnection.subscribe(PsiModificationTracker.TOPIC, this)
         messageBusConnection.subscribe(DataSourceManager.TOPIC, this)

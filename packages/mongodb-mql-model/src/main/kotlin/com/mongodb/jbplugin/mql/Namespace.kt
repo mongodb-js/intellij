@@ -12,6 +12,8 @@ class Namespace private constructor(
     val database: String,
     val collection: String,
 ) {
+    val isValid = database.isNotBlank() && collection.isNotBlank()
+
     override fun toString(): String = "$database.$collection"
 
     override fun equals(other: Any?): Boolean = other is Namespace && hashCode() == other.hashCode()

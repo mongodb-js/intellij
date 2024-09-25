@@ -32,14 +32,18 @@ class JavaDriverToolbarVisibilityUiTest {
     @Test
     @RequiresProject("basic-java-project-with-mongodb")
     fun `shows the toolbar in a java file with references to the driver`(remoteRobot: RemoteRobot) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.isShowing)
     }
 
     @Test
     @RequiresProject("basic-java-project-with-mongodb")
-    fun `shows the toolbar in all the java files with references to the driver`(remoteRobot: RemoteRobot) {
+    fun `shows the toolbar in all the java files with references to the driver`(
+        remoteRobot: RemoteRobot
+    ) {
         remoteRobot.ideaFrame().openFile(
             path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
         )
@@ -60,8 +64,12 @@ class JavaDriverToolbarVisibilityUiTest {
 
     @Test
     @RequiresProject("basic-java-project-with-mongodb")
-    fun `does not show the toolbar in a java file without references to the driver`(remoteRobot: RemoteRobot) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/NoDriverReference.java")
+    fun `does not show the toolbar in a java file without references to the driver`(
+        remoteRobot: RemoteRobot
+    ) {
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/NoDriverReference.java"
+        )
         assertTrue(remoteRobot.isJavaEditorToolbarHidden())
     }
 
@@ -71,7 +79,9 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
@@ -83,7 +93,9 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertFalse(toolbar.hasDatabasesComboBox)
@@ -95,7 +107,9 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/springcriteria/SpringCriteriaRepository.java")
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/springcriteria/SpringCriteriaRepository.java"
+        )
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.hasDatabasesComboBox)
@@ -117,7 +131,9 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java")
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
 
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
@@ -134,7 +150,9 @@ class JavaDriverToolbarVisibilityUiTest {
     ) {
         assertTrue(remoteRobot.isJavaEditorToolbarHidden())
 
-        remoteRobot.ideaFrame().openFile("/src/main/java/alt/mongodb/javadriver/NoDriverReference.java")
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/NoDriverReference.java"
+        )
         val editor = remoteRobot.ideaFrame().currentTab().editor
         val textBeforeChanges = editor.text
 

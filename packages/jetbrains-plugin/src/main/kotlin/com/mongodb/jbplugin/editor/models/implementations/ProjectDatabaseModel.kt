@@ -23,7 +23,14 @@ class ProjectDatabaseModel(
     private val editorService: EditorService,
     private val dataSourceService: DataSourceService,
 ) : DatabaseModel {
-    private val comboBoxLoadingStateListeners = ConcurrentMap<String, Set<(DatabasesComboBoxLoadingState) -> Unit>>()
+    private val comboBoxLoadingStateListeners = ConcurrentMap<
+        String,
+        Set<
+            (
+                DatabasesComboBoxLoadingState
+            ) -> Unit
+            >
+        >()
     private val isFetching = ConcurrentMap<String, AtomicBoolean>()
 
     override fun getStoredDatabase(): String? = toolbarSettings.database
@@ -48,7 +55,9 @@ class ProjectDatabaseModel(
     ) {
         enqueueComboBoxStateChangeListener(selectedDataSource, onComboBoxLoadingStateChanged)
 
-        val fetchInProgress = isFetching.computeIfAbsent(selectedDataSource.uniqueId) { AtomicBoolean(false) }
+        val fetchInProgress = isFetching.computeIfAbsent(selectedDataSource.uniqueId) {
+            AtomicBoolean(false)
+        }
         if (!fetchInProgress.getAndSet(true)) {
             fetchDatabasesForDataSource(selectedDataSource)
         }
@@ -58,7 +67,10 @@ class ProjectDatabaseModel(
         dataSource: LocalDataSource,
         listener: (DatabasesComboBoxLoadingState) -> Unit
     ) {
-        comboBoxLoadingStateListeners.merge(dataSource.uniqueId, setOf(listener)) { existingListeners, newListeners ->
+        comboBoxLoadingStateListeners.merge(dataSource.uniqueId, setOf(listener)) {
+                existingListeners,
+                newListeners
+            ->
             existingListeners + newListeners
         }
     }
@@ -77,14 +89,18 @@ class ProjectDatabaseModel(
         is DatabasesLoadingState.Started -> DatabasesComboBoxLoadingState.Started
         is DatabasesLoadingState.Finished -> DatabasesComboBoxLoadingState.Finished(
             databases = databasesLoadingState.databases,
-            selectedDatabase = if (toolbarSettings.database == ToolbarSettings.UNINITIALIZED_DATABASE) {
+            selectedDatabase = if (toolbarSettings.database ==
+                ToolbarSettings.UNINITIALIZED_DATABASE
+            ) {
                 editorService.inferredDatabase
             } else {
                 toolbarSettings.database
             }
         )
 
-        is DatabasesLoadingState.Errored -> DatabasesComboBoxLoadingState.Errored(databasesLoadingState.exception)
+        is DatabasesLoadingState.Errored -> DatabasesComboBoxLoadingState.Errored(
+            databasesLoadingState.exception
+        )
     }
 
     private fun notifyComboBoxStateListeners(

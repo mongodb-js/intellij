@@ -4,16 +4,15 @@ import com.mongodb.ConnectionString
 import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.toNs
+import kotlinx.coroutines.runBlocking
 import org.bson.Document
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.doThrow
-
-import kotlinx.coroutines.runBlocking
 
 class BuildInfoTest {
     @Test
@@ -24,7 +23,10 @@ class BuildInfoTest {
             `when`(driver.connected).thenReturn(true)
             `when`(driver.connectionString()).thenReturn(ConnectionString("mongodb://localhost/"))
             `when`(
-                driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
+                driver.countAll(
+                    "admin.atlascli".toNs(),
+                    Filters.eq("managedClusterType", "atlasCliLocalDevCluster")
+                ),
             ).thenReturn(1L)
             `when`(driver.runCommand("admin", command, BuildInfoFromMongoDb::class)).thenReturn(
                 defaultBuildInfo(),
@@ -44,7 +46,10 @@ class BuildInfoTest {
             `when`(driver.connectionString()).thenReturn(ConnectionString("mongodb://localhost/"))
 
             `when`(
-                driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
+                driver.countAll(
+                    "admin.atlascli".toNs(),
+                    Filters.eq("managedClusterType", "atlasCliLocalDevCluster")
+                ),
             ).doThrow(
                 NotImplementedError(),
             )
@@ -88,7 +93,10 @@ class BuildInfoTest {
             `when`(driver.connected).thenReturn(true)
             `when`(driver.connectionString()).thenReturn(ConnectionString(url))
             `when`(
-                driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
+                driver.countAll(
+                    "admin.atlascli".toNs(),
+                    Filters.eq("managedClusterType", "atlasCliLocalDevCluster")
+                ),
             ).thenReturn(1L)
             `when`(driver.runCommand("admin", command, BuildInfoFromMongoDb::class)).thenReturn(
                 defaultBuildInfo(),
@@ -130,7 +138,10 @@ class BuildInfoTest {
             `when`(driver.connected).thenReturn(true)
             `when`(driver.connectionString()).thenReturn(ConnectionString(url))
             `when`(
-                driver.countAll("admin.atlascli".toNs(), Filters.eq("managedClusterType", "atlasCliLocalDevCluster")),
+                driver.countAll(
+                    "admin.atlascli".toNs(),
+                    Filters.eq("managedClusterType", "atlasCliLocalDevCluster")
+                ),
             ).thenReturn(1L)
             `when`(driver.runCommand("admin", command, BuildInfoFromMongoDb::class)).thenReturn(
                 defaultBuildInfo(),
@@ -145,7 +156,7 @@ class BuildInfoTest {
             "7.8.0",
             "1235abc",
             emptyList(),
-                    emptyMap(),
+            emptyMap(),
             false,
         )
 }

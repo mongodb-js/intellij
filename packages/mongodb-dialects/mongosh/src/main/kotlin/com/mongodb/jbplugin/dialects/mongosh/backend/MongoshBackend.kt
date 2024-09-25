@@ -64,8 +64,6 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
         when (key) {
             is ContextValue.Variable -> emitAsIs("[${key.name}]")
             is ContextValue.Constant -> emitPrimitive(key.value, false)
-            else -> {
-            }
         }
         emitAsIs(": ")
         return this
@@ -110,9 +108,6 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
         when (value) {
             is ContextValue.Constant -> emitPrimitive(value.value, false)
             is ContextValue.Variable -> emitAsIs(value.name)
-            else -> {
-// this is a generated else block
-            }
         }
 
         return this

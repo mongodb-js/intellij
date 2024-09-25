@@ -18,9 +18,7 @@ import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.owasp.encoder.Encode
-
 import java.time.Duration
-
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.toJavaDuration
 
@@ -75,7 +73,10 @@ class IdeaFrame(
         )
     }
 
-    fun currentTab(): TextEditorFixture = remoteRobot.findVisible(TextEditorFixture.locator, Duration.ofSeconds(1))
+    fun currentTab(): TextEditorFixture = remoteRobot.findVisible(
+        TextEditorFixture.locator,
+        Duration.ofSeconds(1)
+    )
 
     fun addDataSourceWithUrl(
         name: String,
@@ -164,7 +165,7 @@ class IdeaFrame(
                     }
                     
                     connected
-                """.trimIndent(),
+                    """.trimIndent(),
                     runInEdt = true
                 )
             )
@@ -175,7 +176,8 @@ class IdeaFrame(
 
     fun disablePowerSaveMode() {
         step("Disable Power Save Mode") {
-            runJs("""
+            runJs(
+                """
             importClass(com.intellij.ide.PowerSaveMode)
             importClass(com.intellij.openapi.application.ApplicationManager)
             
@@ -186,15 +188,17 @@ class IdeaFrame(
                 })
         
             ApplicationManager.getApplication().invokeLater(disableIt)
-        """.trimIndent())
+                """.trimIndent()
+            )
         }
     }
 
     fun waitUntilProjectIsInSync() {
         eventually(timeout = Duration.ofMinutes(10)) {
             step("Wait until Gradle project is in sync") {
-                assertTrue(callJs<Boolean>(
-                    """
+                assertTrue(
+                    callJs<Boolean>(
+                        """
                     importPackage(com.intellij.openapi.wm.impl)
                     importClass(com.intellij.openapi.module.ModuleManager)
 
@@ -203,9 +207,10 @@ class IdeaFrame(
                     const modules = ModuleManager.getInstance(project).getModules()
                     
                     modules.length > 0
-                    """.trimIndent(),
-                    runInEdt = true
-                ))
+                        """.trimIndent(),
+                        runInEdt = true
+                    )
+                )
             }
 
             // exiting smart mode does not mean we are in smart mode!
@@ -224,7 +229,9 @@ class IdeaFrame(
     fun hideIntellijAiAd() {
         step("Hide IntelliJ AI Ad (uses a lot of space in a small window)") {
             runCatching {
-                val aiMenu = remoteRobot.find<JButtonFixture>(byXpath("//div[@accessiblename='AI Assistant']"))
+                val aiMenu = remoteRobot.find<JButtonFixture>(
+                    byXpath("//div[@accessiblename='AI Assistant']")
+                )
                 aiMenu.rightClick()
                 val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
                 hideAiMenu.clickItem("Hide")
@@ -292,7 +299,9 @@ class IdeaFrame(
     fun waitUntilNotificationIsGone(title: String, timeout: Duration = Duration.ofSeconds(2)) {
         waitFor(timeout, interval = Duration.ofMillis(50)) {
             runCatching {
-                !remoteRobot.find<JLabelFixture>(byXpath("//div[@visible_text='$title']")).isVisible()
+                !remoteRobot.find<JLabelFixture>(
+                    byXpath("//div[@visible_text='$title']")
+                ).isVisible()
             }.getOrDefault(true)
         }
     }

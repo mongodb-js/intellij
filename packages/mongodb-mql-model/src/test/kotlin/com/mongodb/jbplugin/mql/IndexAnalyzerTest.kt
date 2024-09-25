@@ -18,14 +18,17 @@ class IndexAnalyzerTest {
 
     @Test
     fun `returns the suggested list of fields for a mongodb query`() {
-        val collectionReference = HasCollectionReference(Known(Unit, Unit, Namespace("myDb", "myColl")))
+        val collectionReference =
+            HasCollectionReference(Known(Unit, Unit, Namespace("myDb", "myColl")))
         val query = Node(
-            Unit, listOf(
+            Unit,
+            listOf(
                 collectionReference,
                 HasChildren(
                     listOf(
                         Node(
-                            Unit, listOf(
+                            Unit,
+                            listOf(
                                 HasFieldReference(HasFieldReference.Known(Unit, "myField"))
                             )
                         )
@@ -38,29 +41,37 @@ class IndexAnalyzerTest {
 
         assertEquals(1, result.fields.size)
         assertEquals(collectionReference, result.collectionReference)
-        assertEquals(IndexAnalyzer.SuggestedIndex.MongoDbIndexField("myField", Unit), result.fields[0])
+        assertEquals(
+            IndexAnalyzer.SuggestedIndex.MongoDbIndexField("myField", Unit),
+            result.fields[0]
+        )
     }
 
     @Test
     fun `removes repeated field references`() {
-        val collectionReference = HasCollectionReference(Known(Unit, Unit, Namespace("myDb", "myColl")))
+        val collectionReference =
+            HasCollectionReference(Known(Unit, Unit, Namespace("myDb", "myColl")))
         val query = Node(
-            Unit, listOf(
+            Unit,
+            listOf(
                 collectionReference,
                 HasChildren(
                     listOf(
                         Node(
-                            Unit, listOf(
+                            Unit,
+                            listOf(
                                 HasFieldReference(HasFieldReference.Known(Unit, "myField"))
                             )
                         ),
                         Node(
-                            Unit, listOf(
+                            Unit,
+                            listOf(
                                 HasFieldReference(HasFieldReference.Known(Unit, "mySecondField"))
                             )
                         ),
                         Node(
-                            Unit, listOf(
+                            Unit,
+                            listOf(
                                 HasFieldReference(HasFieldReference.Known(Unit, "myField"))
                             )
                         )
@@ -73,7 +84,13 @@ class IndexAnalyzerTest {
 
         assertEquals(2, result.fields.size)
         assertEquals(collectionReference, result.collectionReference)
-        assertEquals(IndexAnalyzer.SuggestedIndex.MongoDbIndexField("myField", Unit), result.fields[0])
-        assertEquals(IndexAnalyzer.SuggestedIndex.MongoDbIndexField("mySecondField", Unit), result.fields[1])
+        assertEquals(
+            IndexAnalyzer.SuggestedIndex.MongoDbIndexField("myField", Unit),
+            result.fields[0]
+        )
+        assertEquals(
+            IndexAnalyzer.SuggestedIndex.MongoDbIndexField("mySecondField", Unit),
+            result.fields[1]
+        )
     }
 }

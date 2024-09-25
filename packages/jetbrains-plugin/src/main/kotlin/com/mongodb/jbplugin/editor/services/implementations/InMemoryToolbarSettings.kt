@@ -7,7 +7,10 @@ import java.util.concurrent.atomic.AtomicReference
  * @param initialDataSourceId
  * @param initialDatabase
  */
-class InMemoryToolbarSettings(initialDataSourceId: String? = null, initialDatabase: String? = null) : ToolbarSettings {
+class InMemoryToolbarSettings(
+    initialDataSourceId: String? = null,
+    initialDatabase: String? = null
+) : ToolbarSettings {
     private val _dataSourceId = AtomicReference<String?>(initialDataSourceId)
     private val _database = AtomicReference<String?>(initialDatabase)
     override var dataSourceId: String?

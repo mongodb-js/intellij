@@ -40,15 +40,21 @@ data class Node<S>(
 ) {
     inline fun <reified C : Component> component(): C? = components.firstOrNull { it is C } as C?
 
-    fun <C : Component> component(withClass: Class<C>): C? = components.firstOrNull { withClass.isInstance(it) } as C?
+    fun <C : Component> component(withClass: Class<C>): C? = components.firstOrNull {
+        withClass.isInstance(it)
+    } as C?
 
     inline fun <reified C : Component> components(): List<C> = components.filterIsInstance<C>()
 
     inline fun <reified C : Component> hasComponent(): Boolean = component<C>() != null
 
-    fun withTargetCluster(cluster: HasTargetCluster): Node<S> = copy(source = source, components = components.filter {
-        it !is HasTargetCluster
-    } + cluster)
+    fun withTargetCluster(cluster: HasTargetCluster): Node<S> = copy(
+        source = source,
+        components =
+        components.filter {
+            it !is HasTargetCluster
+        } + cluster
+    )
 
     /**
      * Creates a copy of the query and modifies the database reference in every HasCollectionReference component

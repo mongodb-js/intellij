@@ -43,6 +43,12 @@ sealed interface ConnectionState {
  */
 interface DataSourceService {
     fun listMongoDbDataSources(): List<LocalDataSource>
-    fun listDatabasesForDataSource(dataSource: LocalDataSource, onLoadingStateChanged: (DatabasesLoadingState) -> Unit)
-    fun connect(dataSource: LocalDataSource, onConnectionStateChanged: suspend (ConnectionState) -> Unit)
+    fun listDatabasesForDataSource(
+        dataSource: LocalDataSource,
+        onLoadingStateChanged: (DatabasesLoadingState) -> Unit
+    )
+    fun connect(
+        dataSource: LocalDataSource,
+        onConnectionStateChanged: suspend (ConnectionState) -> Unit
+    )
 }

@@ -1,0 +1,22 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="848fc1fe-019f-373c-b369-bddd3f8d8edf" enabled="true" level="WARNING" enabled_by_default="false">
+      <scope name="Project Files" level="ERROR" enabled="true" editorAttributes="ERRORS_ATTRIBUTES" />
+    </inspection_tool>
+    <inspection_tool class="SSBasedInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <replaceConfiguration name="Method calls" text="$Before$.$MethodCall$(&quot;$Parameters$&quot;)" recursive="false" caseInsensitive="true" type="Kotlin" pattern_context="default" reformatAccordingToStyle="false" shortenFQN="false" replacement="$Before$.$MethodCall$(useLogMessage(&quot;$Parameters$&quot;).build())">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="Before" nameOfExprType="pkg\.MyClass" minCount="0" within="" contains="" />
+        <constraint name="MethodCall" target="true" within="" contains="" />
+        <constraint name="Parameters" within="" contains="" />
+      </replaceConfiguration>
+      <replaceConfiguration name="Use LogMessageBuilder instead of a literal string for logs." description="Logs should contain enough information for troubleshooting.&#10;Using `useLogMessage` instead will provide in the log information&#10;about the context around the log." suppressId="com.mongodb.intellij.internal.useLogMessageBuilder" text="$Before$.$MethodCall$($Parameters$)" recursive="false" caseInsensitive="true" type="Kotlin" pattern_context="default" reformatAccordingToStyle="true" shortenFQN="true" replacement="$Before$.$MethodCall$(useLogMessage($Parameters$).build())">
+        <constraint name="__context__" within="" contains="" />
+        <constraint name="Before" nameOfExprType="com\.intellij\.openapi\.diagnostic\.Logger" within="" contains="" />
+        <constraint name="MethodCall" within="" contains="" />
+        <constraint name="Parameters" regexp="useLogMessage.*" nameOfExprType="String" negateName="true" within="" contains="" />
+      </replaceConfiguration>
+    </inspection_tool>
+  </profile>
+</component>

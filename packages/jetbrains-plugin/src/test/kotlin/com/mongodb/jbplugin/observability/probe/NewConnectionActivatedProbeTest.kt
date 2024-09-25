@@ -15,8 +15,8 @@ import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.observability.TelemetryProperty
 import com.mongodb.jbplugin.observability.TelemetryService
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.verify
 

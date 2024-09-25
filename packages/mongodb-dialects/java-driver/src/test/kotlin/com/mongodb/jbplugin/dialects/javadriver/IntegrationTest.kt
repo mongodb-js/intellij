@@ -21,22 +21,20 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.mongodb.client.MongoClient
 import com.mongodb.client.model.Filters
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
-
 import java.lang.reflect.Method
 import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
-
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Retention(AnnotationRetention.RUNTIME)
 @Test
@@ -120,9 +118,17 @@ internal class IntegrationTestExtension :
         val modulePath = context.getStore(namespace).get(testPathKey).toString()
 
         ApplicationManager.getApplication().invokeAndWait {
-            val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java) ?: return@invokeAndWait
+            val parsingTest =
+                context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
+                    ?: return@invokeAndWait
 
-            val fileName = Path(modulePath, "src", "main", "java", parsingTest.fileName).absolutePathString()
+            val fileName = Path(
+                modulePath,
+                "src",
+                "main",
+                "java",
+                parsingTest.fileName
+            ).absolutePathString()
 
             fixture.configureByText(
                 fileName,
@@ -137,7 +143,9 @@ internal class IntegrationTestExtension :
         extensionContext: ExtensionContext,
     ) {
         ApplicationManager.getApplication().invokeAndWait {
-            val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
+            val fixture = extensionContext.getStore(
+                namespace
+            ).get(testFixtureKey) as CodeInsightTestFixture
             val dumbService = DumbService.getInstance(fixture.project)
 
             // Run only when the code has been analysed
@@ -168,22 +176,26 @@ internal class IntegrationTestExtension :
         extensionContext: ExtensionContext,
     ): Boolean =
         parameterContext.parameter.type == Project::class.java ||
-                parameterContext.parameter.type == CodeInsightTestFixture::class.java ||
-                parameterContext.parameter.type == PsiFile::class.java ||
-                parameterContext.parameter.type == JavaPsiFacade::class.java
+            parameterContext.parameter.type == CodeInsightTestFixture::class.java ||
+            parameterContext.parameter.type == PsiFile::class.java ||
+            parameterContext.parameter.type == JavaPsiFacade::class.java
 
     override fun resolveParameter(
         parameterContext: ParameterContext,
         extensionContext: ExtensionContext,
     ): Any {
-        val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
+        val fixture = extensionContext.getStore(
+            namespace
+        ).get(testFixtureKey) as CodeInsightTestFixture
 
         return when (parameterContext.parameter.type) {
             Project::class.java -> fixture.project
             CodeInsightTestFixture::class.java -> fixture
             PsiFile::class.java -> fixture.file
             JavaPsiFacade::class.java -> JavaPsiFacade.getInstance(fixture.project)
-            else -> TODO("Parameter of type ${parameterContext.parameter.type.canonicalName} is not supported.")
+            else -> TODO(
+                "Parameter of type ${parameterContext.parameter.type.canonicalName} is not supported."
+            )
         }
     }
 

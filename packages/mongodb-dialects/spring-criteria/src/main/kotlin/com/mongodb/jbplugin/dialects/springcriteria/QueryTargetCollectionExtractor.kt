@@ -21,16 +21,20 @@ object QueryTargetCollectionExtractor {
         ) ?: return unknown
 
         val validMethods = setOf("query", "find")
-        val queryMethodCall = baseExpression.findAllChildrenOfType(PsiMethodCallExpression::class.java)
+        val queryMethodCall = baseExpression.findAllChildrenOfType(
+            PsiMethodCallExpression::class.java
+        )
             .find {
                 val methodRef = it.methodExpression.resolve() as? PsiMethod
-                validMethods.contains(methodRef?.name) && methodRef?.containingClass == templateClass
+                validMethods.contains(methodRef?.name) &&
+                    methodRef?.containingClass == templateClass
             }
 
         if (queryMethodCall != null && queryMethodCall.argumentList.expressionCount > 0) {
             val queryArg = queryMethodCall.argumentList.expressions.last()
             val resolvedType = queryArg as? PsiClassObjectAccessExpression ?: return unknown
-            val resolvedClass = PsiTypesUtil.getPsiClass(resolvedType.operand.type) ?: return unknown
+            val resolvedClass =
+                PsiTypesUtil.getPsiClass(resolvedType.operand.type) ?: return unknown
             val resolvedCollection = ModelCollectionExtractor.fromPsiClass(resolvedClass)
             return resolvedCollection?.let {
                 HasCollectionReference(HasCollectionReference.OnlyCollection(queryArg, it))
