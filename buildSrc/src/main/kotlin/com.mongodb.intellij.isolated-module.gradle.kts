@@ -79,7 +79,7 @@ tasks {
 }
 
 configure<KtlintExtension> {
-    version.set("1.3.1")
+    version.set(libs.versions.ktlint.tool)
     verbose.set(true)
     outputToConsole.set(true)
     ignoreFailures.set(false)

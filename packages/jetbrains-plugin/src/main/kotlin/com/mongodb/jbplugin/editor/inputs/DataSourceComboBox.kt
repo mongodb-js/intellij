@@ -184,10 +184,6 @@ class DataSourceComboBox(
                 connecting = false
                 failedConnection = connectionState.failedDataSource
             }
-
-            else -> {
-                // ktlint thinks this is necessary despite having full coverage of sealed interface
-            }
         }
     }
 
