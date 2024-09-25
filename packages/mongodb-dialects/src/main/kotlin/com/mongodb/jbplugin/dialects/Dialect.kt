@@ -84,16 +84,16 @@ sealed interface OutputQuery {
     /**
      * A generated query that is complete. It can be run in a cluster without user interaction.
      *
- * @property query
- */
+     * @property query
+     */
     data class CanBeRun(override val query: String) : OutputQuery
 
     /**
      * A generated query that is not complete, because part of the namespace is not provided. It can't be run without
      * user interaction.
      *
- * @property query
- */
+     * @property query
+     */
     data class Incomplete(override val query: String) : OutputQuery
 }
 

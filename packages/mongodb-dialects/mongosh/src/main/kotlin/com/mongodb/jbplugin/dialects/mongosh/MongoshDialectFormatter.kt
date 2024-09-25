@@ -26,10 +26,10 @@ object MongoshDialectFormatter : DialectFormatter {
 
         return when (val ref = query.component<HasCollectionReference<S>>()?.reference) {
             is HasCollectionReference.Known -> if (ref.namespace.isValid) {
-                    OutputQuery.CanBeRun(outputString)
-                } else {
-                    OutputQuery.Incomplete(outputString)
-                }
+                OutputQuery.CanBeRun(outputString)
+            } else {
+                OutputQuery.Incomplete(outputString)
+            }
             else -> OutputQuery.Incomplete(outputString)
         }
     }

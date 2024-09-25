@@ -51,25 +51,22 @@ class RunQueryCodeActionBridge(coroutineScope: CoroutineScope) :
  * Actual implementation of the code action.
  */
 internal object RunQueryCodeAction : MongoDbCodeAction {
-    // It's easier to read the switch inline than in different functions
-    // as each function would be really simple.
-    @Suppress("TOO_LONG_FUNCTION")
     override fun visitMongoDbQuery(
         coroutineScope: CoroutineScope,
         dataSource: LocalDataSource?,
         query: Node<PsiElement>,
         formatter: DialectFormatter
     ): LineMarkerInfo<PsiElement> = LineMarkerInfo(
-            query.sourceForMarker,
-            query.sourceForMarker.textRange,
-            Icons.runQueryGutter,
-            { CodeActionsMessages.message("code.action.run.query") },
-            { _, _ ->
-                coroutineScope.launchChildBackground {
-                    val outputQuery = MongoshDialect.formatter.formatQuery(query, explain = false)
-                    coroutineScope.launchChildOnUi {
-                        if (dataSource == null || !dataSource.isConnected()) {
-                            var notification: Notification? = null
+        query.sourceForMarker,
+        query.sourceForMarker.textRange,
+        Icons.runQueryGutter,
+        { CodeActionsMessages.message("code.action.run.query") },
+        { _, _ ->
+            coroutineScope.launchChildBackground {
+                val outputQuery = MongoshDialect.formatter.formatQuery(query, explain = false)
+                coroutineScope.launchChildOnUi {
+                    if (dataSource == null || !dataSource.isConnected()) {
+                        var notification: Notification? = null
 
                         MdbJavaEditorToolbar.showModalForSelection(query.source.project) {
                                 state,
@@ -87,13 +84,13 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
 
                                 ConnectionState.ConnectionStarted -> {
                                     notification = createNotificationBalloon(newDataSource)
-                                    notification?.notify(query.source.project)
+                                    notification.notify(query.source.project)
                                 }
 
-                                    ConnectionState.ConnectionSuccess -> {
-                                        notification?.expire()
-                                        openDataGripConsole(query, newDataSource, outputQuery.query)
-                                    }
+                                ConnectionState.ConnectionSuccess -> {
+                                    notification?.expire()
+                                    openDataGripConsole(query, newDataSource, outputQuery.query)
+                                }
 
                                 ConnectionState.ConnectionUnsuccessful -> {
                                     notification?.expire()
@@ -104,11 +101,9 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
                                     )
                                 }
                             }
-                        } else {
-                            openDataGripConsole(query, dataSource, outputQuery.query)
                         }
                     } else {
-                        openDataGripConsole(query, dataSource, formattedQuery)
+                        openDataGripConsole(query, dataSource, outputQuery.query)
                     }
                 }
             }

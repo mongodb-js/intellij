@@ -9,10 +9,6 @@ import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.useLogMessage
-
-import java.util.concurrent.CopyOnWriteArrayList
-
-import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.*
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.hours

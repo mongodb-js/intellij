@@ -212,9 +212,9 @@ class DataGripMongoDbDriverTest {
                 mapOf(
                     "insert" to namespace.collection,
                     "documents" to
-                            listOf(
-                                mapOf("a" to 1),
-                            ),
+                        listOf(
+                            mapOf("a" to 1),
+                        ),
                 ),
             ),
             Unit::class,

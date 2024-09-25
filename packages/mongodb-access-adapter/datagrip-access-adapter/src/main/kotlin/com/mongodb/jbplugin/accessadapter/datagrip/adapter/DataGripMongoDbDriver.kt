@@ -93,7 +93,11 @@ internal class DataGripMongoDbDriver(
             return@withContext ExplainPlan.NotRun
         }
 
-        val explainPlanBson = runQuery(queryScript.query, Document::class, timeout = 1.seconds).firstOrNull()
+        val explainPlanBson = runQuery(
+            queryScript.query,
+            Document::class,
+            timeout = 1.seconds
+        ).firstOrNull()
         explainPlanBson ?: return@withContext ExplainPlan.CollectionScan
 
         val queryPlanner = explainPlanBson.get("queryPlanner", Document::class.java)

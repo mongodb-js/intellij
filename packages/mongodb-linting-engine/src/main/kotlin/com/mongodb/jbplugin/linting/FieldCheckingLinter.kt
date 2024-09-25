@@ -94,7 +94,10 @@ object FieldCheckingLinter {
             return FieldCheckResult.empty()
         }
 
-        val collection = readModelProvider.slice(dataSource, GetCollectionSchema.Slice(namespace)).schema
+        val collection = readModelProvider.slice(
+            dataSource,
+            GetCollectionSchema.Slice(namespace)
+        ).schema
         val fieldAndValueRefs = query.getAllFieldAndValueReferences()
 
         val warnings =
