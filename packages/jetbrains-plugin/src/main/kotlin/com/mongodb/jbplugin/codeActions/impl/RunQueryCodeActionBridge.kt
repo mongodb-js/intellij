@@ -84,7 +84,7 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
 
                                 ConnectionState.ConnectionStarted -> {
                                     notification = createNotificationBalloon(newDataSource)
-                                    notification.notify(query.source.project)
+                                    notification?.notify(query.source.project)
                                 }
 
                                 ConnectionState.ConnectionSuccess -> {
