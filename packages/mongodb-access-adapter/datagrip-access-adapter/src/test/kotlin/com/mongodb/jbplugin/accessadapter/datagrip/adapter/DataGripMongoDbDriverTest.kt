@@ -206,6 +206,20 @@ class DataGripMongoDbDriverTest {
             )
         )
 
+        driver.runCommand(
+            namespace.database,
+            Document(
+                mapOf(
+                    "insert" to namespace.collection,
+                    "documents" to
+                        listOf(
+                            mapOf("a" to 1),
+                        ),
+                ),
+            ),
+            Unit::class,
+        )
+
         val explainPlanResult = driver.explain(query)
         assertEquals(ExplainPlan.CollectionScan, explainPlanResult)
     }

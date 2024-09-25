@@ -17,6 +17,7 @@ import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
+import com.mongodb.jbplugin.dialects.OutputQuery
 import com.mongodb.jbplugin.dialects.mongosh.MongoshDialect
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
@@ -84,21 +85,26 @@ internal class DataGripMongoDbDriver(
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
     override suspend fun <S> explain(query: Node<S>): ExplainPlan = withContext(Dispatchers.IO) {
-        val queryScript = ApplicationManager.getApplication().runReadAction<String> {
+        val queryScript = ApplicationManager.getApplication().runReadAction<OutputQuery> {
             MongoshDialect.formatter.formatQuery(query, explain = true)
         }
 
+        if (queryScript !is OutputQuery.CanBeRun) {
+            return@withContext ExplainPlan.NotRun
+        }
+
         val explainPlanBson = runQuery(
-            queryScript,
+            queryScript.query,
             Document::class,
             timeout = 1.seconds
         ).firstOrNull()
-        explainPlanBson ?: return@withContext ExplainPlan.CollectionScan
+
+        explainPlanBson ?: return@withContext ExplainPlan.NotRun
 
         val queryPlanner = explainPlanBson.get("queryPlanner", Document::class.java)
         val winningPlan = queryPlanner?.get("winningPlan", Document::class.java)
 
-        winningPlan ?: return@withContext ExplainPlan.CollectionScan
+        winningPlan ?: return@withContext ExplainPlan.NotRun
 
         planByMappingStage(
             winningPlan,
@@ -107,7 +113,7 @@ internal class DataGripMongoDbDriver(
                 "IXSCAN" to ExplainPlan.IndexScan,
                 "IDHACK" to ExplainPlan.IndexScan
             )
-        ) ?: ExplainPlan.CollectionScan
+        ) ?: ExplainPlan.NotRun
     }
 
     override suspend fun <T : Any> runCommand(

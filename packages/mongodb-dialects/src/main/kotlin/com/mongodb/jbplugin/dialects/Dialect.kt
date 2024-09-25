@@ -64,11 +64,45 @@ interface DialectParser<S> {
 }
 
 /**
+ * Represents a generated query by a dialect. There are different sealed implementations depending on how complete is
+ * the generated query.
+ *
+ * @see CanBeRun
+ * @see Incomplete
+ * @see None
+ */
+sealed interface OutputQuery {
+    val query: String
+
+    /**
+     * We couldn't generate a query. Maybe the query is invalid, we don't have enough information...
+     */
+    data object None : OutputQuery {
+        override val query = ""
+    }
+
+    /**
+     * A generated query that is complete. It can be run in a cluster without user interaction.
+     *
+     * @property query
+     */
+    data class CanBeRun(override val query: String) : OutputQuery
+
+    /**
+     * A generated query that is not complete, because part of the namespace is not provided. It can't be run without
+     * user interaction.
+     *
+     * @property query
+     */
+    data class Incomplete(override val query: String) : OutputQuery
+}
+
+/**
  * A formatter gets an MQL element and can render it in a way that is useful
  * for a user given the Dialect.
  */
 interface DialectFormatter {
-    fun <S> formatQuery(query: Node<S>, explain: Boolean): String
+    fun <S> formatQuery(query: Node<S>, explain: Boolean): OutputQuery
     fun <S> indexCommandForQuery(query: Node<S>): String
     fun formatType(type: BsonType): String
 }

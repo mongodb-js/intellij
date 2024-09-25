@@ -51,9 +51,6 @@ class RunQueryCodeActionBridge(coroutineScope: CoroutineScope) :
  * Actual implementation of the code action.
  */
 internal object RunQueryCodeAction : MongoDbCodeAction {
-    // It's easier to read the switch inline than in different functions
-    // as each function would be really simple.
-    @Suppress("TOO_LONG_FUNCTION")
     override fun visitMongoDbQuery(
         coroutineScope: CoroutineScope,
         dataSource: LocalDataSource?,
@@ -66,10 +63,7 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
         { CodeActionsMessages.message("code.action.run.query") },
         { _, _ ->
             coroutineScope.launchChildBackground {
-                val formattedQuery = MongoshDialect.formatter.formatQuery(
-                    query,
-                    explain = false
-                )
+                val outputQuery = MongoshDialect.formatter.formatQuery(query, explain = false)
                 coroutineScope.launchChildOnUi {
                     if (dataSource == null || !dataSource.isConnected()) {
                         var notification: Notification? = null
@@ -95,7 +89,7 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
 
                                 ConnectionState.ConnectionSuccess -> {
                                     notification?.expire()
-                                    openDataGripConsole(query, newDataSource, formattedQuery)
+                                    openDataGripConsole(query, newDataSource, outputQuery.query)
                                 }
 
                                 ConnectionState.ConnectionUnsuccessful -> {
@@ -109,7 +103,7 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
                             }
                         }
                     } else {
-                        openDataGripConsole(query, dataSource, formattedQuery)
+                        openDataGripConsole(query, dataSource, outputQuery.query)
                     }
                 }
             }

@@ -25,10 +25,15 @@ replay_pid*
 
 /.gradle
 /build
-/.idea
-/**/.idea
-/**/build
-/buildSrc/.gradle
+/.idea/codeStyles
+/.idea/modules
+/.idea/*.xml
+/.idea/.name
+/.idea/.gitignore
+!/.idea/inspectionProfiles
+/packages/jetbrains-plugin/src/test/resources/project-fixtures/basic-java-project-with-mongodb/.idea/
+/**/build/
+buildSrc/.gradle
 
 # This file is generated at compile time.
 packages/jetbrains-plugin/src/main/resources/build.properties

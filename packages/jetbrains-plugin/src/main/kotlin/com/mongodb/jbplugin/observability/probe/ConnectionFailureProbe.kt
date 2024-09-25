@@ -11,9 +11,9 @@ import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.accessadapter.slice.BuildInfo
-import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
+import com.mongodb.jbplugin.observability.useLogMessage
 import java.sql.SQLException
 
 private val logger: Logger = logger<NewConnectionActivatedProbe>()
@@ -40,7 +40,6 @@ class ConnectionFailureProbe : DatabaseConnectionManager.Listener {
         val exception = if (th is SQLException) th.cause else th
 
         val application = ApplicationManager.getApplication()
-        val logMessage = application.getService(LogMessage::class.java)
         val telemetryService = application.getService(TelemetryService::class.java)
 
         val readModelProvider = project.getService(DataGripBasedReadModelProvider::class.java)
@@ -59,8 +58,7 @@ class ConnectionFailureProbe : DatabaseConnectionManager.Listener {
 
         telemetryService.sendEvent(telemetryEvent)
         logger.warn(
-            logMessage
-                .message("Failure connecting to cluster")
+            useLogMessage("Failure connecting to cluster")
                 .put("isMongoDBException", exception is RemoteObject.ForeignException)
                 .put("exceptionMessage", th.message ?: "<no-message>")
                 .put("stackTrace", th.stackTrace.joinToString())
