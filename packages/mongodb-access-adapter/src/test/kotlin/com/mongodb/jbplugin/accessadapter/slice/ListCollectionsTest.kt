@@ -1,20 +1,19 @@
 package com.mongodb.jbplugin.accessadapter.slice
 
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
+import kotlinx.coroutines.runBlocking
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
-
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.runBlocking
 
 class ListCollectionsTest {
     @Test
@@ -47,16 +46,19 @@ class ListCollectionsTest {
 
             val result = ListCollections.Slice("myDb").queryUsingDriver(driver)
 
-            assertEquals(listOf(
-                ListCollections.Collection("myCollection", "collection")
-            ), result.collections)
+            assertEquals(
+                listOf(
+                    ListCollections.Collection("myCollection", "collection")
+                ),
+                result.collections
+            )
         }
     }
 
     private fun listCollections(): Bson = Document(
-            mapOf(
-                "listCollections" to 1,
-                "authorizedCollections" to true,
-            ),
-        )
+        mapOf(
+            "listCollections" to 1,
+            "authorizedCollections" to true,
+        ),
+    )
 }

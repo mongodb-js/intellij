@@ -2,16 +2,20 @@
 # IntelliJ platform dependencies
 intellij-min = "2024.1.1"
 intellij-minBuild = "241.15989.155"
+intellij-minRelease = "241"
 intellij-type = "IU"
 intellij-remoteRobot = "0.11.22"
-intellij-plugin = "1.17.3"
-intellij-changelog-plugin = "2.2.0"
+java-target="17"
 # Other plugin dependencies
 versions-plugin = "0.51.0"
-spotless-plugin = "6.25.0"
-jmh-plugin = "0.7.2"
-diktat-plugin = "1.0.1"
-jmhreport-plugin = "0.9.0"
+jacoco = "0.8.12"
+video-recorder = "2.0"
+test-retry = "1.6.0"
+intellij-plugin = "1.17.4"
+changelog-plugin = "2.2.1"
+ktlint-plugin = "12.1.1"
+ktlint-tool = "1.3.1"
+
 # Library dependencies
 kotlin-stdlib = "1.9.24"
 kotlinx-coroutines = "1.8.0"
@@ -23,7 +27,6 @@ retrofit = "2.11.0"
 jmh = "1.37"
 segment = "3.5.1"
 jsoup = "1.17.2"
-video-recorder = "2.0"
 gson = "2.10.1"
 mongodb-driver = "5.1.3"
 owasp-encoder = "1.2.3"
@@ -31,31 +34,13 @@ testContainers = "1.19.8"
 spring-mongodb="4.3.2"
 semver-parser="2.0.0"
 
-[plugins]
-intellij = { id = "org.jetbrains.intellij", version.ref = "intellij-plugin" }
-jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }
-versions = { id = "com.github.ben-manes.versions", version.ref = "versions-plugin" }
-spotless = { id = "com.diffplug.spotless", version.ref = "spotless-plugin" }
-changelog = { id = "org.jetbrains.changelog", version.ref = "intellij-changelog-plugin" }
-jmhreport = { id = "io.morethan.jmhreport", version.ref = "jmhreport-plugin" }
-
 [libraries]
 ## Kotlin compileOnly libraries. They must not be bundled because they are already part of the
 ## JetBrains ecosystem.
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin-stdlib" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin-stdlib" }
 kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
-kotlin-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlin-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
-######################################################
-## IntelliJ compileOnly libraries. They must not be bundled because they are already part of the
-## JetBrains ecosystem.
-intellij-database-sql = { group = "com.jetbrains.intellij.database", name = "database-sql", version.ref = "intellij-minBuild" }
-intellij-database-connectivity = { group = "com.jetbrains.intellij.database", name = "database-connectivity", version.ref = "intellij-minBuild" }
-intellij-database-jdbc-console = { group = "com.jetbrains.intellij.database", name = "database-jdbc-console", version.ref = "intellij-minBuild" }
-intellij-database-core-base = { group = "com.jetbrains.intellij.database", name = "database", version.ref = "intellij-minBuild" }
-intellij-database-core-impl = { group = "com.jetbrains.intellij.database", name = "database-core-impl", version.ref = "intellij-minBuild" }
-######################################################
 ## Production Libraries.
 segment = { group = "com.segment.analytics.java", name = "analytics", version.ref = "segment" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
@@ -91,7 +76,12 @@ testing-spring-mongodb = { group = "org.springframework.data", name="spring-data
 
 ######################################################
 ## Libraries and plugins only used for the buildScript.
-buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = "1.9.23" }
+buildScript-plugin-kotlin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin-stdlib" }
 buildScript-plugin-versions = { group = "com.github.ben-manes", name = "gradle-versions-plugin", version.ref = "versions-plugin" }
-buildScript-plugin-spotless = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version = "6.25.0" }
+buildScript-plugin-testRetry = { group = "org.gradle", name = "test-retry-gradle-plugin", version.ref = "test-retry" }
+buildScript-plugin-intellij-plugin = { group = "org.jetbrains.intellij.plugins", name = "gradle-intellij-plugin", version.ref = "intellij-plugin" }
+buildScript-plugin-intellij-changelog = { group = "org.jetbrains.intellij.plugins", name = "gradle-changelog-plugin", version.ref = "changelog-plugin" }
+buildScript-plugin-jmh = { group = "me.champeau.jmh", name = "jmh-gradle-plugin", version = "0.7.2" }
+buildScript-plugin-jmhreport = { group = "gradle.plugin.io.morethan.jmhreport", name = "gradle-jmh-report", version = "0.9.6" }
+buildScript-plugin-ktlint = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle", version.ref = "ktlint-plugin" }
 ######################################################

@@ -22,18 +22,24 @@ import com.mongodb.jbplugin.fixtures.openSettingsAtSection
  */
 @DefaultXpath(by = "accessible name", xpath = "//div[@accessiblename='MongoDB Settings']")
 @FixtureName("MongoDBSettings")
-class MongoDbSettingsFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) : ContainerFixture(
+class MongoDbSettingsFixture(
+    remoteRobot: RemoteRobot,
+    remoteComponent: RemoteComponent
+) : ContainerFixture(
     remoteRobot,
     remoteComponent,
 ) {
     val enableTelemetry by lazy {
-        findAll<JCheckboxFixture>().find { it.text == "Enable telemetry" } ?: throw NoSuchElementException()
+        findAll<JCheckboxFixture>().find { it.text == "Enable telemetry" }
+            ?: throw NoSuchElementException()
     }
     val privacyPolicyButton by lazy {
-        findAll<JButtonFixture>().find { it.text == "View Privacy Policy" } ?: throw NoSuchElementException()
+        findAll<JButtonFixture>().find { it.text == "View Privacy Policy" }
+            ?: throw NoSuchElementException()
     }
     val ok by lazy {
-        remoteRobot.findAll<JButtonFixture>().find { it.text == "OK" } ?: throw NoSuchElementException()
+        remoteRobot.findAll<JButtonFixture>().find { it.text == "OK" }
+            ?: throw NoSuchElementException()
     }
 }
 

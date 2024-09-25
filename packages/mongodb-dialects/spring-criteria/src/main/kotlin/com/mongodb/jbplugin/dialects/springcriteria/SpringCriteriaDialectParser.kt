@@ -15,7 +15,8 @@ private const val CRITERIA_CLASS_FQN = "org.springframework.data.mongodb.core.qu
 private const val DOCUMENT_FQN = "org.springframework.data.mongodb.core.mapping.Document"
 
 object SpringCriteriaDialectParser : DialectParser<PsiElement> {
-    override fun isCandidateForQuery(source: PsiElement) = source.findCriteriaWhereExpression() != null
+    override fun isCandidateForQuery(source: PsiElement) =
+        source.findCriteriaWhereExpression() != null
 
     override fun attachment(source: PsiElement): PsiElement = source.findCriteriaWhereExpression()!!
 
@@ -27,10 +28,13 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val criteriaChain = source.findCriteriaWhereExpression() ?: return Node(source, emptyList())
         val targetCollection = QueryTargetCollectionExtractor.extractCollection(source)
 
-        return Node(source, listOf(
-            targetCollection,
-            HasChildren(parseQueryRecursively(criteriaChain))
-        ))
+        return Node(
+            source,
+            listOf(
+                targetCollection,
+                HasChildren(parseQueryRecursively(criteriaChain))
+            )
+        )
     }
 
     override fun isReferenceToDatabase(source: PsiElement): Boolean {
@@ -43,7 +47,8 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     }
 
     override fun isReferenceToField(source: PsiElement): Boolean {
-        val isString = source.parentOfType<PsiLiteralExpression>(true)?.tryToResolveAsConstantString() != null
+        val isString =
+            source.parentOfType<PsiLiteralExpression>(true)?.tryToResolveAsConstantString() != null
         val methodCall = source.parentOfType<PsiMethodCallExpression>() ?: return false
 
         /*
@@ -53,12 +58,16 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
          * where(). <--
          * So we need to check the previous sibling to find if we are in a criteria expression.
          */
-        if (source is PsiWhiteSpace || (source is PsiJavaToken && source.elementType?.toString() != "STRING_LITERAL")) {
+        if (source is PsiWhiteSpace ||
+            (source is PsiJavaToken && source.elementType?.toString() != "STRING_LITERAL")
+        ) {
             val parentExpressionList = source.parent
             val siblingAsMethodCall = source.prevSibling as? PsiMethodCallExpression ?: return false
 
             return siblingAsMethodCall.isCriteriaExpression() ||
-                    parentExpressionList.children.filterIsInstance<PsiExpression>().any { isReferenceToField(it) }
+                parentExpressionList.children.filterIsInstance<PsiExpression>().any {
+                    isReferenceToField(it)
+                }
         }
 
         return isString && methodCall.isCriteriaExpression()
@@ -74,7 +83,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     ): List<Node<PsiElement>> {
         val valueCall = fieldNameCall.parentMethodCallExpression() ?: return emptyList()
 
-        if (!fieldNameCall.isCriteriaQueryMethod() || fieldNameCall == until || valueCall == until) {
+        if (!fieldNameCall.isCriteriaQueryMethod() ||
+            fieldNameCall == until ||
+            valueCall == until
+        ) {
             return emptyList()
         }
 
@@ -88,8 +100,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             if (fieldNameCall.parent.parent is PsiMethodCallExpression) {
                 val named = operatorName(currentCriteriaMethod)
                 val nextField = fieldNameCall.parent.parent as PsiMethodCallExpression
-                return listOf(Node<PsiElement>(fieldNameCall, listOf(named, HasChildren(allSubQueries)))) +
-                        parseQueryRecursively(nextField, until)
+                return listOf(
+                    Node<PsiElement>(fieldNameCall, listOf(named, HasChildren(allSubQueries)))
+                ) +
+                    parseQueryRecursively(nextField, until)
             }
         }
 
@@ -117,7 +131,8 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         )
 
         val predicate = Node<PsiElement>(
-            fieldNameCall, listOf(
+            fieldNameCall,
+            listOf(
                 Named(name.toName()),
                 fieldReference,
                 valueReference
@@ -154,7 +169,7 @@ private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
     var bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
         val method = methodCall.resolveMethod() ?: return@find false
         method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN &&
-                method.name == "where"
+            method.name == "where"
     } ?: return null
 
     while (bottomLevel.text.startsWith("where")) {
@@ -196,6 +211,6 @@ private fun PsiMethodCallExpression.innerMethodCallExpression(): PsiMethodCallEx
 }
 
 private fun String.toName(): Name = when (this) {
-        "is" -> Name.EQ
-        else -> Name.from(this)
-    }
+    "is" -> Name.EQ
+    else -> Name.from(this)
+}

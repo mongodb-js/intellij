@@ -14,6 +14,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.*
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.time.Duration.Companion.hours
 
 private val logger: Logger = logger<AutocompleteSuggestionAcceptedProbe>()
 
@@ -84,8 +86,14 @@ class AutocompleteSuggestionAcceptedProbe(
             .groupingBy {
                 Pair(it.dialect, it.type)
             }
-.eachCount()
-            .map { TelemetryEvent.AutocompleteGroupEvent(it.key.first, it.key.second.publicName, it.value) }
+            .eachCount()
+            .map {
+                TelemetryEvent.AutocompleteGroupEvent(
+                    it.key.first,
+                    it.key.second.publicName,
+                    it.value
+                )
+            }
             .sortedBy { it.name }
             .forEach {
                 telemetry.sendEvent(it)
@@ -115,7 +123,6 @@ class AutocompleteSuggestionAcceptedProbe(
             DATABASE("database"),
             COLLECTION("collection"),
             FIELD("field"),
-;
         }
     }
 }

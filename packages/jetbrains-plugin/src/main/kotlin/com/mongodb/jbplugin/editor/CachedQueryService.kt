@@ -34,7 +34,8 @@ class CachedQueryService(
     private val queryCacheKey = Key.create<CachedValue<Node<PsiElement>>>("QueryCache")
 
     fun queryAt(expression: PsiElement): Node<PsiElement>? {
-        val fileInExpression = PsiTreeUtil.getParentOfType(expression, PsiFile::class.java) ?: return null
+        val fileInExpression =
+            PsiTreeUtil.getParentOfType(expression, PsiFile::class.java) ?: return null
         val dataSource = fileInExpression.dataSource
 
         val dialect = expression.containingFile.dialect ?: return null
@@ -69,7 +70,9 @@ class CachedQueryService(
 
         return runCatching {
             if (dataSource != null && dataSource.isConnected()) {
-                val readModel = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
+                val readModel = query.source.project.getService(
+                    DataGripBasedReadModelProvider::class.java
+                )
                 val buildInfo = readModel.slice(dataSource, BuildInfo.Slice)
 
                 queryWithDb.withTargetCluster(

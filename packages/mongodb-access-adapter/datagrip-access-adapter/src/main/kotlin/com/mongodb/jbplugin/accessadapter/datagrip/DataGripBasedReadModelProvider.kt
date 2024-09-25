@@ -15,11 +15,9 @@ import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.Slice
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriver
-
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
-
-import kotlinx.coroutines.runBlocking
 
 private typealias MapOfCachedValues = ConcurrentMap<String, CachedValue<*>>
 private typealias DriverFactory = (Project, LocalDataSource) -> MongoDbDriver

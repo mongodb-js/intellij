@@ -43,9 +43,9 @@ private val log = logger<RunQueryCodeActionBridge>()
  */
 class RunQueryCodeActionBridge(coroutineScope: CoroutineScope) :
     AbstractMongoDbCodeActionBridge(
-    coroutineScope,
+        coroutineScope,
         RunQueryCodeAction
-)
+    )
 
 /**
  * Actual implementation of the code action.
@@ -71,46 +71,51 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
                         if (dataSource == null || !dataSource.isConnected()) {
                             var notification: Notification? = null
 
-                            MdbJavaEditorToolbar.showModalForSelection(query.source.project) { state, newDataSource ->
-                                when (state) {
-                                    is ConnectionState.ConnectionFailed -> {
-                                        notification?.expire()
-                                        log.warn(
-                                            useLogMessage("Could not connect to data source.")
-                                                .put("dataSourceName", state.failedDataSource.name)
-                                                .build()
-                                        )
-                                    }
+                        MdbJavaEditorToolbar.showModalForSelection(query.source.project) {
+                                state,
+                                newDataSource
+                            ->
+                            when (state) {
+                                is ConnectionState.ConnectionFailed -> {
+                                    notification?.expire()
+                                    log.warn(
+                                        useLogMessage("Could not connect to data source.")
+                                            .put("dataSourceName", state.failedDataSource.name)
+                                            .build()
+                                    )
+                                }
 
-                                    ConnectionState.ConnectionStarted -> {
-                                        notification = createNotificationBalloon(newDataSource)
-                                        notification?.notify(query.source.project)
-                                    }
+                                ConnectionState.ConnectionStarted -> {
+                                    notification = createNotificationBalloon(newDataSource)
+                                    notification?.notify(query.source.project)
+                                }
 
                                     ConnectionState.ConnectionSuccess -> {
                                         notification?.expire()
                                         openDataGripConsole(query, newDataSource, outputQuery.query)
                                     }
 
-                                    ConnectionState.ConnectionUnsuccessful -> {
-                                        notification?.expire()
-                                        log.warn(
-                                            useLogMessage("Could not connect to data source.")
-                                                .put("dataSourceName", newDataSource.name)
-                                                .build()
-                                        )
-                                    }
+                                ConnectionState.ConnectionUnsuccessful -> {
+                                    notification?.expire()
+                                    log.warn(
+                                        useLogMessage("Could not connect to data source.")
+                                            .put("dataSourceName", newDataSource.name)
+                                            .build()
+                                    )
                                 }
                             }
                         } else {
                             openDataGripConsole(query, dataSource, outputQuery.query)
                         }
+                    } else {
+                        openDataGripConsole(query, dataSource, formattedQuery)
                     }
                 }
-            },
-            GutterIconRenderer.Alignment.RIGHT,
-            { CodeActionsMessages.message("code.action.run.query") }
-        )
+            }
+        },
+        GutterIconRenderer.Alignment.RIGHT,
+        { CodeActionsMessages.message("code.action.run.query") }
+    )
 
     private fun openDataGripConsole(
         query: Node<PsiElement>,
@@ -118,7 +123,10 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
         formattedQuery: String
     ) {
         ApplicationManager.getApplication().invokeLater {
-            val editor = DatagripConsoleEditor.openConsoleForDataSource(query.source.project, newDataSource)
+            val editor = DatagripConsoleEditor.openConsoleForDataSource(
+                query.source.project,
+                newDataSource
+            )
             editor?.appendText(formattedQuery)
         }
     }
@@ -127,7 +135,10 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
         NotificationGroupManager.getInstance()
             .getNotificationGroup("com.mongodb.jbplugin.notifications.Connection")
             .createNotification(
-                MdbToolbarMessages.message("connection.chooser.notification.title", newDataSource.name),
+                MdbToolbarMessages.message(
+                    "connection.chooser.notification.title",
+                    newDataSource.name
+                ),
                 MdbToolbarMessages.message("connection.chooser.notification.message"),
                 NotificationType.INFORMATION,
             )

@@ -13,17 +13,15 @@ import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasValueReference
-import org.bson.Document
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
-
-import java.math.BigDecimal
-import java.util.*
-
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
+import org.bson.Document
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+import java.math.BigDecimal
+import java.util.*
+import kotlin.time.Duration.Companion.seconds
 
 @IntegrationTest
 class DataGripMongoDbDriverTest {
@@ -86,7 +84,8 @@ class DataGripMongoDbDriverTest {
         val dateString = "2024-08-09T12:06:00.467Z"
         val dateValue = Date.from(Instant.parse(dateString).toJavaInstant())
 
-        driver.runQuery("""
+        driver.runQuery(
+            """
             db.docs
             .insertOne(
                 { text: "myExampleTest", 
@@ -94,7 +93,10 @@ class DataGripMongoDbDriverTest {
                   decimal: { ${'$'}numberDecimal: "52.3249824889273498237498" }
                 }
             )
-        """.trimIndent(), Unit::class, 5.seconds)
+            """.trimIndent(),
+            Unit::class,
+            5.seconds
+        )
 
         val result =
             driver.findOne(
@@ -185,14 +187,18 @@ class DataGripMongoDbDriverTest {
         val namespace = Namespace("myDb", "myCollection")
 
         val query = Node(
-            Unit, listOf(
+            Unit,
+            listOf(
                 HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
                 HasChildren(
                     listOf(
                         Node(
-                            Unit, listOf(
+                            Unit,
+                            listOf(
                                 HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString)),
+                                HasValueReference(
+                                    HasValueReference.Constant(Unit, "myVal", BsonString)
+                                ),
                             )
                         )
                     )
@@ -226,27 +232,35 @@ class DataGripMongoDbDriverTest {
 
         driver.runCommand(
             namespace.database,
-            Document(mapOf(
-                "createIndexes" to namespace.collection,
-                "indexes" to arrayOf(
-                    Document(mapOf(
-                        "key" to Document("myField", 1),
-                        "name" to "myField_1"
-                    ))
+            Document(
+                mapOf(
+                    "createIndexes" to namespace.collection,
+                    "indexes" to arrayOf(
+                        Document(
+                            mapOf(
+                                "key" to Document("myField", 1),
+                                "name" to "myField_1"
+                            )
+                        )
+                    )
                 )
-            )),
+            ),
             Unit::class
         )
 
         val query = Node(
-            Unit, listOf(
+            Unit,
+            listOf(
                 HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
                 HasChildren(
                     listOf(
                         Node(
-                            Unit, listOf(
+                            Unit,
+                            listOf(
                                 HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString)),
+                                HasValueReference(
+                                    HasValueReference.Constant(Unit, "myVal", BsonString)
+                                ),
                             )
                         )
                     )

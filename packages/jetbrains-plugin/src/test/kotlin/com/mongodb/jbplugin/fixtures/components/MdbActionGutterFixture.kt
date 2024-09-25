@@ -22,7 +22,10 @@ fun RemoteRobot.findRunQueryGutter(atLine: Int? = null) = eventually<GutterIcon>
             atLine?.let {
 // for some reason, gutter icons lines are always 2 minus the line in the editor :shrug:
 // hide this somehow in this implementation
-                getIcons().find { it.lineNumber == atLine - 2 && it.description.contains("path=/icons/ConsoleRun") }
+                getIcons().find {
+                    it.lineNumber == atLine - 2 &&
+                        it.description.contains("path=/icons/ConsoleRun")
+                }
             } ?: getIcons().find { it.description.contains("path=/icons/ConsoleRun") }
         }!!
 }

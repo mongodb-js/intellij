@@ -15,6 +15,7 @@ import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
+import kotlinx.coroutines.withTimeout
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.junit.jupiter.api.extension.*
@@ -23,12 +24,9 @@ import org.mockito.kotlin.mock
 import org.testcontainers.containers.DockerComposeContainer
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.lifecycle.Startable
-
 import java.io.File
-
 import kotlin.reflect.KClass
 import kotlin.time.Duration
-import kotlinx.coroutines.withTimeout
 
 /**
  * Test environment.
@@ -36,7 +34,6 @@ import kotlinx.coroutines.withTimeout
 enum class MongoDbTestingEnvironment {
     LOCAL,
     LOCAL_ATLAS,
-;
 }
 
 /**
@@ -49,7 +46,6 @@ enum class MongoDbVersion(
 ) {
     V7_0("7.0"),
     LATEST("7.0"),
-;
 }
 
 /**

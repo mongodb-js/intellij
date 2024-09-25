@@ -1,4 +1,3 @@
-import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import groovy.json.JsonSlurper
 import java.net.URL
 
@@ -8,111 +7,39 @@ group = "com.mongodb"
 version = "0.0.1"
 
 plugins {
-    alias(libs.plugins.intellij) apply false
-    alias(libs.plugins.versions)
-    id("jacoco")
+    base
+    id("com.github.ben-manes.versions")
+    id("jacoco-report-aggregation")
 }
 
-buildscript {
-    repositories {
-        maven("https://plugins.gradle.org/m2/")
-    }
-
-    dependencies {
-        classpath(libs.buildScript.plugin.kotlin)
-        classpath(libs.buildScript.plugin.versions)
-        classpath(libs.buildScript.plugin.spotless)
-    }
+repositories {
+    mavenCentral()
+    mavenLocal()
 }
 
-subprojects {
-    apply(plugin = "java")
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "com.github.ben-manes.versions")
-    apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "jacoco")
+dependencies {
+    jacocoAggregation(project(":packages:jetbrains-plugin"))
+    jacocoAggregation(project(":packages:mongodb-access-adapter"))
+    jacocoAggregation(project(":packages:mongodb-access-adapter:datagrip-access-adapter"))
+    jacocoAggregation(project(":packages:mongodb-autocomplete-engine"))
+    jacocoAggregation(project(":packages:mongodb-dialects"))
+    jacocoAggregation(project(":packages:mongodb-dialects:java-driver"))
+    jacocoAggregation(project(":packages:mongodb-dialects:mongosh"))
+    jacocoAggregation(project(":packages:mongodb-dialects:spring-criteria"))
+    jacocoAggregation(project(":packages:mongodb-linting-engine"))
+    jacocoAggregation(project(":packages:mongodb-mql-model"))
+}
 
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        val testImplementation by configurations
-        val compileOnly by configurations
-
-        configurations.named("runtimeClasspath").configure {
-            exclude("org.jetbrains.kotlin")
-            exclude("org.jetbrains.kotlinx")
-        }
-
-        compileOnly(rootProject.libs.kotlin.stdlib)
-        compileOnly(rootProject.libs.kotlin.coroutines.core)
-        compileOnly(rootProject.libs.kotlin.reflect)
-        testImplementation(rootProject.libs.testing.jupiter.engine)
-        testImplementation(rootProject.libs.testing.jupiter.params)
-        testImplementation(rootProject.libs.testing.jupiter.vintage.engine)
-        testImplementation(rootProject.libs.testing.mockito.core)
-        testImplementation(rootProject.libs.testing.mockito.kotlin)
-        testImplementation(rootProject.libs.kotlin.coroutines.test)
-    }
-
-    tasks {
-        withType<JavaCompile> {
-            sourceCompatibility = "17"
-            targetCompatibility = "17"
-        }
-
-        withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-            kotlinOptions.jvmTarget = "17"
-        }
-
-        withType<Test> {
-            useJUnitPlatform()
-
-            extensions.configure(JacocoTaskExtension::class) {
-                isJmx = true
-                includes = listOf("com.mongodb.*")
-                isIncludeNoLocationClasses = true
-            }
-
-            jacoco {
-                toolVersion = "0.8.12"
-                isScanForTestClasses = true
-            }
-
-            jvmArgs(
-                listOf(
-                    "--add-opens=java.base/java.lang=ALL-UNNAMED"
-                )
-            )
-        }
-
-        withType<JacocoReport> {
-            reports {
-                xml.required = true
-                csv.required = false
-                html.outputLocation = layout.buildDirectory.dir("reports/jacocoHtml")
-            }
-
-            executionData(
-                files(withType(Test::class.java)).filter { it.name.endsWith(".exec") && it.exists() }
-            )
-        }
-    }
-
-    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
-        kotlin {
-            diktat()
-                .configFile(rootProject.layout.projectDirectory.file("gradle/diktat.yml").asFile.absolutePath)
+reporting {
+    reports {
+        val testCodeCoverageReport by creating(JacocoCoverageReport::class) {
+            testType = TestSuiteType.UNIT_TEST
         }
     }
 }
 
-tasks.named<DependencyUpdatesTask>("dependencyUpdates").configure {
-    checkForGradleUpdate = true
-    outputFormatter = "json"
-    outputDir = "build/reports"
-    reportfileName = "dependencyUpdates"
+tasks.check {
+    dependsOn(tasks.named<JacocoReport>("testCodeCoverageReport"))
 }
 
 tasks {

@@ -21,9 +21,18 @@ class HasCollectionReferenceTest {
 
         val modifiedReference = collectionReference.copy("goo")
         // original is not modified
-        assertEquals((collectionReference.reference as HasCollectionReference.Known).databaseSource, dbRef)
-        assertEquals((collectionReference.reference as HasCollectionReference.Known).collectionSource, collRef)
-        assertEquals((modifiedReference.reference as HasCollectionReference.Known).namespace.database, "goo")
+        assertEquals(
+            (collectionReference.reference as HasCollectionReference.Known).databaseSource,
+            dbRef
+        )
+        assertEquals(
+            (collectionReference.reference as HasCollectionReference.Known).collectionSource,
+            collRef
+        )
+        assertEquals(
+            (modifiedReference.reference as HasCollectionReference.Known).namespace.database,
+            "goo"
+        )
     }
 
     @Test
@@ -41,8 +50,14 @@ class HasCollectionReferenceTest {
         assertTrue(collectionReference.reference is HasCollectionReference.OnlyCollection)
 
         assertTrue(modifiedReference.reference is HasCollectionReference.Known)
-        assertEquals((modifiedReference.reference as HasCollectionReference.Known).namespace.database, "foo")
-        assertEquals((modifiedReference.reference as HasCollectionReference.Known).collectionSource, collRef)
+        assertEquals(
+            (modifiedReference.reference as HasCollectionReference.Known).namespace.database,
+            "foo"
+        )
+        assertEquals(
+            (modifiedReference.reference as HasCollectionReference.Known).collectionSource,
+            collRef
+        )
     }
 
     @Test

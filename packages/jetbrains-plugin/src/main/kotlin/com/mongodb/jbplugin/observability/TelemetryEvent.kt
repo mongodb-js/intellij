@@ -36,7 +36,6 @@ enum class TelemetryProperty(
     DIALECT("dialect"),
     AUTOCOMPLETE_TYPE("ac_type"),
     AUTOCOMPLETE_COUNT("ac_count"),
-;
 }
 
 /**
@@ -95,19 +94,19 @@ sealed class TelemetryEvent(
         serverOsFamily: String?,
         version: String?,
     ) : TelemetryEvent(
-            name = "NewConnection",
-            properties =
-            mapOf(
-                TelemetryProperty.IS_ATLAS to isAtlas,
-                TelemetryProperty.IS_LOCAL_ATLAS to isLocalAtlas,
-                TelemetryProperty.IS_LOCALHOST to isLocalhost,
-                TelemetryProperty.IS_ENTERPRISE to isEnterprise,
-                TelemetryProperty.IS_GENUINE to isGenuine,
-                TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
-                TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
-                TelemetryProperty.VERSION to (version ?: ""),
-            ) + atlasHostProperties(atlasHost)
-        ) {
+        name = "NewConnection",
+        properties =
+        mapOf(
+            TelemetryProperty.IS_ATLAS to isAtlas,
+            TelemetryProperty.IS_LOCAL_ATLAS to isLocalAtlas,
+            TelemetryProperty.IS_LOCALHOST to isLocalhost,
+            TelemetryProperty.IS_ENTERPRISE to isEnterprise,
+            TelemetryProperty.IS_GENUINE to isGenuine,
+            TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
+            TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
+            TelemetryProperty.VERSION to (version ?: ""),
+        ) + atlasHostProperties(atlasHost)
+    ) {
         companion object {
             fun atlasHostProperties(atlasHost: String?): Map<TelemetryProperty, String> {
                 atlasHost ?: return emptyMap()
@@ -143,21 +142,21 @@ sealed class TelemetryEvent(
         serverOsFamily: String?,
         version: String?,
     ) : TelemetryEvent(
-            name = "ConnectionError",
-            properties =
-                mapOf(
-                    TelemetryProperty.IS_ATLAS to (isAtlas ?: ""),
-                    TelemetryProperty.IS_LOCAL_ATLAS to (isLocalAtlas ?: ""),
-                    TelemetryProperty.IS_LOCALHOST to (isLocalhost ?: ""),
-                    TelemetryProperty.IS_ENTERPRISE to (isEnterprise ?: ""),
-                    TelemetryProperty.IS_GENUINE to (isGenuine ?: ""),
-                    TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
-                    TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
-                    TelemetryProperty.VERSION to (version ?: ""),
-                    TelemetryProperty.ERROR_CODE to errorCode,
-                    TelemetryProperty.ERROR_NAME to errorName,
-                ),
-        )
+        name = "ConnectionError",
+        properties =
+        mapOf(
+            TelemetryProperty.IS_ATLAS to (isAtlas ?: ""),
+            TelemetryProperty.IS_LOCAL_ATLAS to (isLocalAtlas ?: ""),
+            TelemetryProperty.IS_LOCALHOST to (isLocalhost ?: ""),
+            TelemetryProperty.IS_ENTERPRISE to (isEnterprise ?: ""),
+            TelemetryProperty.IS_GENUINE to (isGenuine ?: ""),
+            TelemetryProperty.NON_GENUINE_SERVER_NAME to (nonGenuineServerName ?: ""),
+            TelemetryProperty.SERVER_OS_FAMILY to (serverOsFamily ?: ""),
+            TelemetryProperty.VERSION to (version ?: ""),
+            TelemetryProperty.ERROR_CODE to errorCode,
+            TelemetryProperty.ERROR_NAME to errorName,
+        ),
+    )
 
     /**
      * Aggregated count of events of the same autocomplete type, sent to Segment
@@ -172,12 +171,12 @@ sealed class TelemetryEvent(
         autocompleteType: String,
         count: Int,
     ) : TelemetryEvent(
-            name = "AutocompleteSelected",
-            properties =
-                mapOf(
-                    TelemetryProperty.DIALECT to dialect.javaClass.simpleName,
-                    TelemetryProperty.AUTOCOMPLETE_TYPE to autocompleteType,
-                    TelemetryProperty.AUTOCOMPLETE_COUNT to count,
-                ),
-        )
+        name = "AutocompleteSelected",
+        properties =
+        mapOf(
+            TelemetryProperty.DIALECT to dialect.javaClass.simpleName,
+            TelemetryProperty.AUTOCOMPLETE_TYPE to autocompleteType,
+            TelemetryProperty.AUTOCOMPLETE_COUNT to count,
+        ),
+    )
 }

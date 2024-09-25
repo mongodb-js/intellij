@@ -32,46 +32,60 @@ class PsiMdbTreeUtilTest {
         @JvmStatic
         fun psiTypeToBsonType(): Array<Array<Any>> =
             arrayOf(
-                arrayOf({ project: Project -> project.findClass("org.bson.types.ObjectId") },
+                arrayOf(
+                    { project: Project -> project.findClass("org.bson.types.ObjectId") },
                     BsonAnyOf(BsonObjectId, BsonNull),
                 ),
-                arrayOf({ _: Project -> PsiTypes.booleanType() },
+                arrayOf(
+                    { _: Project -> PsiTypes.booleanType() },
                     BsonBoolean,
                 ),
-                arrayOf({ _: Project -> PsiTypes.shortType() },
+                arrayOf(
+                    { _: Project -> PsiTypes.shortType() },
                     BsonInt32,
                 ),
-                arrayOf({ _: Project -> PsiTypes.intType() },
+                arrayOf(
+                    { _: Project -> PsiTypes.intType() },
                     BsonInt32,
                 ),
-                arrayOf({ _: Project -> PsiTypes.longType() },
+                arrayOf(
+                    { _: Project -> PsiTypes.longType() },
                     BsonInt64,
                 ),
-                arrayOf({ _: Project -> PsiTypes.floatType() },
+                arrayOf(
+                    { _: Project -> PsiTypes.floatType() },
                     BsonDouble,
                 ),
-                arrayOf({ _: Project -> PsiTypes.doubleType() },
+                arrayOf(
+                    { _: Project -> PsiTypes.doubleType() },
                     BsonDouble,
                 ),
-                arrayOf({ project: Project -> project.findClass("java.lang.CharSequence") },
+                arrayOf(
+                    { project: Project -> project.findClass("java.lang.CharSequence") },
                     BsonAnyOf(BsonString, BsonNull),
                 ),
-                arrayOf({ project: Project -> project.findClass("java.lang.String") },
+                arrayOf(
+                    { project: Project -> project.findClass("java.lang.String") },
                     BsonAnyOf(BsonString, BsonNull),
                 ),
-                arrayOf({ project: Project -> project.findClass("java.util.Date") },
+                arrayOf(
+                    { project: Project -> project.findClass("java.util.Date") },
                     BsonAnyOf(BsonDate, BsonNull),
                 ),
-                arrayOf({ project: Project -> project.findClass("java.time.LocalDate") },
+                arrayOf(
+                    { project: Project -> project.findClass("java.time.LocalDate") },
                     BsonAnyOf(BsonDate, BsonNull),
                 ),
-                arrayOf({ project: Project -> project.findClass("java.time.LocalDateTime") },
+                arrayOf(
+                    { project: Project -> project.findClass("java.time.LocalDateTime") },
                     BsonAnyOf(BsonDate, BsonNull),
                 ),
-                arrayOf({ project: Project -> project.findClass("java.math.BigInteger") },
+                arrayOf(
+                    { project: Project -> project.findClass("java.math.BigInteger") },
                     BsonAnyOf(BsonInt64, BsonNull),
                 ),
-                arrayOf({ project: Project -> project.findClass("java.math.BigDecimal") },
+                arrayOf(
+                    { project: Project -> project.findClass("java.math.BigDecimal") },
                     BsonAnyOf(BsonDecimal128, BsonNull),
                 ),
             )

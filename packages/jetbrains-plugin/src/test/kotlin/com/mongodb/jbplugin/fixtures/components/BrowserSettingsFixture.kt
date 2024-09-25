@@ -24,24 +24,39 @@ import kotlin.io.path.Path
  */
 @DefaultXpath(by = "hierarchy", xpath = "//div[@class='DialogPanel']//div[@class='JPanel']")
 @FixtureName("BrowserSettingsFixture")
-class BrowserSettingsFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) : ContainerFixture(
+class BrowserSettingsFixture(
+    remoteRobot: RemoteRobot,
+    remoteComponent: RemoteComponent
+) : ContainerFixture(
     remoteRobot,
     remoteComponent,
 ) {
     val ok by lazy {
-        remoteRobot.findAll<JButtonFixture>().find { it.text == "OK" } ?: throw NoSuchElementException()
+        remoteRobot.findAll<JButtonFixture>().find { it.text == "OK" }
+            ?: throw NoSuchElementException()
     }
     fun useFakeBrowser() {
-        val selector = remoteRobot.find<ComboBoxFixture>(byXpath(
-"//div[@accessiblename='Default Browser:' and @class='ComboBox']"
-))
+        val selector = remoteRobot.find<ComboBoxFixture>(
+            byXpath(
+                "//div[@accessiblename='Default Browser:' and @class='ComboBox']"
+            )
+        )
         selector.selectItem("Custom path")
 
-        val commandInput = remoteRobot.find<JTextFieldFixture>(XpathLocator("type",
- "//div[@class='TextFieldWithBrowseButton']"))
+        val commandInput = remoteRobot.find<JTextFieldFixture>(
+            XpathLocator(
+                "type",
+                "//div[@class='TextFieldWithBrowseButton']"
+            )
+        )
         commandInput.click()
 
-        val browserCmd = Path("src", "test", "resources", "fake-browser.sh").toAbsolutePath().toString()
+        val browserCmd = Path(
+            "src",
+            "test",
+            "resources",
+            "fake-browser.sh"
+        ).toAbsolutePath().toString()
         commandInput.runJs("""component.setText("$browserCmd")""", true)
         remoteRobot.keyboard { enter() }
     }
@@ -52,9 +67,11 @@ class BrowserSettingsFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteCo
     }
 
     fun useSystemBrowser() {
-        val selector = remoteRobot.find<ComboBoxFixture>(byXpath(
-"//div[@accessiblename='Default Browser:' and @class='ComboBox']"
-))
+        val selector = remoteRobot.find<ComboBoxFixture>(
+            byXpath(
+                "//div[@accessiblename='Default Browser:' and @class='ComboBox']"
+            )
+        )
         selector.selectItem("System default")
     }
 }

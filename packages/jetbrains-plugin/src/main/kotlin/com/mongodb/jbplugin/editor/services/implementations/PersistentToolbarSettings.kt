@@ -27,7 +27,8 @@ import java.io.Serializable
 private class ToolbarSettingsStateComponent :
     SimplePersistentStateComponent<PersistentToolbarSettings>(PersistentToolbarSettings())
 
-private class PersistentToolbarSettings : BaseState(),
+private class PersistentToolbarSettings :
+    BaseState(),
     Serializable,
     ToolbarSettings {
     override var dataSourceId by string(null)

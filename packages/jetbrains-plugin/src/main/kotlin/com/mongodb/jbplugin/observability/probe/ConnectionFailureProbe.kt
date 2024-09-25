@@ -47,8 +47,11 @@ class ConnectionFailureProbe : DatabaseConnectionManager.Listener {
         val serverInfo = readModelProvider.slice(dataSource, BuildInfo.Slice)
         val telemetryEvent =
             if (exception is RemoteObject.ForeignException) {
-                connectionFailureEvent(extractMongoDbExceptionCode(exception), exception.originalClassName!!,
- serverInfo)
+                connectionFailureEvent(
+                    extractMongoDbExceptionCode(exception),
+                    exception.originalClassName!!,
+                    serverInfo
+                )
             } else {
                 connectionFailureEvent("<unk>", th.javaClass.simpleName, serverInfo)
             }

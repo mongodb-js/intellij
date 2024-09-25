@@ -24,17 +24,15 @@ import com.intellij.testFramework.junit5.RunInEdt
 import com.intellij.util.ui.EDT
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import org.bson.Document
 import org.junit.jupiter.api.extension.*
 import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.lifecycle.Startables
-
 import java.nio.file.Files
 import java.util.*
-
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 
 /**
  * Represents what version of MongoDB we support in the plugin.
@@ -43,7 +41,6 @@ enum class MongoDbVersion(
     val versionString: String,
 ) {
     LATEST("7.0.9"),
-;
 }
 
 /**
@@ -96,7 +93,10 @@ internal class IntegrationTestExtension :
         val project =
             runBlocking(Dispatchers.EDT) {
                 val testClassName = context.requiredTestClass.simpleName
-                ProjectUtil.openOrCreateProject(testClassName, Files.createTempDirectory(testClassName))!!
+                ProjectUtil.openOrCreateProject(
+                    testClassName,
+                    Files.createTempDirectory(testClassName)
+                )!!
             }
 
         Disposer.register(ApplicationManager.getApplication(), project)
@@ -123,7 +123,10 @@ internal class IntegrationTestExtension :
         context: ExtensionContext,
     ): LocalDataSource =
         runBlocking {
-            val dataSourceManager = LocalDataSourceManager.byDataSource(project, LocalDataSource::class.java)!!
+            val dataSourceManager = LocalDataSourceManager.byDataSource(
+                project,
+                LocalDataSource::class.java
+            )!!
             val instance = DatabaseDriverManager.getInstance()
             val jdbcDriver = instance.getDriver("mongo")
 
@@ -199,6 +202,8 @@ internal class IntegrationTestExtension :
             MongoDbDriver::class.java -> extensionContext!!.getStore(namespace).get(driverKey)
             LocalDataSource::class.java -> extensionContext!!.getStore(namespace).get(dataSourceKey)
             MongoDbVersion::class.java -> extensionContext!!.getStore(namespace).get(versionKey)
-            else -> TODO("Parameter of type ${parameterContext?.parameter?.type?.canonicalName} is not supported.")
+            else -> TODO(
+                "Parameter of type ${parameterContext?.parameter?.type?.canonicalName} is not supported."
+            )
         }
 }

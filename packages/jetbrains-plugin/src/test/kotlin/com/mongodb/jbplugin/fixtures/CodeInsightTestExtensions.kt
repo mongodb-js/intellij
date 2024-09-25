@@ -29,27 +29,25 @@ import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.mapping.Document
-
 import java.lang.reflect.Method
 import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
-
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Annotation to add to the test function.
@@ -101,7 +99,11 @@ internal class CodeInsightTestExtension :
         testFixture.setUp()
 
         ApplicationManager.getApplication().invokeAndWait {
-            if (!JavaLibraryUtil.hasLibraryJar(testFixture.module, "org.mongodb:mongodb-driver-sync:5.1.1")) {
+            if (!JavaLibraryUtil.hasLibraryJar(
+                    testFixture.module,
+                    "org.mongodb:mongodb-driver-sync:5.1.1"
+                )
+            ) {
                 val module = testFixture.module
 
                 runCatching {
@@ -146,7 +148,13 @@ internal class CodeInsightTestExtension :
         val parsingTest = context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
 
         ApplicationManager.getApplication().invokeAndWait {
-            val fileName = Path(tmpRootDir.path, "src", "main", "java", parsingTest.fileName).absolutePathString()
+            val fileName = Path(
+                tmpRootDir.path,
+                "src",
+                "main",
+                "java",
+                parsingTest.fileName
+            ).absolutePathString()
 
             testFixture.configureByText(
                 fileName,
@@ -160,7 +168,9 @@ internal class CodeInsightTestExtension :
         invocationContext: ReflectiveInvocationContext<Method>,
         extensionContext: ExtensionContext,
     ) {
-        val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
+        val fixture = extensionContext.getStore(
+            namespace
+        ).get(testFixtureKey) as CodeInsightTestFixture
         val dumbService = DumbService.getInstance(fixture.project)
 
         // Run only when the code has been analysed
@@ -208,14 +218,18 @@ internal class CodeInsightTestExtension :
         parameterContext: ParameterContext,
         extensionContext: ExtensionContext,
     ): Any {
-        val fixture = extensionContext.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
+        val fixture = extensionContext.getStore(
+            namespace
+        ).get(testFixtureKey) as CodeInsightTestFixture
 
         return when (parameterContext.parameter.type) {
             Project::class.java -> fixture.project
             CodeInsightTestFixture::class.java -> fixture
             PsiFile::class.java -> fixture.file
             JavaPsiFacade::class.java -> JavaPsiFacade.getInstance(fixture.project)
-            else -> TODO("Parameter of type ${parameterContext.parameter.type.canonicalName} is not supported.")
+            else -> TODO(
+                "Parameter of type ${parameterContext.parameter.type.canonicalName} is not supported."
+            )
         }
     }
 
@@ -252,7 +266,10 @@ fun CodeInsightTestFixture.setupConnection(): Pair<LocalDataSource, DataGripBase
     val dbConnectionManager =
         mock<DatabaseConnectionManager>().also { cm ->
             `when`(cm.build(any(), any())).thenAnswer {
-                realConnectionManager.build(it.arguments[0] as Project, it.arguments[1] as DatabaseConnectionPoint)
+                realConnectionManager.build(
+                    it.arguments[0] as Project,
+                    it.arguments[1] as DatabaseConnectionPoint
+                )
             }
         }
     val connection = mockDatabaseConnection(dataSource)

@@ -13,20 +13,26 @@ import org.junit.jupiter.params.provider.ValueSource
 class MongoshDialectFormatterTest {
     @Test
     fun `can format a query without references to a collection reference`() {
-        assertGeneratedQuery("""
+        assertGeneratedQuery(
+            """
             var collection = ""
             var database = ""
 
             db.getSiblingDB(database).getCollection(collection).find({ "myField": "myVal", })
-        """.trimIndent()) {
+            """.trimIndent()
+        ) {
             Node(
-                Unit, listOf(
+                Unit,
+                listOf(
                     HasChildren(
                         listOf(
                             Node(
-                                Unit, listOf(
+                                Unit,
+                                listOf(
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                    HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
                                 )
                             )
                         )
@@ -43,18 +49,22 @@ class MongoshDialectFormatterTest {
         assertGeneratedQuery(
             """
             db.getSiblingDB("myDb").getCollection("myColl").find({ "myField": "myVal", })
-        """.trimIndent()
+            """.trimIndent()
         ) {
             Node(
-                Unit, listOf(
+                Unit,
+                listOf(
                     HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
                     HasChildren(
                         listOf(
                             Node(
-                                Unit, listOf(
+                                Unit,
+                                listOf(
                                     Named(Name.EQ),
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                    HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
                                 )
                             )
                         )
@@ -66,20 +76,27 @@ class MongoshDialectFormatterTest {
 
     @Test
     fun `can format a query with an explain plan`() {
-        assertGeneratedQuery("""
+        assertGeneratedQuery(
+            """
             var collection = ""
             var database = ""
 
             db.getSiblingDB(database).getCollection(collection).find({ "myField": "myVal", }).explain()
-        """.trimIndent(), explain = true) {
+            """.trimIndent(),
+            explain = true
+        ) {
             Node(
-                Unit, listOf(
+                Unit,
+                listOf(
                     HasChildren(
                         listOf(
                             Node(
-                                Unit, listOf(
+                                Unit,
+                                listOf(
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                    HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
                                 )
                             )
                         )
@@ -92,21 +109,27 @@ class MongoshDialectFormatterTest {
     @ParameterizedTest
     @ValueSource(strings = ["and", "or", "not"])
     fun `can format a query with subquery operators`(operator: String) {
-        assertGeneratedQuery("""
+        assertGeneratedQuery(
+            """
             var collection = ""
             var database = ""
 
             db.getSiblingDB(database).getCollection(collection).find({ "${"$"}$operator": [ { "myField": "myVal"}, ]})
-        """.trimIndent()) {
+            """.trimIndent()
+        ) {
             Node(
-                Unit, listOf(
+                Unit,
+                listOf(
                     Named(Name.from(operator)),
                     HasChildren(
                         listOf(
                             Node(
-                                Unit, listOf(
+                                Unit,
+                                listOf(
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                    HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
                                 )
                             )
                         )
@@ -119,21 +142,27 @@ class MongoshDialectFormatterTest {
     @ParameterizedTest
     @ValueSource(strings = ["lt", "lte", "gt", "gte"])
     fun `can format a query with range operators`(operator: String) {
-        assertGeneratedQuery("""
+        assertGeneratedQuery(
+            """
             var collection = ""
             var database = ""
 
             db.getSiblingDB(database).getCollection(collection).find({ "myField": { "${"$"}$operator": "myVal"}, })
-        """.trimIndent()) {
+            """.trimIndent()
+        ) {
             Node(
-                Unit, listOf(
+                Unit,
+                listOf(
                     HasChildren(
                         listOf(
                             Node(
-                                Unit, listOf(
+                                Unit,
+                                listOf(
                                     Named(Name.from(operator)),
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                    HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
                                 )
                             )
                         )
@@ -154,20 +183,29 @@ class MongoshDialectFormatterTest {
             """.trimIndent()
         ) {
             Node(
-                Unit, listOf(
-                    HasCollectionReference(HasCollectionReference.Known(Unit, Unit, Namespace("myDb", "myCollection"))),
+                Unit,
+                listOf(
+                    HasCollectionReference(
+                        HasCollectionReference.Known(Unit, Unit, Namespace("myDb", "myCollection"))
+                    ),
                     HasChildren(
                         listOf(
                             Node(
-                                Unit, listOf(
+                                Unit,
+                                listOf(
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
-                                    HasValueReference(HasValueReference.Constant(Unit, "myVal", BsonString))
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
                                 )
                             ),
                             Node(
-                                Unit, listOf(
+                                Unit,
+                                listOf(
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField2")),
-                                    HasValueReference(HasValueReference.Constant(Unit, "myVal2", BsonString))
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal2", BsonString)
+                                    )
                                 )
                             )
                         )
@@ -179,9 +217,9 @@ class MongoshDialectFormatterTest {
 }
 
 private fun assertGeneratedQuery(
-@Language("js") js: String,
- explain: Boolean = false,
- script: () -> Node<Unit>
+    @Language("js") js: String,
+    explain: Boolean = false,
+    script: () -> Node<Unit>
 ) {
     val generated = MongoshDialectFormatter.formatQuery(script(), explain)
     assertEquals(js, generated.query)

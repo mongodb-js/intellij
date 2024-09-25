@@ -38,7 +38,11 @@ class Repository {
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val collection =
- (QueryTargetCollectionExtractor.extractCollection(query).reference as HasCollectionReference.OnlyCollection).collection
+            (
+                QueryTargetCollectionExtractor.extractCollection(
+                    query
+                ).reference as HasCollectionReference.OnlyCollection
+                ).collection
 
         assertEquals("book", collection)
     }
@@ -75,7 +79,11 @@ class Repository {
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val collection =
- (QueryTargetCollectionExtractor.extractCollection(query).reference as HasCollectionReference.OnlyCollection).collection
+            (
+                QueryTargetCollectionExtractor.extractCollection(
+                    query
+                ).reference as HasCollectionReference.OnlyCollection
+                ).collection
 
         assertEquals("book", collection)
     }

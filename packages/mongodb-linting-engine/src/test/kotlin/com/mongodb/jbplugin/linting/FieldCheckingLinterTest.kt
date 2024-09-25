@@ -10,8 +10,8 @@ import com.mongodb.jbplugin.mql.components.HasValueReference
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 
 class FieldCheckingLinterTest {
@@ -41,11 +41,25 @@ class FieldCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(null, null, collectionNamespace)),
+                        HasCollectionReference(
+                            HasCollectionReference.Known(null, null, collectionNamespace)
+                        ),
                         HasChildren(
                             listOf(
-                                Node(null, listOf(HasFieldReference(HasFieldReference.Known(null, "myString")))),
-                                Node(null, listOf(HasFieldReference(HasFieldReference.Known(null, "myBoolean")))),
+                                Node(
+                                    null,
+                                    listOf(
+                                        HasFieldReference(HasFieldReference.Known(null, "myString"))
+                                    )
+                                ),
+                                Node(
+                                    null,
+                                    listOf(
+                                        HasFieldReference(
+                                            HasFieldReference.Known(null, "myBoolean")
+                                        )
+                                    )
+                                ),
                             ),
                         ),
                     ),
@@ -84,12 +98,20 @@ class FieldCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(null, null, collectionNamespace)),
+                        HasCollectionReference(
+                            HasCollectionReference.Known(null, null, collectionNamespace)
+                        ),
                         HasChildren(
                             listOf(
-                                Node(null, listOf(HasFieldReference(HasFieldReference.Known(null, "myString")))),
                                 Node(
-                                    null, listOf(
+                                    null,
+                                    listOf(
+                                        HasFieldReference(HasFieldReference.Known(null, "myString"))
+                                    )
+                                ),
+                                Node(
+                                    null,
+                                    listOf(
                                         HasFieldReference(
                                             HasFieldReference.Known(null, "myBoolean")
                                         ),
@@ -136,11 +158,14 @@ class FieldCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(null, null, collectionNamespace)),
+                        HasCollectionReference(
+                            HasCollectionReference.Known(null, null, collectionNamespace)
+                        ),
                         HasChildren(
                             listOf(
                                 Node(
-                                    null, listOf(
+                                    null,
+                                    listOf(
                                         HasFieldReference(
                                             HasFieldReference.Known(null, "myInt")
                                         ),

@@ -35,8 +35,8 @@ class MdbJavaEditorToolbarPopupFixture(
     val hasDatabasesComboBox: Boolean
         get() = runCatching {
             find<ComboBoxFixture>(
-                byXpath("//div[@class='DatabaseComboBoxComponent']"), timeout = 50.milliseconds.toJavaDuration(
-                )
+                byXpath("//div[@class='DatabaseComboBoxComponent']"),
+                timeout = 50.milliseconds.toJavaDuration()
             )
         }.isSuccess
 

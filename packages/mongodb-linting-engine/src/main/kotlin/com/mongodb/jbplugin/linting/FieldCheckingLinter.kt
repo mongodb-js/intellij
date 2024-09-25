@@ -83,7 +83,8 @@ object FieldCheckingLinter {
         readModelProvider: MongoDbReadModelProvider<D>,
         query: Node<S>,
     ): FieldCheckResult<S> {
-        val queryNamespace = query.component<HasCollectionReference<S>>() ?: return FieldCheckResult.empty()
+        val queryNamespace =
+            query.component<HasCollectionReference<S>>() ?: return FieldCheckResult.empty()
         if (queryNamespace.reference !is HasCollectionReference.Known) {
             return FieldCheckResult.empty()
         }
@@ -174,26 +175,35 @@ sealed interface Reference<S> {
 
 private fun <S> Node<S>.getAllFieldAndValueReferences(): FieldAndValueReferences<S> {
     val hasChildren = component<HasChildren<S>>()
-    val otherRefs = hasChildren?.children?.flatMap { it.getAllFieldAndValueReferences() } ?: emptyList()
+    val otherRefs =
+        hasChildren?.children?.flatMap { it.getAllFieldAndValueReferences() } ?: emptyList()
     val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
     val valueRef = component<HasValueReference<S>>()?.reference
     return if (fieldRef is HasFieldReference.Known) {
-        otherRefs + (valueRef?.let { reference ->
-            when (reference) {
-                is HasValueReference.Constant<S> -> Reference.FieldValueReference(
-                    fieldRef.source, fieldRef.fieldName, reference.source, reference.type
-                )
+        otherRefs + (
+            valueRef?.let { reference ->
+                when (reference) {
+                    is HasValueReference.Constant<S> -> Reference.FieldValueReference(
+                        fieldRef.source,
+                        fieldRef.fieldName,
+                        reference.source,
+                        reference.type
+                    )
 
-                is HasValueReference.Runtime<S> -> Reference.FieldValueReference(
-                    fieldRef.source, fieldRef.fieldName, reference.source, reference.type
-                )
+                    is HasValueReference.Runtime<S> -> Reference.FieldValueReference(
+                        fieldRef.source,
+                        fieldRef.fieldName,
+                        reference.source,
+                        reference.type
+                    )
 
-                else -> null
-            }
-        } ?: Reference.FieldReference(
-            fieldRef.source,
-            fieldRef.fieldName,
-        ))
+                    else -> null
+                }
+            } ?: Reference.FieldReference(
+                fieldRef.source,
+                fieldRef.fieldName,
+            )
+            )
     } else {
         otherRefs
     }

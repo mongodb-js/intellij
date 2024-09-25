@@ -12,8 +12,8 @@ object TelemetryMessages {
 
     fun message(
         key:
-            @PropertyKey(resourceBundle = BUNDLE)
-            String,
+        @PropertyKey(resourceBundle = BUNDLE)
+        String,
         vararg params: Any,
     ): @Nls String = instance.getMessage(key, *params)
 }

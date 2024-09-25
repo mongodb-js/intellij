@@ -108,7 +108,10 @@ class DataSourceComboBox(
         }
 
         uniqueId?.let {
-            val dataSourceIndex = comboBoxModel.asSequence().toList().indexOf { it?.uniqueId == uniqueId }
+            val dataSourceIndex = comboBoxModel.asSequence().toList().indexOf {
+                it?.uniqueId ==
+                    uniqueId
+            }
             if (dataSourceIndex >= 0) {
                 comboBoxComponent.selectedIndex = dataSourceIndex
             } else {
@@ -119,7 +122,10 @@ class DataSourceComboBox(
         }
     }
 
-    private fun renderComboBoxItem(item: LocalDataSource?, index: Int, ): Component = if (item == null && index == -1) {
+    private fun renderComboBoxItem(item: LocalDataSource?, index: Int): Component = if (item ==
+        null &&
+        index == -1
+    ) {
         JBLabel(
             MdbToolbarMessages.message("attach.datasource.to.editor"),
             Icons.logo.scaledToText(),
@@ -177,10 +183,6 @@ class DataSourceComboBox(
             is ConnectionState.ConnectionFailed -> {
                 connecting = false
                 failedConnection = connectionState.failedDataSource
-            }
-
-            else -> {
-                // ktlint thinks this is necessary despite having full coverage of sealed interface
             }
         }
     }

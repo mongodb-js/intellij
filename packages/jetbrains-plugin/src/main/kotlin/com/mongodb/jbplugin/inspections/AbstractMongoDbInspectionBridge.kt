@@ -46,7 +46,8 @@ abstract class AbstractMongoDbInspectionBridge(
             private fun dispatchIfValidMongoDbQuery(expression: PsiElement) {
                 ApplicationManager.getApplication().runReadAction {
                     val fileInExpression =
-                        PsiTreeUtil.getParentOfType(expression, PsiFile::class.java) ?: return@runReadAction
+                        PsiTreeUtil.getParentOfType(expression, PsiFile::class.java)
+                            ?: return@runReadAction
                     val dataSource = fileInExpression.dataSource
                     val dialect = expression.containingFile.dialect ?: return@runReadAction
 
@@ -61,7 +62,10 @@ abstract class AbstractMongoDbInspectionBridge(
                                 dialect.formatter,
                             )
                         } ?: inspection.visitMongoDbQuery(
-                            coroutineScope, null, holder, query,
+                            coroutineScope,
+                            null,
+                            holder,
+                            query,
                             dialect.formatter
                         )
                     }

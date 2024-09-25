@@ -88,6 +88,8 @@ class LogMessage {
  * @param message
  * @return
  */
-fun useLogMessage(message: String) = ApplicationManager.getApplication().getService(LogMessage::class.java).message(
+fun useLogMessage(
+    message: String
+) = ApplicationManager.getApplication().getService(LogMessage::class.java).message(
     message
 )

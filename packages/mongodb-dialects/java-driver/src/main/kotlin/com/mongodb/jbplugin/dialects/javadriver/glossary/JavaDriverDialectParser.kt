@@ -21,14 +21,15 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun parse(source: PsiElement): Node<PsiElement> {
         val collectionReference = NamespaceExtractor.extractNamespace(source)
 
-        val currentCall = source as? PsiMethodCallExpression ?: return Node(source, listOf(collectionReference))
+        val currentCall =
+            source as? PsiMethodCallExpression ?: return Node(source, listOf(collectionReference))
 
         val calledMethod = currentCall.resolveMethod()
         if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
             val hasChildren =
                 HasChildren(
                     parseAllFiltersFromCurrentCall(currentCall) +
-                            parseAllUpdatesFromCurrentCall(currentCall),
+                        parseAllUpdatesFromCurrentCall(currentCall),
                 )
 
             return Node(
@@ -40,12 +41,18 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             )
         } else {
             calledMethod?.let {
- // if it's another class, try to resolve the query from the method body
-                val allReturns = PsiTreeUtil.findChildrenOfType(calledMethod.body, PsiReturnStatement::class.java)
+                // if it's another class, try to resolve the query from the method body
+                val allReturns = PsiTreeUtil.findChildrenOfType(
+                    calledMethod.body,
+                    PsiReturnStatement::class.java
+                )
                 return allReturns
                     .mapNotNull { it.returnValue }
                     .flatMap {
-                        it.collectTypeUntil(PsiMethodCallExpression::class.java, PsiReturnStatement::class.java)
+                        it.collectTypeUntil(
+                            PsiMethodCallExpression::class.java,
+                            PsiReturnStatement::class.java
+                        )
                     }.firstNotNullOfOrNull {
                         val innerQuery = parse(it)
                         if (!innerQuery.hasComponent<HasChildren<PsiElement>>()) {
@@ -111,7 +118,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     override fun isReferenceToField(source: PsiElement): Boolean {
         val isInQuery = isInQuery(source)
-        val isString = source.parentOfType<PsiLiteralExpression>()?.tryToResolveAsConstantString() != null
+        val isString =
+            source.parentOfType<PsiLiteralExpression>()?.tryToResolveAsConstantString() != null
 
         /*
          * IntelliJ might detect that we are not in a string, but in a whitespace (before the string) due to, probably,
@@ -130,7 +138,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val methodCall = element.parentOfType<PsiMethodCallExpression>(false) ?: return false
         val containingClass = methodCall.resolveMethod()?.containingClass ?: return false
 
-        return containingClass.qualifiedName == FILTERS_FQN || containingClass.qualifiedName == UPDATES_FQN
+        return containingClass.qualifiedName == FILTERS_FQN ||
+            containingClass.qualifiedName == UPDATES_FQN
     }
 
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
@@ -177,7 +186,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 if (method.containingClass?.qualifiedName == FILTERS_FQN) {
                     return element
                 }
-                val allReturns = PsiTreeUtil.findChildrenOfType(method.body, PsiReturnStatement::class.java)
+                val allReturns = PsiTreeUtil.findChildrenOfType(
+                    method.body,
+                    PsiReturnStatement::class.java
+                )
                 return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
                     resolveToFiltersCall(it)
                 }
@@ -204,7 +216,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 if (method.containingClass?.qualifiedName == UPDATES_FQN) {
                     return element
                 }
-                val allReturns = PsiTreeUtil.findChildrenOfType(method.body, PsiReturnStatement::class.java)
+                val allReturns = PsiTreeUtil.findChildrenOfType(
+                    method.body,
+                    PsiReturnStatement::class.java
+                )
                 return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
                     resolveToUpdatesCall(it)
                 }
@@ -316,4 +331,3 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return bottomLevel
     }
 }
-

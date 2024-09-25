@@ -24,7 +24,9 @@ import kotlin.time.toJavaDuration
  * @param timeout
  * @return
  */
-inline fun <reified T : Fixture> RemoteRobot.findVisible(timeout: Duration = Duration.ofMinutes(1)): T =
+inline fun <reified T : Fixture> RemoteRobot.findVisible(
+    timeout: Duration = Duration.ofMinutes(1)
+): T =
     run {
         val atomicHolder = AtomicReference<T>()
         waitFor(

@@ -38,7 +38,9 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
         val application = ApplicationManager.getApplication()
         val telemetryService = application.getService(TelemetryService::class.java)
 
-        val readModelProvider = session.project.getService(DataGripBasedReadModelProvider::class.java)
+        val readModelProvider = session.project.getService(
+            DataGripBasedReadModelProvider::class.java
+        )
         val dataSource = session.connectionPoint.dataSource
 
         if (!dataSource.isMongoDbDataSource()) {

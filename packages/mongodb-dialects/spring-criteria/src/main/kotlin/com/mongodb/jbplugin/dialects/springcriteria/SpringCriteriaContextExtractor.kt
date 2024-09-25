@@ -9,7 +9,9 @@ import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
 import java.util.*
 
 object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
-    override fun requirements(): Set<ConnectionContextRequirement> = setOf(ConnectionContextRequirement.DATABASE)
+    override fun requirements(): Set<ConnectionContextRequirement> = setOf(
+        ConnectionContextRequirement.DATABASE
+    )
 
     override fun gatherContext(contentRoot: Project): ConnectionContext {
         val database = extractDatabase(contentRoot)

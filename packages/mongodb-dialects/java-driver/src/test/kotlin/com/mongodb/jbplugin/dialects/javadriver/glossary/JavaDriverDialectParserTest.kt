@@ -96,8 +96,8 @@ public final class Repository {
                 .findChildrenOfType(query, PsiMethodCallExpression::class.java)
                 .first { it.text.endsWith("id))") }
 
-            assertTrue(JavaDriverDialectParser.isCandidateForQuery(query))
-            assertEquals(collectionReference, JavaDriverDialectParser.attachment(query))
+        assertTrue(JavaDriverDialectParser.isCandidateForQuery(query))
+        assertEquals(collectionReference, JavaDriverDialectParser.attachment(query))
     }
 
     @ParsingTest(
@@ -126,7 +126,7 @@ public final class Repository {
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
         val knownReference =
- parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
+            parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
         val namespace = knownReference.namespace
 
         assertEquals("simple", namespace.database)
@@ -195,7 +195,10 @@ public final class Repository {
 
         val eq = hasChildren.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
-        assertEquals("_id", (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName)
+        assertEquals(
+            "_id",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+        )
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
@@ -225,7 +228,9 @@ public class Repository {
 }
         """,
     )
-    fun `can parse a basic Filters query with a constant parameter in a chain of calls`(psiFile: PsiFile) {
+    fun `can parse a basic Filters query with a constant parameter in a chain of calls`(
+        psiFile: PsiFile
+    ) {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
@@ -656,7 +661,9 @@ public class Repository {
 }
         """,
     )
-    fun `supports updateMany calls with a filter and update expressions setting a value`(psiFile: PsiFile) {
+    fun `supports updateMany calls with a filter and update expressions setting a value`(
+        psiFile: PsiFile
+    ) {
         val query = psiFile.getQueryAtMethod("Repository", "updateReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
