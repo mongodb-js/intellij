@@ -36,7 +36,9 @@ record Book() {}
         fixture.specifyDatabase("myDatabase")
         fixture.specifyDialect(SpringCriteriaDialect)
 
-        `when`(readModelProvider.slice(eq(dataSource), eq(ListCollections.Slice("myDatabase")))).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(ListCollections.Slice("myDatabase")))
+        ).thenReturn(
             ListCollections(
                 listOf(
                     ListCollections.Collection("myCollection", "collection"),
@@ -99,7 +101,9 @@ class Repository {
 
         val namespace = Namespace("myDatabase", "book")
 
-        `when`(readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))
+        ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
                     namespace,

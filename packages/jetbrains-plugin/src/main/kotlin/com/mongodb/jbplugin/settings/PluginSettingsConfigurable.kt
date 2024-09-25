@@ -28,7 +28,8 @@ class PluginSettingsConfigurable : Configurable {
 
     override fun isModified(): Boolean {
         val savedSettings = useSettings()
-        return settingsComponent.isTelemetryEnabledCheckBox.isSelected != savedSettings.isTelemetryEnabled
+        return settingsComponent.isTelemetryEnabledCheckBox.isSelected !=
+            savedSettings.isTelemetryEnabled
     }
 
     override fun apply() {
@@ -51,7 +52,8 @@ class PluginSettingsConfigurable : Configurable {
  */
 private class PluginSettingsComponent {
     val root: JPanel
-    val isTelemetryEnabledCheckBox = JBCheckBox(TelemetryMessages.message("settings.telemetry-collection-checkbox"))
+    val isTelemetryEnabledCheckBox =
+        JBCheckBox(TelemetryMessages.message("settings.telemetry-collection-checkbox"))
     val privacyPolicyButton = JButton(TelemetryMessages.message("action.view-privacy-policy"))
 
     init {

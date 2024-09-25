@@ -22,7 +22,9 @@ object DatagripConsoleEditor {
         var activeEditor = allConsoleEditorsForDataSource(project, dataSource).firstOrNull()
 
         activeEditor?.let {
-            val currentFile = PsiDocumentManager.getInstance(project).getPsiFile(it.document)!!.virtualFile
+            val currentFile = PsiDocumentManager.getInstance(
+                project
+            ).getPsiFile(it.document)!!.virtualFile
             FileEditorManager.getInstance(project).openFile(currentFile, true)
         } ?: run {
             activeEditor = openNewEmptyEditorForDataSource(project, dataSource)
@@ -50,14 +52,22 @@ object DatagripConsoleEditor {
         val document = document
         val textLength = document.textLength
         if (textLength > 0 && document.charsSequence[textLength - 1] != '\n') {
-            WriteCommandAction.runWriteCommandAction(project, null, null,
-                { document.insertString(textLength, "\n") })
+            WriteCommandAction.runWriteCommandAction(
+                project,
+                null,
+                null,
+                { document.insertString(textLength, "\n") }
+            )
         }
 
         caretModel.moveToOffset(document.textLength)
-        WriteCommandAction.runWriteCommandAction(project, null, null,
+        WriteCommandAction.runWriteCommandAction(
+            project,
+            null,
+            null,
             {
                 document.insertString(document.textLength, text + "\n")
-            })
+            }
+        )
     }
 }

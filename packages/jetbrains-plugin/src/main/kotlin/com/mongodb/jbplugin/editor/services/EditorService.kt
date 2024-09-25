@@ -24,5 +24,8 @@ interface EditorService {
 
     fun isDatabaseComboBoxVisibleForSelectedEditor(): Boolean
     fun getToolbarFromSelectedEditor(): MdbJavaEditorToolbar?
-    fun toggleToolbarForSelectedEditor(toolbar: MdbJavaEditorToolbar, applyReadActionForFileAnalyses: Boolean)
+    fun toggleToolbarForSelectedEditor(
+        toolbar: MdbJavaEditorToolbar,
+        applyReadActionForFileAnalyses: Boolean
+    )
 }

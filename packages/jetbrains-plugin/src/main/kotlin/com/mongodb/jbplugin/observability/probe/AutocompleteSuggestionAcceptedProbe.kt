@@ -9,11 +9,9 @@ import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
-
-import java.util.concurrent.CopyOnWriteArrayList
-
-import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.*
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.time.Duration.Companion.hours
 
 private val logger: Logger = logger<AutocompleteSuggestionAcceptedProbe>()
 
@@ -85,8 +83,14 @@ class AutocompleteSuggestionAcceptedProbe(
             .groupingBy {
                 Pair(it.dialect, it.type)
             }
-.eachCount()
-            .map { TelemetryEvent.AutocompleteGroupEvent(it.key.first, it.key.second.publicName, it.value) }
+            .eachCount()
+            .map {
+                TelemetryEvent.AutocompleteGroupEvent(
+                    it.key.first,
+                    it.key.second.publicName,
+                    it.value
+                )
+            }
             .sortedBy { it.name }
             .forEach {
                 telemetry.sendEvent(it)
@@ -117,7 +121,6 @@ class AutocompleteSuggestionAcceptedProbe(
             DATABASE("database"),
             COLLECTION("collection"),
             FIELD("field"),
-;
         }
     }
 }

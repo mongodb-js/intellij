@@ -38,9 +38,9 @@ data class ListDatabases(
     }
 
 /**
- * @property name
- */
-data class Database(
+     * @property name
+     */
+    data class Database(
         val name: String,
     )
 }

@@ -20,6 +20,7 @@ import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.dialects.mongosh.MongoshDialect
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
+import kotlinx.coroutines.*
 import org.bson.Document
 import org.bson.codecs.DecoderContext
 import org.bson.codecs.configuration.CodecRegistries.fromRegistries
@@ -29,11 +30,9 @@ import org.bson.json.JsonMode
 import org.bson.json.JsonWriterSettings
 import org.jetbrains.annotations.VisibleForTesting
 import org.owasp.encoder.Encode
-
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.*
 
 private const val TIMEOUT = 5
 
@@ -89,7 +88,11 @@ internal class DataGripMongoDbDriver(
             MongoshDialect.formatter.formatQuery(query, explain = true)
         }
 
-        val explainPlanBson = runQuery(queryScript, Document::class, timeout = 1.seconds).firstOrNull()
+        val explainPlanBson = runQuery(
+            queryScript,
+            Document::class,
+            timeout = 1.seconds
+        ).firstOrNull()
         explainPlanBson ?: return@withContext ExplainPlan.CollectionScan
 
         val queryPlanner = explainPlanBson.get("queryPlanner", Document::class.java)
@@ -98,7 +101,8 @@ internal class DataGripMongoDbDriver(
         winningPlan ?: return@withContext ExplainPlan.CollectionScan
 
         planByMappingStage(
-            winningPlan, mapOf(
+            winningPlan,
+            mapOf(
                 "COLLSCAN" to ExplainPlan.CollectionScan,
                 "IXSCAN" to ExplainPlan.IndexScan,
                 "IDHACK" to ExplainPlan.IndexScan
@@ -215,7 +219,10 @@ internal class DataGripMongoDbDriver(
                     while (resultSet.next()) {
                         val hashMap = resultSet.getObject(1) as Map<String, Any>
                         val mdbDocument = Document.parse(gson.toJson(hashMap))
-                        val bsonDocument = mdbDocument.toBsonDocument(resultClass.java, codecRegistry)
+                        val bsonDocument = mdbDocument.toBsonDocument(
+                            resultClass.java,
+                            codecRegistry
+                        )
 
                         val result = outputCodec.decode(bsonDocument.asBsonReader(), decoderContext)
                         listOfResults.add(result)
@@ -264,7 +271,7 @@ internal class DataGripMongoDbDriver(
     }
 
     @VisibleForTesting
-    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit): Unit {
+    private fun withActiveConnectionList(fn: (MutableSet<DatabaseConnection>) -> Unit) {
         runBlocking {
             val connectionsManager = DatabaseConnectionManager.getInstance()
             val myConnectionsField =
@@ -273,7 +280,9 @@ internal class DataGripMongoDbDriver(
                     .apply {
                         isAccessible = true
                     }
-            val myConnections = myConnectionsField.get(connectionsManager) as MutableSet<DatabaseConnection>
+            val myConnections = myConnectionsField.get(
+                connectionsManager
+            ) as MutableSet<DatabaseConnection>
             fn(myConnections)
             myConnectionsField.isAccessible = false
         }
@@ -292,7 +301,8 @@ internal class DataGripMongoDbDriver(
  *
  * @return
  */
-fun LocalDataSource.isMongoDbDataSource(): Boolean = this.databaseDriver?.id == "mongo" || this.databaseDriver == null
+fun LocalDataSource.isMongoDbDataSource(): Boolean =
+    this.databaseDriver?.id == "mongo" || this.databaseDriver == null
 
 /**
  * Returns true if the provided local data source has at least one active connection
@@ -306,7 +316,8 @@ fun LocalDataSource.isConnected(): Boolean =
         .activeConnections
         .any { connection ->
             connection.connectionPoint.dataSource == dataSource &&
-                    runCatching {
-                        !connection.remoteConnection.isClosed && connection.remoteConnection.isValid(TIMEOUT)
-                    }.getOrDefault(false)
+                runCatching {
+                    !connection.remoteConnection.isClosed &&
+                        connection.remoteConnection.isValid(TIMEOUT)
+                }.getOrDefault(false)
         }

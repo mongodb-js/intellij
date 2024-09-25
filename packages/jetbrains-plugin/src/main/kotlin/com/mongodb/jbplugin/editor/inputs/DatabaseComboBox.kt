@@ -104,8 +104,10 @@ class DatabaseComboBox(
         comboBoxComponent.selectedItem = database
     }
 
-    private fun renderComboBoxItem(item: String?, index: Int, ): Component = if (item == null && index == -1 &&
-        loadingDatabases) {
+    private fun renderComboBoxItem(item: String?, index: Int): Component = if (item == null &&
+        index == -1 &&
+        loadingDatabases
+    ) {
         JBLabel("Loading databases...", Icons.loading.scaledToText(), SwingConstants.LEFT)
     } else if (item == null && index == -1) {
         JBLabel(
@@ -156,9 +158,6 @@ class DatabaseComboBox(
             }
 
             is DatabasesComboBoxLoadingState.Errored -> loadingDatabases = false
-            else -> {
-                // ktlint thinks this is necessary despite having full coverage of sealed interface
-            }
         }
     }
 

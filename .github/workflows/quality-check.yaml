@@ -70,6 +70,7 @@ jobs:
           mode: minimum
           count: 1
           labels: "no release notes"
+
   catalog-check:
     name: 'Catalog Updates Check'
     runs-on: ubuntu-latest
@@ -100,10 +101,15 @@ jobs:
           cache: 'gradle'
       - name: Run Linter
         run: |
-          ./gradlew --quiet --console=plain spotlessCheck
+          ./gradlew --quiet --console=plain ktlintCheck
+      - name: Push Checkstyle report
+        uses: jwgmeligmeyling/checkstyle-github-action@v1.2
+        if: success() || failure() # always run even if the previous step fails
+        with:
+          path: '**/*Check.xml'
 
   unit-tests:
-    name: 'Unit Tests'
+    name: 'Unit and Integration Tests'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -120,23 +126,27 @@ jobs:
           sudo apt install -y docker docker-compose
       - name: Run Test Suite
         run: |
-          ./gradlew --stacktrace --console=plain "clean" "cleanTest" "unitTest" -x "packages:jetbrains-plugin:uiTest"
-      - name: Generate Coverage Report
-        run: |
-          ./gradlew "jacocoTestReport" $(./gradlew "jacocoTestReport" --dry-run | awk '/^:/ { print "-x" $1 }' | sed '$ d')
+            ./gradlew --stacktrace --console=plain check
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: success() || failure() # always run even if the previous step fails
         with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
-      - uses: actions/upload-artifact@v4
-        name: Upload Unit Test Coverage
+            report_paths: '**/build/test-results/test/TEST-*.xml'
+      - uses: madrapps/jacoco-report@v1.6.1
+        if: success() || failure() # always run even if the previous step fails
         with:
-          name: unit-test-coverage
-          path: "**/jacocoTestReport.xml"
+          paths: "**/testCodeCoverageReport.xml"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 70
+          min-coverage-changed-files: 70
+          title: "Coverage Report"
+          update-comment: true
+          continue-on-error: true
+          pass-emoji: "✅"
+          fail-emoji: "🚫"
 
   functional-tests:
-    name: 'Functional & UI Tests'
+    name: 'UI Tests'
     runs-on: ubuntu-latest
     needs:
       - catalog-check
@@ -151,9 +161,6 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
-      - name: Integration Tests
-        run: |
-          ./gradlew --quiet --console=plain "clean" ":packages:jetbrains-plugin:cleanTest" ":packages:jetbrains-plugin:test"
       - name: Prepare License Key
         env:
           JB_TEST_KEY: ${{ secrets.JB_TEST_KEY }}
@@ -192,44 +199,6 @@ jobs:
         if: success() || failure() # always run even if the previous step fails
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
-      - name: Generate Coverage Report
-        run: |
-          ./gradlew "jacocoTestReport" $(./gradlew "jacocoTestReport" --dry-run | awk '/^:/ { print "-x" $1 }' | sed '$ d')
-      - uses: actions/upload-artifact@v4
-        name: Upload Functional Test Coverage
-        with:
-          name: functional-test-coverage
-          path: "**/jacocoTestReport.xml"
-
-  test-coverage:
-    name: 'Test Coverage'
-    runs-on: ubuntu-latest
-    needs:
-      - unit-tests
-      - functional-tests
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'adopt'
-          java-version: '17'
-          cache: 'gradle'
-      - uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-      - uses: madrapps/jacoco-report@v1.6.1
-        with:
-          paths: "**/jacocoTestReport.xml"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          min-coverage-overall: 70
-          min-coverage-changed-files: 70
-          title: "Coverage Report"
-          update-comment: true
-          continue-on-error: true
-          pass-emoji: "✅"
-          fail-emoji: "🚫"
 
   fitness-check:
     name: "Fitness Check"
@@ -262,7 +231,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - fitness-check
-      - test-coverage
+      - functional-tests
     steps:
       - name: Checkout
         uses: actions/checkout@v4

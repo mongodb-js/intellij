@@ -3,15 +3,14 @@ package com.mongodb.jbplugin.accessadapter.slice
 import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
 import com.mongodb.jbplugin.mql.*
+import kotlinx.coroutines.runBlocking
 import org.bson.Document
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
-
-import kotlinx.coroutines.runBlocking
 
 class GetCollectionSchemaTest {
     @Test
@@ -88,7 +87,12 @@ class GetCollectionSchemaTest {
             `when`(driver.findAll(namespace, Filters.empty(), Document::class, 50)).thenReturn(
                 listOf(
                     Document(mapOf("book" to Document(mapOf("author" to "Someone")))),
-                    Document(mapOf("book" to Document(mapOf("author" to "Someone Else", "isbn" to "XXXXXXXX")))),
+                    Document(
+                        mapOf(
+                            "book" to
+                                Document(mapOf("author" to "Someone Else", "isbn" to "XXXXXXXX"))
+                        )
+                    ),
                 ),
             )
             val result = GetCollectionSchema.Slice(namespace).queryUsingDriver(driver)
@@ -98,12 +102,12 @@ class GetCollectionSchemaTest {
                 BsonObject(
                     mapOf(
                         "book" to
-                                BsonObject(
-                                    mapOf(
-                                        "author" to BsonAnyOf(BsonString, BsonNull),
-                                        "isbn" to BsonAnyOf(BsonString, BsonNull),
-                                    ),
+                            BsonObject(
+                                mapOf(
+                                    "author" to BsonAnyOf(BsonString, BsonNull),
+                                    "isbn" to BsonAnyOf(BsonString, BsonNull),
                                 ),
+                            ),
                     ),
                 ),
                 result.schema.schema,
@@ -129,7 +133,9 @@ class GetCollectionSchemaTest {
             assertEquals(
                 BsonObject(
                     mapOf(
-                        "array" to BsonArray(BsonAnyOf(BsonNull, BsonString, BsonDouble, BsonInt32)),
+                        "array" to BsonArray(
+                            BsonAnyOf(BsonNull, BsonString, BsonDouble, BsonInt32)
+                        ),
                     ),
                 ),
                 result.schema.schema,

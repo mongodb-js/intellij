@@ -24,15 +24,14 @@ data class AutocompletionEntry(
     val bsonType: BsonType?,
 ) {
     /**
- * @property presentableName
- */
-enum class AutocompletionEntryType(
+     * @property presentableName
+     */
+    enum class AutocompletionEntryType(
         val presentableName: String,
     ) {
         DATABASE("MongoDB Database"),
         COLLECTION("MongoDB Collection"),
         FIELD("MongoDB Field"),
-;
     }
 }
 
@@ -43,8 +42,8 @@ sealed interface AutocompletionResult {
     /**
      * There are autocompletion entries.
      *
- * @property entries
- */
+     * @property entries
+     */
     data class Successful(
         val entries: List<AutocompletionEntry>,
     ) : AutocompletionResult
@@ -54,7 +53,7 @@ sealed interface AutocompletionResult {
      *
      * @see Autocompletion.autocompleteFields
      * @property namespace
- */
+     */
     data class NoModel(
         val namespace: Namespace,
     ) : AutocompletionResult
@@ -64,7 +63,7 @@ sealed interface AutocompletionResult {
      *
      * @see Autocompletion.autocompleteCollections
      * @property database
- */
+     */
     data class DatabaseDoesNotExist(
         val database: String,
     ) : AutocompletionResult
@@ -81,7 +80,11 @@ object Autocompletion {
         val listDatabases = readModelProvider.slice(dataSource, ListDatabases.Slice)
         val entries =
             listDatabases.databases.map {
-                AutocompletionEntry(it.name, AutocompletionEntry.AutocompletionEntryType.DATABASE, bsonType = null)
+                AutocompletionEntry(
+                    it.name,
+                    AutocompletionEntry.AutocompletionEntryType.DATABASE,
+                    bsonType = null
+                )
             }
 
         return AutocompletionResult.Successful(entries)
@@ -92,13 +95,19 @@ object Autocompletion {
         readModelProvider: MongoDbReadModelProvider<D>,
         database: String,
     ): AutocompletionResult {
-        val listCollections = runCatching { readModelProvider.slice(dataSource, ListCollections.Slice(database)) }
-.getOrNull()
+        val listCollections = runCatching {
+            readModelProvider.slice(dataSource, ListCollections.Slice(database))
+        }
+            .getOrNull()
         listCollections ?: return AutocompletionResult.DatabaseDoesNotExist(database)
 
         val entries =
             listCollections.collections.map {
-                AutocompletionEntry(it.name, AutocompletionEntry.AutocompletionEntryType.COLLECTION, bsonType = null)
+                AutocompletionEntry(
+                    it.name,
+                    AutocompletionEntry.AutocompletionEntryType.COLLECTION,
+                    bsonType = null
+                )
             }
 
         return AutocompletionResult.Successful(entries)
@@ -109,13 +118,19 @@ object Autocompletion {
         readModelProvider: MongoDbReadModelProvider<D>,
         namespace: Namespace,
     ): AutocompletionResult {
-        val schema = runCatching { readModelProvider.slice(dataSource, GetCollectionSchema.Slice(namespace)).schema }
-.getOrNull()
+        val schema = runCatching {
+            readModelProvider.slice(dataSource, GetCollectionSchema.Slice(namespace)).schema
+        }
+            .getOrNull()
         schema ?: return AutocompletionResult.NoModel(namespace)
 
         val entries =
             schema.allFieldNamesQualified().map {
-                AutocompletionEntry(it.first, AutocompletionEntry.AutocompletionEntryType.FIELD, bsonType = it.second)
+                AutocompletionEntry(
+                    it.first,
+                    AutocompletionEntry.AutocompletionEntryType.FIELD,
+                    bsonType = it.second
+                )
             }
 
         return AutocompletionResult.Successful(entries)

@@ -48,7 +48,9 @@ internal object IndexCheckLinterInspection : MongoDbInspection {
             return
         }
 
-        val readModelProvider = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
+        val readModelProvider = query.source.project.getService(
+            DataGripBasedReadModelProvider::class.java
+        )
 
         val result =
             IndexCheckingLinter.lintQuery(

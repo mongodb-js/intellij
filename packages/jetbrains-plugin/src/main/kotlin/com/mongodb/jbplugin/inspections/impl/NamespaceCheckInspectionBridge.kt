@@ -47,7 +47,9 @@ internal object NamespaceCheckingLinterInspection : MongoDbInspection {
             return
         }
 
-        val readModelProvider = query.source.project.getService(DataGripBasedReadModelProvider::class.java)
+        val readModelProvider = query.source.project.getService(
+            DataGripBasedReadModelProvider::class.java
+        )
 
         val result =
             NamespaceCheckingLinter.lintQuery(
@@ -61,7 +63,13 @@ internal object NamespaceCheckingLinterInspection : MongoDbInspection {
                 is NamespaceCheckWarning.NoNamespaceInferred ->
                     registerNoNamespaceInferred(coroutineScope, problems, it.source)
                 is NamespaceCheckWarning.CollectionDoesNotExist ->
-                    registerCollectionDoesNotExist(coroutineScope, problems, it.source, it.database, it.collection)
+                    registerCollectionDoesNotExist(
+                        coroutineScope,
+                        problems,
+                        it.source,
+                        it.database,
+                        it.collection
+                    )
                 is NamespaceCheckWarning.DatabaseDoesNotExist ->
                     registerDatabaseDoesNotExist(coroutineScope, problems, it.source, it.database)
             }

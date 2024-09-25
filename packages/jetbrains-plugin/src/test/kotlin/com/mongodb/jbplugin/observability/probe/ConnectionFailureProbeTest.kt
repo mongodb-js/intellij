@@ -10,17 +10,15 @@ import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.mockLogMessage
 import com.mongodb.jbplugin.observability.TelemetryProperty
 import com.mongodb.jbplugin.observability.TelemetryService
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.verify
-
 import java.rmi.server.RemoteObject
 import java.sql.SQLException
-
-import kotlinx.coroutines.runBlocking
 
 @IntegrationTest
 class ConnectionFailureProbeTest {
@@ -95,7 +93,8 @@ class ConnectionFailureProbeTest {
             argThat { event ->
                 event.properties[TelemetryProperty.IS_ATLAS] == false &&
                     event.properties[TelemetryProperty.ERROR_CODE] == "18" &&
-                    event.properties[TelemetryProperty.ERROR_NAME] == "com.mongodb.MongoCommandException"
+                    event.properties[TelemetryProperty.ERROR_NAME] ==
+                    "com.mongodb.MongoCommandException"
             },
         )
     }

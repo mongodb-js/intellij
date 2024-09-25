@@ -28,7 +28,13 @@ class AutocompletionTest {
             ) as AutocompletionResult.Successful
 
         assertEquals(
-            listOf(AutocompletionEntry("myDb", AutocompletionEntry.AutocompletionEntryType.DATABASE, null)),
+            listOf(
+                AutocompletionEntry(
+                    "myDb",
+                    AutocompletionEntry.AutocompletionEntryType.DATABASE,
+                    null
+                )
+            ),
             result.entries,
         )
     }
@@ -62,10 +68,20 @@ class AutocompletionTest {
         )
 
         val result =
-            autocompleteCollections(null, readModelProvider, "myDb") as AutocompletionResult.Successful
+            autocompleteCollections(
+                null,
+                readModelProvider,
+                "myDb"
+            ) as AutocompletionResult.Successful
 
         assertEquals(
-            listOf(AutocompletionEntry("myColl", AutocompletionEntry.AutocompletionEntryType.COLLECTION, null)),
+            listOf(
+                AutocompletionEntry(
+                    "myColl",
+                    AutocompletionEntry.AutocompletionEntryType.COLLECTION,
+                    null
+                )
+            ),
             result.entries,
         )
     }
@@ -91,12 +107,24 @@ class AutocompletionTest {
         )
 
         val result =
-            autocompleteFields(null, readModelProvider, namespace) as AutocompletionResult.Successful
+            autocompleteFields(
+                null,
+                readModelProvider,
+                namespace
+            ) as AutocompletionResult.Successful
 
         assertEquals(
             listOf(
-                AutocompletionEntry("_id", AutocompletionEntry.AutocompletionEntryType.FIELD, BsonObjectId),
-                AutocompletionEntry("text", AutocompletionEntry.AutocompletionEntryType.FIELD, BsonString),
+                AutocompletionEntry(
+                    "_id",
+                    AutocompletionEntry.AutocompletionEntryType.FIELD,
+                    BsonObjectId
+                ),
+                AutocompletionEntry(
+                    "text",
+                    AutocompletionEntry.AutocompletionEntryType.FIELD,
+                    BsonString
+                ),
             ),
             result.entries,
         )

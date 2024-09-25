@@ -119,7 +119,9 @@ private class UiTestExtension :
             context
                 ?.requiredTestMethod
                 ?.annotations
-                ?.find { annotation -> annotation.annotationClass == RequiresProject::class } as RequiresProject?
+                ?.find { annotation ->
+                    annotation.annotationClass == RequiresProject::class
+                } as RequiresProject?
 
         remoteRobot.keyboard { escape() }
         remoteRobot.closeProject()
@@ -140,7 +142,8 @@ private class UiTestExtension :
     }
 
     override fun afterTestExecution(context: ExtensionContext?) {
-        val testMethod = context?.requiredTestMethod ?: throw IllegalStateException("test method is null")
+        val testMethod =
+            context?.requiredTestMethod ?: throw IllegalStateException("test method is null")
         val testMethodName = testMethod.name
         val testFailed: Boolean = context.executionException?.isPresent ?: false
         if (testFailed) {

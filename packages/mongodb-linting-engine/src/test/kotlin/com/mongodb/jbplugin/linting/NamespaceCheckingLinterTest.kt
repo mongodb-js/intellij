@@ -9,8 +9,8 @@ import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 
 class NamespaceCheckingLinterTest {
@@ -30,7 +30,9 @@ class NamespaceCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(Unit, Unit, collectionNamespace)),
+                        HasCollectionReference(
+                            HasCollectionReference.Known(Unit, Unit, collectionNamespace)
+                        ),
                     ),
                 ),
             )
@@ -61,13 +63,18 @@ class NamespaceCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.Known(Unit, Unit, collectionNamespace)),
+                        HasCollectionReference(
+                            HasCollectionReference.Known(Unit, Unit, collectionNamespace)
+                        ),
                     ),
                 ),
             )
 
         assertEquals(1, result.warnings.size)
-        assertInstanceOf(NamespaceCheckWarning.CollectionDoesNotExist::class.java, result.warnings[0])
+        assertInstanceOf(
+            NamespaceCheckWarning.CollectionDoesNotExist::class.java,
+            result.warnings[0]
+        )
         val warning = result.warnings[0] as NamespaceCheckWarning.CollectionDoesNotExist
         assertEquals("database", warning.database)
         assertEquals("collection", warning.collection)
@@ -84,7 +91,9 @@ class NamespaceCheckingLinterTest {
                 Node(
                     null,
                     listOf(
-                        HasCollectionReference(HasCollectionReference.OnlyCollection(Unit, "collection")),
+                        HasCollectionReference(
+                            HasCollectionReference.OnlyCollection(Unit, "collection")
+                        ),
                     ),
                 ),
             )

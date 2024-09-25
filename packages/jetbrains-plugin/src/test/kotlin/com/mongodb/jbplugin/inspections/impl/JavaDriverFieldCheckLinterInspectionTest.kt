@@ -88,7 +88,9 @@ public class Repository {
         val (dataSource, readModelProvider) = fixture.setupConnection()
         fixture.specifyDialect(JavaDriverDialect)
 
-        `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
             GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
         )
 
@@ -129,10 +131,13 @@ public class Repository {
         val (dataSource, readModelProvider) = fixture.setupConnection()
         fixture.specifyDialect(JavaDriverDialect)
 
-        `when`(readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())).thenReturn(
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
-                    Namespace("", ""), BsonObject(mapOf("thisIsDouble" to BsonDouble))
+                    Namespace("", ""),
+                    BsonObject(mapOf("thisIsDouble" to BsonDouble))
                 )
             ),
         )

@@ -34,21 +34,24 @@ import org.sprungframework.dOTA.mangodb.kernel.MangoTemplate;
     @Test
     fun `uses it's own custom parser`() {
         assertEquals(
-            SpringCriteriaDialectParser, SpringCriteriaDialect.parser
+            SpringCriteriaDialectParser,
+            SpringCriteriaDialect.parser
         )
     }
 
     @Test
     fun `uses the java base formatter`() {
         assertEquals(
-            JavaDriverDialectFormatter, SpringCriteriaDialect.formatter
+            JavaDriverDialectFormatter,
+            SpringCriteriaDialect.formatter
         )
     }
 
     @Test
     fun `uses a custom connection context extractor`() {
         assertEquals(
-            SpringCriteriaContextExtractor, SpringCriteriaDialect.connectionContextExtractor
+            SpringCriteriaContextExtractor,
+            SpringCriteriaDialect.connectionContextExtractor
         )
     }
 }
