@@ -144,7 +144,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
         val method = filter.resolveMethod() ?: return null
-        if (method.isVarArgs) {
+        if (method.isVarArgs || method.name == "not") {
 // Filters.and, Filters.or... are varargs
             return Node(
                 filter,

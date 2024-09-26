@@ -78,8 +78,6 @@ object MongoshDialectFormatter : DialectFormatter {
     override fun formatType(type: BsonType) = ""
 }
 
-// It's just easier to read it inline, as it has a complex circular flow
-@Suppress("TOO_LONG_FUNCTION")
 private fun <S> MongoshBackend.emitQueryBody(
     node: Node<S>,
     firstCall: Boolean = false
@@ -138,18 +136,22 @@ private fun <S> MongoshBackend.emitQueryBody(
                     Name.LT,
                     Name.LTE
                 ).contains(named.name) &&
-                fieldRef != null &&
                 valueRef != null
             ) {
 // a: { $gt: 1 }
                 if (firstCall) {
                     emitObjectStart()
                 }
-                emitObjectKey(resolveFieldReference(fieldRef))
+
+                if (fieldRef != null) {
+                    emitObjectKey(resolveFieldReference(fieldRef))
+                }
+
                 emitObjectStart()
                 emitObjectKey(registerConstant('$' + named.name.canonical))
                 emitContextValue(resolveValueReference(valueRef, fieldRef))
                 emitObjectEnd()
+
                 if (firstCall) {
                     emitObjectEnd()
                 }
@@ -157,7 +159,6 @@ private fun <S> MongoshBackend.emitQueryBody(
                     Name.AND,
                     Name.OR,
                     Name.NOR,
-                    Name.NOT
                 ).contains(named.name)
             ) {
                 if (firstCall) {
@@ -175,6 +176,57 @@ private fun <S> MongoshBackend.emitQueryBody(
                 if (firstCall) {
                     emitObjectEnd()
                 }
+            } else if (named.name == Name.NOT && hasChildren?.children?.size == 1) {
+                // the not operator is a special case
+                // because we receive it as:
+                // $not: { $field$: $condition$ }
+                // and it needs to be:
+                // $field$: { $not: $condition$ }
+                // we will do a JIT translation
+
+                var innerChild = hasChildren.children.first()
+                val operation = innerChild.component<Named>()
+                val fieldRef = innerChild.component<HasFieldReference<S>>()
+                val valueRef = innerChild.component<HasValueReference<S>>()
+
+                if (fieldRef == null) { // we are in an "and" / "or"...
+                    // so we use $nor instead
+                    emitQueryBody(
+                        Node(
+                            node.source,
+                            node.components<Component>().filterNot { it is Named } + Named(Name.NOR)
+                        )
+                    )
+                    return@let
+                }
+
+                if (operation == null || valueRef == null) {
+                    return@let
+                }
+
+                if (firstCall) {
+                    emitObjectStart()
+                }
+
+                // emit field name first
+                emitObjectKey(resolveFieldReference(fieldRef))
+                // emit the $not
+                emitObjectStart()
+                emitObjectKey(registerConstant('$' + "not"))
+                emitQueryBody(
+                    Node(
+                        innerChild.source,
+                        listOf(
+                            operation,
+                            valueRef
+                        )
+                    )
+                )
+                emitObjectEnd()
+
+                if (firstCall) {
+                    emitObjectEnd()
+                }
             }
         }
     }
@@ -184,11 +236,11 @@ private fun <S> MongoshBackend.emitQueryBody(
 
 private fun <S> MongoshBackend.resolveValueReference(
     valueRef: HasValueReference<S>,
-    fieldRef: HasFieldReference<S>
+    fieldRef: HasFieldReference<S>?
 ) = when (val ref = valueRef.reference) {
     is HasValueReference.Constant -> registerConstant(ref.value)
     is HasValueReference.Runtime -> registerVariable(
-        (fieldRef.reference as? HasFieldReference.Known)?.fieldName ?: "<value>",
+        (fieldRef?.reference as? HasFieldReference.Known)?.fieldName ?: "<value>",
         ref.type
     )
 
