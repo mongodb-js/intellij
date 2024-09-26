@@ -43,16 +43,14 @@ sealed interface BsonType {
         is BsonAny -> true
         else -> when (otherType) {
             is BsonAny -> true
-            is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+            is BsonAnyOf -> otherType.types.subtract(setOf(BsonNull)).all {
+                this.isAssignableTo(it)
+            }
+            is BsonArray -> this.isAssignableTo(otherType.schema)
             else -> false
         }
     }
 }
-
-/**
- * A double (64 bit floating point)
- */
-data object BsonDouble : BsonType
 
 /**
  * BSON String
@@ -70,10 +68,20 @@ data object BsonBoolean : BsonType
 data object BsonDate : BsonType
 
 /**
+ * ObjectId
+ */
+data object BsonObjectId : BsonType
+
+/**
  * 32-bit integer
  */
 
-data object BsonInt32 : BsonType
+data object BsonInt32 : BsonType {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonInt64 -> true
+        else -> super.isAssignableTo(otherType)
+    }
+}
 
 /**
  * 64-bit integer
@@ -81,54 +89,29 @@ data object BsonInt32 : BsonType
 data object BsonInt64 : BsonType
 
 /**
+ * A double (64 bit floating point)
+ */
+data object BsonDouble : BsonType {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonDecimal128 -> true
+        else -> super.isAssignableTo(otherType)
+    }
+}
+
+/**
  * Decimal128 (128 bit floating point)
  */
 data object BsonDecimal128 : BsonType
 
 /**
- * ObjectId
- */
-data object BsonObjectId : BsonType
-
-/**
  * null / non existing field
  */
 
-data object BsonNull : BsonType
-
-/**
- * Represents a map of key -> type.
- *
- * @property schema
- */
-data class BsonObject(
-    val schema: Map<String, BsonType>,
-) : BsonType {
+data object BsonNull : BsonType {
     override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonNull -> true
         is BsonAny -> true
-        is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
-        is BsonObject -> this.isAssignableToBsonObjectType(otherType)
-        else -> false
-    }
-
-    private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean =
-        this.schema.all { (key, bsonType) ->
-            otherType.schema[key]?.let { bsonType.isAssignableTo(it) } == true
-        }
-}
-
-/**
- * Represents the possible types that can be included in an array.
- *
- * @property schema
- */
-data class BsonArray(
-    val schema: BsonType,
-) : BsonType {
-    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
-        is BsonAny -> true
-        is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
-        is BsonArray -> this.schema.isAssignableTo(otherType.schema)
+        is BsonAnyOf -> otherType.types.contains(BsonNull)
         else -> false
     }
 }
@@ -151,8 +134,49 @@ data class BsonAnyOf(
 ) : BsonType {
     constructor(vararg types: BsonType) : this(types.toSet())
 
-    override fun isAssignableTo(otherType: BsonType): Boolean =
-        this.types.all { it.isAssignableTo(otherType) }
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonAny -> true
+        is BsonNull -> types.size == 1 && types.contains(BsonNull)
+        else -> this.types.subtract(setOf(BsonNull)).all { it.isAssignableTo(otherType) }
+    }
+}
+
+/**
+ * Represents a map of key -> type.
+ *
+ * @property schema
+ */
+data class BsonObject(
+    val schema: Map<String, BsonType>,
+) : BsonType {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonAny -> true
+        is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+        is BsonObject -> this.isAssignableToBsonObjectType(otherType)
+        else -> false
+    }
+
+    private fun isAssignableToBsonObjectType(otherType: BsonObject): Boolean {
+        return this.schema.all { (key, bsonType) ->
+            otherType.schema[key]?.let { bsonType.isAssignableTo(it) } ?: false
+        }
+    }
+}
+
+/**
+ * Represents the possible types that can be included in an array.
+ *
+ * @property schema
+ */
+data class BsonArray(
+    val schema: BsonType,
+) : BsonType {
+    override fun isAssignableTo(otherType: BsonType): Boolean = when (otherType) {
+        is BsonAny -> true
+        is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
+        is BsonArray -> this.schema.isAssignableTo(otherType.schema)
+        else -> false
+    }
 }
 
 /**
