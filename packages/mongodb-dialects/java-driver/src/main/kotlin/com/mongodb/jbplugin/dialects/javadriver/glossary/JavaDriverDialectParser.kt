@@ -180,11 +180,11 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
-        when (element) {
+        when (val expression = element.meaningfulExpression()) {
             is PsiMethodCallExpression -> {
-                val method = element.resolveMethod() ?: return null
+                val method = expression.resolveMethod() ?: return null
                 if (method.containingClass?.qualifiedName == FILTERS_FQN) {
-                    return element
+                    return expression
                 }
                 val allReturns = PsiTreeUtil.findChildrenOfType(
                     method.body,
@@ -196,12 +196,12 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             }
 
             is PsiVariable -> {
-                element.initializer ?: return null
-                return resolveToFiltersCall(element.initializer!!)
+                expression.initializer ?: return null
+                return resolveToFiltersCall(expression.initializer!!)
             }
 
             is PsiReferenceExpression -> {
-                val referredValue = element.resolve() ?: return null
+                val referredValue = expression.resolve() ?: return null
                 return resolveToFiltersCall(referredValue)
             }
 
@@ -210,11 +210,11 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
-        when (element) {
+        when (val expression = element.meaningfulExpression()) {
             is PsiMethodCallExpression -> {
-                val method = element.resolveMethod() ?: return null
+                val method = expression.resolveMethod() ?: return null
                 if (method.containingClass?.qualifiedName == UPDATES_FQN) {
-                    return element
+                    return expression
                 }
                 val allReturns = PsiTreeUtil.findChildrenOfType(
                     method.body,
@@ -226,12 +226,12 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             }
 
             is PsiVariable -> {
-                element.initializer ?: return null
-                return resolveToUpdatesCall(element.initializer!!)
+                expression.initializer ?: return null
+                return resolveToUpdatesCall(expression.initializer!!)
             }
 
             is PsiReferenceExpression -> {
-                val referredValue = element.resolve() ?: return null
+                val referredValue = expression.resolve() ?: return null
                 return resolveToUpdatesCall(referredValue)
             }
 
