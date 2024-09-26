@@ -385,7 +385,11 @@ fun PsiElement.meaningfulExpression(): PsiElement {
     return when (this) {
         // the children are: '(', YOUR_EXPR, ')'
         // so we need the expression inside (index 1)
-        is PsiParenthesizedExpression -> children[1].meaningfulExpression()
+        is PsiParenthesizedExpression -> if (children.size == 3) {
+            children[1].meaningfulExpression()
+        } else {
+            this
+        }
         else -> this
     }
 }
