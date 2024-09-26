@@ -280,24 +280,30 @@ fun PsiElement.findMongoDbCollectionReference(): PsiExpression? {
  * represents the resolved value itself
  */
 fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
-    if (this is PsiReferenceExpression) {
-        val varRef = this.resolve()!!
+    val meaningfulThis = meaningfulExpression()
+
+    if (meaningfulThis is PsiReferenceExpression) {
+        val varRef = meaningfulThis.resolve()!!
         return varRef.tryToResolveAsConstant()
-    } else if (this is PsiLocalVariable && this.initializer != null) {
-        return this.initializer!!.tryToResolveAsConstant()
-    } else if (this is PsiLiteralValue) {
-        val facade = JavaPsiFacade.getInstance(this.project)
-        val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(this)
+    } else if (meaningfulThis is PsiLocalVariable && meaningfulThis.initializer != null) {
+        return meaningfulThis.initializer!!.tryToResolveAsConstant()
+    } else if (meaningfulThis is PsiLiteralValue) {
+        val facade = JavaPsiFacade.getInstance(meaningfulThis.project)
+        val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(
+            meaningfulThis
+        )
         return true to resolvedValue
-    } else if (this is PsiLiteralExpression) {
-        val facade = JavaPsiFacade.getInstance(this.project)
-        val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(this)
+    } else if (meaningfulThis is PsiLiteralExpression) {
+        val facade = JavaPsiFacade.getInstance(meaningfulThis.project)
+        val resolvedValue = facade.constantEvaluationHelper.computeConstantExpression(
+            meaningfulThis
+        )
         return true to resolvedValue
-    } else if (this is PsiField &&
-        this.initializer != null &&
-        this.hasModifier(JvmModifier.FINAL)
+    } else if (meaningfulThis is PsiField &&
+        meaningfulThis.initializer != null &&
+        meaningfulThis.hasModifier(JvmModifier.FINAL)
     ) {
-        return this.initializer!!.tryToResolveAsConstant()
+        return meaningfulThis.initializer!!.tryToResolveAsConstant()
     }
 
     return false to null
@@ -368,4 +374,18 @@ fun <T> PsiElement.findAllChildrenOfType(type: Class<T>): List<T> {
     }
 
     return allChildren
+}
+
+/**
+ * Resolves to the first meaningful expression in a tree. Not all expressions have an important
+ * meaning for us (like for example, parenthesized expressions) so we drop them and get any
+ * inner expression that is relevant for us.
+ */
+fun PsiElement.meaningfulExpression(): PsiElement {
+    return when (this) {
+        // the children are: '(', YOUR_EXPR, ')'
+        // so we need the expression inside (index 1)
+        is PsiParenthesizedExpression -> children[1].meaningfulExpression()
+        else -> this
+    }
 }
