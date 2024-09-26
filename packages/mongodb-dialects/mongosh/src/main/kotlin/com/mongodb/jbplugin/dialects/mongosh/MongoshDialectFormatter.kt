@@ -118,15 +118,19 @@ private fun <S> MongoshBackend.emitQueryBody(
                 if (firstCall) {
                     emitObjectStart()
                 }
-                if (fieldRef != null && valueRef != null) {
+                if (fieldRef != null) {
                     emitObjectKey(resolveFieldReference(fieldRef))
-                    emitContextValue(resolveValueReference(valueRef, fieldRef))
-                } else {
-                    hasChildren?.children?.forEach {
-                        emitQueryBody(it)
-                        emitObjectValueEnd()
-                    }
                 }
+
+                if (valueRef != null) {
+                    emitContextValue(resolveValueReference(valueRef, fieldRef))
+                }
+
+                hasChildren?.children?.forEach {
+                    emitQueryBody(it)
+                    emitObjectValueEnd()
+                }
+
                 if (firstCall) {
                     emitObjectEnd()
                 }
@@ -200,7 +204,7 @@ private fun <S> MongoshBackend.emitQueryBody(
                     return@let
                 }
 
-                if (operation == null || valueRef == null) {
+                if (operation == null && valueRef == null) {
                     return@let
                 }
 
@@ -216,7 +220,7 @@ private fun <S> MongoshBackend.emitQueryBody(
                 emitQueryBody(
                     Node(
                         innerChild.source,
-                        listOf(
+                        listOfNotNull(
                             operation,
                             valueRef
                         )

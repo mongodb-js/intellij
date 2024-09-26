@@ -107,7 +107,7 @@ class MongoshDialectFormatterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["and", "or", "not"])
+    @ValueSource(strings = ["and", "or", "nor"])
     fun `can format a query with subquery operators`(operator: String) {
         assertGeneratedQuery(
             """
@@ -129,6 +129,54 @@ class MongoshDialectFormatterTest {
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `can format query using the not operator`() {
+        val namespace = Namespace("myDb", "myColl")
+
+        assertGeneratedQuery(
+            """
+            db.getSiblingDB("myDb").getCollection("myColl").find({ "myField": { "${"$"}not": "myVal"}, })
+            """.trimIndent()
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
+                    HasChildren(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.NOT),
+                                    HasChildren(
+                                        listOf(
+                                            Node(
+                                                Unit,
+                                                listOf(
+                                                    Named(Name.EQ),
+                                                    HasFieldReference(
+                                                        HasFieldReference.Known(Unit, "myField")
+                                                    ),
+                                                    HasValueReference(
+                                                        HasValueReference.Constant(
+                                                            Unit,
+                                                            "myVal",
+                                                            BsonString
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
                                     )
                                 )
                             )
