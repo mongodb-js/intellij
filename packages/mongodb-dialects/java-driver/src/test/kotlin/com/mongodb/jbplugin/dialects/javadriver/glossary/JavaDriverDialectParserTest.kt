@@ -208,6 +208,47 @@ public final class Repository {
     @ParsingTest(
         fileName = "Repository.java",
         value = """
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import com.mongodb.client.FindIterable;
+
+public final class Repository {
+    private final MongoCollection<Document> collection;
+
+    public Repository(MongoCollection<Document> collection) {
+        this.collection = collection;
+    }
+
+    public FindIterable<Document> findBookById(ObjectId id) {
+        return this.collection.find((Filters.eq("_id", id)));
+    }
+}
+        """,
+    )
+    fun `can parse a basic Filters query inside parenthesis`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findBookById")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
+        assertEquals(
+            "_id",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+        )
+        assertEquals(
+            BsonAnyOf(BsonObjectId, BsonNull),
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import org.bson.Document;
@@ -608,6 +649,62 @@ public class Repository {
         """,
     )
     fun `supports updateOne calls with a filter and update expressions`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
+        assertEquals(
+            "released",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonBoolean,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
+        )
+
+        val unset = hasChildren.children[1]
+        assertEquals(Name.UNSET, unset.component<Named>()!!.name)
+        assertEquals(
+            "field",
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
+        return findAllByReleaseFlag(true);
+    }
+    
+    private Document findAllByReleaseFlag(boolean released) {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .updateOne(eq("released", released), (unset("field")));
+    }
+}
+        """,
+    )
+    fun `supports updateOne calls with a filter and update expressions in parenthesis`(
+        psiFile: PsiFile
+    ) {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 

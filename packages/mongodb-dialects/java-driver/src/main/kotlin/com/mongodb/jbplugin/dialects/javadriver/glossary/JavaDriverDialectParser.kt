@@ -181,6 +181,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
         when (element) {
+            is PsiParenthesizedExpression -> {
+                return resolveToFiltersCall(element.innerExpression())
+            }
             is PsiMethodCallExpression -> {
                 val method = element.resolveMethod() ?: return null
                 if (method.containingClass?.qualifiedName == FILTERS_FQN) {
@@ -211,6 +214,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
         when (element) {
+            is PsiParenthesizedExpression -> {
+                return resolveToUpdatesCall(element.innerExpression())
+            }
             is PsiMethodCallExpression -> {
                 val method = element.resolveMethod() ?: return null
                 if (method.containingClass?.qualifiedName == UPDATES_FQN) {
@@ -330,4 +336,11 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         return bottomLevel
     }
+}
+
+private fun PsiParenthesizedExpression.innerExpression(): PsiExpression {
+    // the children are: '(', YOUR_EXPR, ')'
+    // so we need the expression inside (index 1)
+
+    return children[1] as PsiExpression
 }
