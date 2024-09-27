@@ -303,8 +303,8 @@ object NamespaceExtractor {
             HasCollectionReference.CollectionReference<PsiElement> {
         val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
         val collection: String? =
-            if (returnsCollection && callExpr.argumentList.expressionCount == 1) {
-                callExpr.argumentList.expressions[0].tryToResolveAsConstantString()
+            if (returnsCollection) {
+                callExpr.argumentList.expressions.getOrNull(0)?.tryToResolveAsConstantString()
             } else {
                 null
             }
@@ -323,11 +323,7 @@ object NamespaceExtractor {
 
         val database: String? =
             dbExpression?.let {
-                if (dbExpression.argumentList.expressionCount == 1) {
-                    dbExpression.argumentList.expressions[0].tryToResolveAsConstantString()
-                } else {
-                    null
-                }
+                dbExpression.argumentList.expressions.getOrNull(0)?.tryToResolveAsConstantString()
             }
 
         if (database == null || collection == null) {
@@ -336,7 +332,7 @@ object NamespaceExtractor {
 
         return HasCollectionReference.Known(
             databaseSource = dbExpression,
-            collectionSource = callExpr.argumentList.expressions.getOrNull(0) ?: callExpr,
+            collectionSource = callExpr.argumentList.expressions.getOrElse(0) { callExpr },
             Namespace(database, collection)
         )
     }
@@ -414,7 +410,7 @@ object NamespaceExtractor {
         val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
         if (returnsCollection) {
             val field =
-                callExpr.argumentList.expressions.getOrNull(0)
+                callExpr.argumentList.expressions[0]
                     ?.reference
                     ?.resolve() as? PsiField
             field?.let {
