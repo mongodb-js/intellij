@@ -5,7 +5,6 @@
 
 package com.mongodb.jbplugin.dialects.javadriver
 
-import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -17,20 +16,16 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.PsiTestUtil
+import com.intellij.testFramework.TestApplicationManager
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.mongodb.client.MongoClient
-import com.mongodb.client.model.Filters
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
 import java.lang.reflect.Method
-import java.net.URI
-import java.net.URL
-import java.nio.file.Paths
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
@@ -65,10 +60,18 @@ internal class IntegrationTestExtension :
     private val testPathKey = "TESTPATH"
 
     override fun beforeAll(context: ExtensionContext) {
+        TestApplicationManager.getInstance()
+        val projectDescriptor = DefaultLightProjectDescriptor()
+
+        ApplicationManager.getApplication().invokeAndWait {
+            projectDescriptor.registerSdk(ApplicationManager.getApplication())
+            projectDescriptor.withRepositoryLibrary("org.mongodb:mongodb-driver-sync:5.1.0")
+        }
+
         val projectFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
-                .createLightFixtureBuilder(context.requiredTestClass.simpleName)
+                .createLightFixtureBuilder(projectDescriptor, context.requiredTestClass.simpleName)
                 .fixture
 
         val testFixture =
@@ -80,32 +83,6 @@ internal class IntegrationTestExtension :
 
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
-
-        ApplicationManager.getApplication().invokeAndWait {
-            val module = testFixture.module
-
-            if (!JavaLibraryUtil.hasLibraryJar(module, "org.mongodb:mongodb-driver-sync:5.1.0")) {
-                runCatching {
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:mongodb-driver-sync:5.1.0",
-                        listOf(pathToClassJarFile(MongoClient::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:mongodb-driver-core:5.1.0",
-                        listOf(pathToClassJarFile(Filters::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:bson:5.1.0",
-                        listOf(pathToClassJarFile(ObjectId::class.java)),
-                    )
-                }
-            }
-        }
 
         PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
@@ -197,23 +174,6 @@ internal class IntegrationTestExtension :
                 "Parameter of type ${parameterContext.parameter.type.canonicalName} is not supported."
             )
         }
-    }
-
-    private fun pathToClassJarFile(javaClass: Class<*>): String {
-        val classResource: URL =
-            javaClass.getResource(javaClass.getSimpleName() + ".class")
-                ?: throw RuntimeException("class resource is null")
-        val url: String = classResource.toString()
-        if (url.startsWith("jar:file:")) {
-            // extract 'file:......jarName.jar' part from the url string
-            val path = url.replace("^jar:(file:.*[.]jar)!/.*".toRegex(), "$1")
-            try {
-                return Paths.get(URI(path)).toString()
-            } catch (e: Exception) {
-                throw RuntimeException("Invalid Jar File URL String")
-            }
-        }
-        throw RuntimeException("Invalid Jar File URL String")
     }
 }
 

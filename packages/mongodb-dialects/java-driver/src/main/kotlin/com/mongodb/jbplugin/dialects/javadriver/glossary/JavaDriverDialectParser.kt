@@ -1,9 +1,15 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
+import com.intellij.openapi.project.Project
 import com.intellij.psi.*
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
+import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonArray
+import com.mongodb.jbplugin.mql.BsonNull
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
@@ -143,8 +149,47 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
-        val method = filter.resolveMethod() ?: return null
-        if (method.isVarArgs || method.name == "not") {
+        val method = filter.fuzzyResolveMethod() ?: return null
+        if (method.name == "in" || method.name == "nin") {
+            if (filter.argumentList.expressionCount == 0) {
+                return null // empty, do nothing
+            }
+
+            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
+            // if it's only 2 arguments it can be either:
+            // - in(field, singleElement) -> valid because of varargs, becomes a single element array
+            // - in(field, array) -> valid because of varargs
+            // - in(field, iterable) -> valid because of overload
+            val valueReference = if (filter.argumentList.expressionCount == 2) {
+                var secondArg = filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
+                if (secondArg.type?.isJavaIterable(secondArg.project) == true) { // case 3
+                    HasValueReference.Runtime(secondArg, BsonArray(BsonNull))
+                } else if (secondArg.type?.isArray() == false) { // case 1
+                    HasValueReference.Runtime(
+                        secondArg,
+                        BsonArray(
+                            secondArg.type?.toBsonType() ?: BsonAny
+                        )
+                    )
+                } else { // case 2
+                    HasValueReference.Runtime(
+                        secondArg,
+                        secondArg.type?.toBsonType() ?: BsonArray(BsonAny)
+                    )
+                }
+            } else {
+                HasValueReference.Unknown
+            }
+
+            return Node(
+                filter,
+                listOf(
+                    Named(Name.from(method.name)),
+                    HasFieldReference(fieldReference),
+                    HasValueReference(valueReference)
+                ),
+            )
+        } else if (method.isVarArgs || method.name == "not") {
 // Filters.and, Filters.or... are varargs
             return Node(
                 filter,
@@ -182,7 +227,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
         when (val expression = element.meaningfulExpression()) {
             is PsiMethodCallExpression -> {
-                val method = expression.resolveMethod() ?: return null
+                val method = expression.fuzzyResolveMethod() ?: return null
                 if (method.containingClass?.qualifiedName == FILTERS_FQN) {
                     return expression
                 }
@@ -330,4 +375,18 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         return bottomLevel
     }
+}
+
+private fun PsiType.isArray(): Boolean {
+    return this is PsiArrayType
+}
+
+private fun PsiType.isJavaIterable(project: Project): Boolean {
+    val javaIterable = JavaPsiFacade.getInstance(project).findClass(
+        "java.lang.Iterable",
+        GlobalSearchScope.allScope(project)
+    ) as PsiClassType
+
+    val thisAsClass = PsiTypesUtil.getPsiClass(this)
+    return thisAsClass?.superTypes?.contains(javaIterable) == true
 }
