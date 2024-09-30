@@ -167,6 +167,54 @@ public final class Repository {
     @ParsingTest(
         fileName = "Repository.java",
         value = """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+abstract class BaseRepository<T> {
+    private final String dbName;
+    private final String collName;
+    private final Class<T> docClass;
+    
+    protected BaseRepository(MongoClient client, String dbName, String collName, Class<T> docClass) {
+        this.client = client;
+        this.dbName = dbName;
+        this.collName = collName;
+        this.docClass = docClass;
+    }
+    
+    protected MongoCollection<T> getCollection() {
+        return client.getDatabase(dbName).getCollection(collName, docClass);
+    }
+}
+
+public final class Repository extends BaseRepository<Document> {
+    private final MongoCollection<Document> collection;
+    
+    public Repository(MongoClient client, String collection) {
+        super(client, "myDb", collection, Document.class);
+    }
+    
+    public Document findById(ObjectId id) {
+        return this.getCollection().find(eq("_id", id)).first();
+    }
+}
+        """,
+    )
+    fun `supports inheritance chains with unknown collections`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findById")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val unknownReference =
+            parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Unknown
+
+        assertEquals(HasCollectionReference.Unknown, unknownReference)
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
@@ -363,10 +411,6 @@ public class Repository {
 }
         """,
     )
-    // ktlint complains about this method being too long but no real 
-    // benefit in splitting this up as that would make reading test
-    // cases difficult
-    @Suppress("ktlint")
     fun `supports vararg operators`(psiFile: PsiFile) {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)

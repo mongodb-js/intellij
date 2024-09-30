@@ -304,7 +304,7 @@ object NamespaceExtractor {
         val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
         val collection: String? =
             if (returnsCollection) {
-                callExpr.argumentList.expressions[0].tryToResolveAsConstantString()
+                callExpr.argumentList.expressions.getOrNull(0)?.tryToResolveAsConstantString()
             } else {
                 null
             }
@@ -323,7 +323,7 @@ object NamespaceExtractor {
 
         val database: String? =
             dbExpression?.let {
-                dbExpression.argumentList.expressions[0].tryToResolveAsConstantString()
+                dbExpression.argumentList.expressions.getOrNull(0)?.tryToResolveAsConstantString()
             }
 
         if (database == null || collection == null) {
@@ -332,7 +332,7 @@ object NamespaceExtractor {
 
         return HasCollectionReference.Known(
             databaseSource = dbExpression,
-            collectionSource = callExpr.argumentList.expressions[0],
+            collectionSource = callExpr.argumentList.expressions.getOrElse(0) { callExpr },
             Namespace(database, collection)
         )
     }
@@ -356,8 +356,8 @@ object NamespaceExtractor {
         val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
         if (returnsCollection) {
             val parameter =
-                callExpr.argumentList.expressions[0]
-                    .reference
+                callExpr.argumentList.expressions.getOrNull(0)
+                    ?.reference
                     ?.resolve() as? PsiParameter
             parameter?.let {
                 result.add(
@@ -386,8 +386,8 @@ object NamespaceExtractor {
 
         dbExpression?.let {
             val parameter =
-                dbExpression.argumentList.expressions[0]
-                    .reference
+                dbExpression.argumentList.expressions.getOrNull(0)
+                    ?.reference
                     ?.resolve() as? PsiParameter
             parameter?.let {
                 result.add(
@@ -411,7 +411,7 @@ object NamespaceExtractor {
         if (returnsCollection) {
             val field =
                 callExpr.argumentList.expressions[0]
-                    .reference
+                    ?.reference
                     ?.resolve() as? PsiField
             field?.let {
                 result.add(Pair(AssignmentConcept.COLLECTION, field))
@@ -432,8 +432,8 @@ object NamespaceExtractor {
 
         dbExpression?.let {
             val field =
-                dbExpression.argumentList.expressions[0]
-                    .reference
+                dbExpression.argumentList.expressions.getOrNull(0)
+                    ?.reference
                     ?.resolve() as? PsiField
             field?.let {
                 result.add(Pair(AssignmentConcept.DATABASE, field))
