@@ -467,6 +467,55 @@ public class Repository {
     }
 
     public FindIterable<Document> findReleasedBooks() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(not(eq("released", true)));
+    }
+}
+        """,
+    )
+    fun `supports the not operator`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val and = hasChildren.children[0]
+        assertEquals(Name.NOT, and.component<Named>()!!.name)
+        val andChildren = and.component<HasChildren<Unit?>>()!!
+
+        val firstEq = andChildren.children[0]
+        assertEquals(
+            "released",
+            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonAnyOf(BsonNull, BsonBoolean),
+            (firstEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(
+            true,
+            (firstEq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
         var isReleased = eq("released", true);
         return client.getDatabase("myDatabase")
                 .getCollection("myCollection")
