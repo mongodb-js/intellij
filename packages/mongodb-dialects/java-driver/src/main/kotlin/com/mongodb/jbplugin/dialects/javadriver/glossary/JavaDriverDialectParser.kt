@@ -7,10 +7,12 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.flattenAnyOfReferences
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
@@ -190,8 +192,51 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         secondArg.type?.toBsonType() ?: BsonArray(BsonAny)
                     )
                 }
+            } else if (filter.argumentList.expressionCount > 2) {
+                val allConstants: List<Pair<Boolean, Any?>> = filter.argumentList.expressions.slice(
+                    1..<filter.argumentList.expressionCount
+                )
+                    .map { it.tryToResolveAsConstant() }
+
+                if (allConstants.isEmpty()) {
+                    HasValueReference.Runtime(filter, BsonArray(BsonAny))
+                } else if (allConstants.all { it.first }) {
+                    val eachType = allConstants.mapNotNull {
+                        it.second?.javaClass?.toBsonType(it.second)
+                    }.map {
+                        flattenAnyOfReferences(it)
+                    }.toSet()
+
+                    if (eachType.size == 1) {
+                        val type = eachType.first()
+                        HasValueReference.Constant(
+                            filter,
+                            allConstants.map { it.second },
+                            BsonArray(type)
+                        )
+                    } else {
+                        val eachType = allConstants.mapNotNull {
+                            it.second?.javaClass?.toBsonType(it.second)
+                        }.toSet()
+                        val schema = flattenAnyOfReferences(BsonAnyOf(eachType))
+                        HasValueReference.Constant(
+                            filter,
+                            allConstants.map { it.second },
+                            BsonArray(schema)
+                        )
+                    }
+                } else {
+                    val eachType = allConstants.mapNotNull {
+                        it.second?.javaClass?.toBsonType(it.second)
+                    }.toSet()
+                    val schema = BsonAnyOf(eachType)
+                    HasValueReference.Runtime(
+                        filter,
+                        BsonArray(schema)
+                    )
+                }
             } else {
-                HasValueReference.Unknown
+                HasValueReference.Runtime(filter, BsonArray(BsonAny))
             }
 
             return Node(

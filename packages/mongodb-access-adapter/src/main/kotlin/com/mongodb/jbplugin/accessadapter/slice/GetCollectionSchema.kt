@@ -41,7 +41,7 @@ data class GetCollectionSchema(
             val sampleSchemas = sampleSomeDocs.map(this::recursivelyBuildSchema)
             // now we want to merge them together
             val consolidatedSchema =
-                sampleSchemas.reduceOrNull(this::mergeSchemaTogether) ?: BsonObject(
+                sampleSchemas.reduceOrNull(::mergeSchemaTogether) ?: BsonObject(
                     emptyMap(),
                 )
 
@@ -87,84 +87,5 @@ data class GetCollectionSchema(
 
                 else -> primitiveOrWrapper(value.javaClass).toBsonType()
             }
-
-        private fun mergeSchemaTogether(
-            first: BsonType,
-            second: BsonType,
-        ): BsonType {
-            if (first is BsonObject && second is BsonObject) {
-                val mergedMap =
-                    first.schema.entries
-                        .union(second.schema.entries)
-                        .fold(mutableMapOf<String, BsonType>()) { acc, entry ->
-                            acc.compute(entry.key) { _, current ->
-                                current?.let {
-                                    mergeSchemaTogether(current, entry.value)
-                                } ?: entry.value
-                            }
-
-                            acc
-                        }
-
-                return BsonObject(mergedMap)
-            }
-
-            if (first is BsonArray && second is BsonArray) {
-                return BsonArray(mergeSchemaTogether(first.schema, second.schema))
-            }
-
-            if (first is BsonAnyOf && second is BsonAnyOf) {
-                return BsonAnyOf(first.types + second.types)
-            }
-
-            if (first is BsonAnyOf) {
-                return BsonAnyOf(first.types + second)
-            }
-
-            if (second is BsonAnyOf) {
-                return BsonAnyOf(second.types + first)
-            }
-
-            if (first == second) {
-                return first
-            }
-
-            return BsonAnyOf(setOf(first, second))
-        }
-
-        private fun flattenAnyOfReferences(schema: BsonType): BsonType =
-            when (schema) {
-                is BsonArray -> BsonArray(flattenAnyOfReferences(schema.schema))
-                is BsonObject ->
-                    BsonObject(
-                        schema.schema.entries.associate {
-                            Pair(
-                                it.key,
-                                flattenAnyOfReferences(it.value),
-                            )
-                        },
-                    )
-
-                is BsonAnyOf -> {
-                    val flattenAnyOf =
-                        schema.types.flatMap {
-                            val flattenType = flattenAnyOfReferences(it)
-                            if (flattenType is BsonAnyOf) {
-                                flattenType.types
-                            } else {
-                                listOf(flattenType)
-                            }
-                        }
-
-                    BsonAnyOf(flattenAnyOf.toSet())
-                }
-
-                else -> schema
-            }
-
-        private fun primitiveOrWrapper(example: Class<*>): Class<*> {
-            val type = runCatching { example.getField("TYPE").get(null) as? Class<*> }.getOrNull()
-            return type ?: example
-        }
     }
 }
