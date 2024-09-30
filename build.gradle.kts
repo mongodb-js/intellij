@@ -74,7 +74,7 @@ tasks {
         doLast {
             val newVersion = rootProject.findProperty("exactVersion") ?: generateVersion()
             val oldContent = buildFile.readText()
-            val newContent = oldContent.replace("""="$version"""", """="$newVersion"""")
+            val newContent = oldContent.replace(""" = "$version"""", """ = "$newVersion"""")
             buildFile.writeText(newContent)
         }
     }
