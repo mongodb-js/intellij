@@ -4,7 +4,7 @@ import java.net.URL
 group = "com.mongodb"
 // This should be bumped when releasing a new version using the versionBump task:
 // ./gradlew versionBump -Pmode={major,minor,patch}
-version = "0.0.1"
+version = "0.0.2"
 
 plugins {
     base
