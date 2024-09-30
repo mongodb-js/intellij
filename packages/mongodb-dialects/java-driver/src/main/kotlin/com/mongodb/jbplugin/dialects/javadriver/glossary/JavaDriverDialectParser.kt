@@ -4,12 +4,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonArray
-import com.mongodb.jbplugin.mql.BsonNull
+import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
@@ -162,15 +161,29 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             // - in(field, iterable) -> valid because of overload
             val valueReference = if (filter.argumentList.expressionCount == 2) {
                 var secondArg = filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
-                if (secondArg.type?.isJavaIterable(secondArg.project) == true) { // case 3
-                    HasValueReference.Runtime(secondArg, BsonArray(BsonNull))
-                } else if (secondArg.type?.isArray() == false) { // case 1
+                if (secondArg.type?.isJavaIterable() == true) { // case 3
                     HasValueReference.Runtime(
                         secondArg,
                         BsonArray(
-                            secondArg.type?.toBsonType() ?: BsonAny
+                            secondArg.type?.guessIterableContentType(secondArg.project) ?: BsonAny
                         )
                     )
+                } else if (secondArg.type?.isArray() == false) { // case 1
+                    val (constant, value) = secondArg.tryToResolveAsConstant()
+                    if (constant) {
+                        HasValueReference.Constant(
+                            secondArg,
+                            listOf(value),
+                            BsonArray(value?.javaClass.toBsonType(value))
+                        )
+                    } else {
+                        HasValueReference.Runtime(
+                            secondArg,
+                            BsonArray(
+                                secondArg.type?.toBsonType() ?: BsonAny
+                            )
+                        )
+                    }
                 } else { // case 2
                     HasValueReference.Runtime(
                         secondArg,
@@ -381,12 +394,41 @@ private fun PsiType.isArray(): Boolean {
     return this is PsiArrayType
 }
 
-private fun PsiType.isJavaIterable(project: Project): Boolean {
-    val javaIterable = JavaPsiFacade.getInstance(project).findClass(
-        "java.lang.Iterable",
-        GlobalSearchScope.allScope(project)
-    ) as PsiClassType
+private fun PsiType.isJavaIterable(): Boolean {
+    if (this !is PsiClassType) {
+        return false
+    }
 
-    val thisAsClass = PsiTypesUtil.getPsiClass(this)
-    return thisAsClass?.superTypes?.contains(javaIterable) == true
+    fun recursivelyCheckIsIterable(superType: PsiClassType): Boolean {
+        return superType.canonicalText.startsWith("java.lang.Iterable") ||
+            superType.superTypes.any {
+                it.canonicalText.startsWith("java.lang.Iterable") ||
+                    if (it is PsiClassType) {
+                        recursivelyCheckIsIterable(it)
+                    } else {
+                        false
+                    }
+            }
+    }
+
+    return return recursivelyCheckIsIterable(this)
+}
+
+private fun PsiType.guessIterableContentType(project: Project): BsonType {
+    val text = canonicalText
+    val start = text.indexOf('<')
+    if (start == -1) {
+        return BsonAny
+    }
+    val end = text.indexOf('>', startIndex = start)
+    if (end == -1) {
+        return BsonAny
+    }
+
+    val typeStr = text.substring(start + 1, end)
+    return PsiType.getTypeByName(
+        typeStr,
+        project,
+        GlobalSearchScope.everythingScope(project)
+    ).toBsonType()
 }

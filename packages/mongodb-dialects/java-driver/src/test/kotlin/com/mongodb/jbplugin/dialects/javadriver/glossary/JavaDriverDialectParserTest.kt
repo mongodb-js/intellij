@@ -1069,4 +1069,52 @@ public class Repository {
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
     }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+    
+    private FindIterable<Document> findFantasyBooks() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(in("genre", "Fantasy"));
+    }
+}
+        """,
+    )
+    fun `supports the in operator with a list and detects constant values`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findFantasyBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasChildren =
+            parsedQuery.component<HasChildren<Unit?>>()!!
+
+        val eq = hasChildren.children[0]
+        assertEquals(Name.IN, eq.component<Named>()!!.name)
+        assertEquals(
+            "genre",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonArray(BsonAnyOf(BsonNull, BsonString)),
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(
+            listOf("Fantasy"),
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value,
+        )
+    }
 }
