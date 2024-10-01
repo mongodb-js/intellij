@@ -82,12 +82,12 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '17'
-          cache: 'gradle'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
             dependency-graph: 'generate-and-submit'
-            add-job-summary-as-pr-comment: always
+            dependency-graph-continue-on-failure: false
+            add-job-summary-as-pr-comment: on-failure
       - name: Run Dependency Updates
         run: |
           ./gradlew --quiet --console=plain dependencyUpdates
@@ -103,7 +103,8 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '17'
-          cache: 'gradle'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: Run Linter
         run: |
           ./gradlew --quiet --console=plain ktlintCheck
@@ -124,7 +125,8 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '17'
-          cache: 'gradle'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: Setup Docker (for Test Containers)
         run: |
           sudo apt update -y
@@ -165,7 +167,8 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: Restore IDEA Cached Indexes
         uses: actions/cache/restore@v4
         with:
@@ -229,7 +232,8 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '17'
-          cache: 'gradle'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: Performance Tests
         run: |
           ./gradlew --quiet --console=plain ":packages:jetbrains-plugin:jmh"
@@ -256,7 +260,8 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '17'
-          cache: 'gradle'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: Verify Plugin
         run: |
           ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
