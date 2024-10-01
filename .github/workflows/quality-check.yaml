@@ -161,6 +161,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
+      - name: Restore IDEA Cached Indexes
+        uses: actions/cache/restore@v4
+        with:
+          key: 'intellij-indexes'
+          path: 'packages/jetbrains-plugin/build/idea-sandbox'
       - name: Prepare License Key
         env:
           JB_TEST_KEY: ${{ secrets.JB_TEST_KEY }}
@@ -194,6 +199,12 @@ jobs:
             **/build/reports/**/*.log
             **/build/reports/*/*.png
             **/video/**/*.avi
+      - name: Cache IDEA Indexes
+        uses: actions/cache/save@v4
+        if: success() || failure() # always run even if the previous step fails
+        with:
+          key: 'intellij-indexes'
+          path: 'packages/jetbrains-plugin/build/idea-sandbox'
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: success() || failure() # always run even if the previous step fails
