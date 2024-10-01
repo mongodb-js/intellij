@@ -178,8 +178,10 @@ jobs:
       - name: Restore IDEA Cached Indexes
         uses: actions/cache/restore@v4
         with:
-          key: 'intellij-indexes'
-          path: 'packages/jetbrains-plugin/build/idea-sandbox'
+          key: 'intellij-indexes-cache'
+          path: |
+            packages/jetbrains-plugin/build/idea-sandbox/system-test/index
+            packages/jetbrains-plugin/build/idea-sandbox/system/index
       - name: Prepare License Key
         env:
           JB_TEST_KEY: ${{ secrets.JB_TEST_KEY }}
@@ -212,13 +214,17 @@ jobs:
             **/build/reports/**/*.html
             **/build/reports/**/*.log
             **/build/reports/*/*.png
+            **/build/idea-sandbox/system/**/*.log
+            **/build/idea-sandbox/system-test/**/*.log
             **/video/**/*.avi
       - name: Cache IDEA Indexes
         uses: actions/cache/save@v4
         if: success() || failure() # always run even if the previous step fails
         with:
-          key: 'intellij-indexes'
-          path: 'packages/jetbrains-plugin/build/idea-sandbox'
+          key: 'intellij-indexes-cache'
+          path: |
+              packages/jetbrains-plugin/build/idea-sandbox/system-test/index
+              packages/jetbrains-plugin/build/idea-sandbox/system/index
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: success() || failure() # always run even if the previous step fails
