@@ -87,6 +87,7 @@ jobs:
         with:
             dependency-graph: 'generate-and-submit'
             dependency-graph-continue-on-failure: false
+            gradle-home-cache-cleanup: true
       - name: Run Dependency Updates
         run: |
           ./gradlew --quiet --console=plain dependencyUpdates
@@ -104,6 +105,8 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+            gradle-home-cache-cleanup: true
       - name: Run Linter
         run: |
           ./gradlew --quiet --console=plain ktlintCheck
@@ -126,6 +129,8 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+            gradle-home-cache-cleanup: true
       - name: Setup Docker (for Test Containers)
         run: |
           sudo apt update -y
@@ -168,6 +173,8 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+            gradle-home-cache-cleanup: true
       - name: Restore IDEA Cached Indexes
         uses: actions/cache/restore@v4
         with:
@@ -233,6 +240,8 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+            gradle-home-cache-cleanup: true
       - name: Performance Tests
         run: |
           ./gradlew --quiet --console=plain ":packages:jetbrains-plugin:jmh"
@@ -261,6 +270,8 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+            gradle-home-cache-cleanup: true
       - name: Verify Plugin
         run: |
           ./gradlew ":packages:jetbrains-plugin:verifyPlugin"
