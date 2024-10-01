@@ -87,7 +87,6 @@ jobs:
         with:
             dependency-graph: 'generate-and-submit'
             dependency-graph-continue-on-failure: false
-            add-job-summary-as-pr-comment: on-failure
       - name: Run Dependency Updates
         run: |
           ./gradlew --quiet --console=plain dependencyUpdates
