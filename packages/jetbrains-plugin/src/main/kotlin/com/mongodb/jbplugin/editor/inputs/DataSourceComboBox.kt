@@ -53,12 +53,23 @@ class DataSourceComboBox(
     private val selectionChangedListener: ItemListener = ItemListener { event ->
         connecting = false
         failedConnection = null
-        if (event.stateChange == ItemEvent.DESELECTED) {
+        /**
+         * No Selection -> Item selected -> onDataSourceSelected
+         * Existing Selection -> Item deselected -> onDataSourceUnSelected
+         * Existing Selection -> Item selection changed -> onDataSourceSelected
+         *
+         * When a selection is changed from one DataSource to another the selectedDataSource is
+         * already set to the next DataSource and for that reason it is not really a deselection
+         * which is why we ignore this event here and instead wait for the selection event that
+         * follows right after this.
+         */
+        if (event.stateChange == ItemEvent.DESELECTED && selectedDataSource == null) {
             onDataSourceUnselected(event.item as LocalDataSource)
-        } else {
+        } else if (event.stateChange == ItemEvent.SELECTED) {
             onDataSourceSelected(event.item as LocalDataSource)
         }
     }
+
     private val popupMenuListener = object : PopupMenuListener {
         override fun popupMenuWillBecomeVisible(event: PopupMenuEvent) {}
         override fun popupMenuWillBecomeInvisible(event: PopupMenuEvent) {
