@@ -27,8 +27,6 @@ import javax.swing.event.PopupMenuListener
  * @param initialDataSources
  * @param initialSelectedDataSource
  */
-// Ktlint is reporting WRONG_WHITESPACE for line number 88 but everything seems alright there
-@Suppress("WRONG_WHITESPACE")
 class DataSourceComboBox(
     private val parent: JComponent,
     private val onDataSourceSelected: (source: LocalDataSource) -> Unit,
@@ -73,9 +71,9 @@ class DataSourceComboBox(
     private val popupMenuListener = object : PopupMenuListener {
         override fun popupMenuWillBecomeVisible(event: PopupMenuEvent) {}
         override fun popupMenuWillBecomeInvisible(event: PopupMenuEvent) {
-            // We don't want to keep focus on the ComboBox because otherwise it hinders with the selectionChanged event
-            // of FileEditorManager.Listener and the event never gets fired. Doing this makes sure that the focus is not
-            // retained and transferred to the editor
+            // We don't want to keep focus on the ComboBox because otherwise it hinders with the
+            // selectionChanged event of FileEditorManager.Listener and the event never gets fired.
+            // Doing this makes sure that the focus is not retained and transferred to the editor
             comboBoxComponent.transferFocus()
         }
 
@@ -112,8 +110,8 @@ class DataSourceComboBox(
     }
 
     private fun selectDataSourceByUniqueId(uniqueId: String?) {
-        // When the selectedId and the provided id are the same then we simply ignore this call because proceeding
-        // otherwise would lead to a deselection which we don't want
+        // When the selectedId and the provided id are the same then we simply ignore this call
+        // because proceeding otherwise would lead to a deselection which we don't want
         if (uniqueId == selectedDataSource?.uniqueId) {
             return
         }
@@ -198,6 +196,7 @@ class DataSourceComboBox(
         }
     }
 
-    // Subclassing ComboBox only because it makes creating test fixtures easier thanks to named XPath queries
+    // Subclassing ComboBox only because it makes creating test fixtures easier thanks to named
+    // XPath queries
     private class DataSourceComboBoxComponent : ComboBox<LocalDataSource?>(DefaultComboBoxModel())
 }
