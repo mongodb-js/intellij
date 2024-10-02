@@ -231,6 +231,18 @@ private fun <S> MongoshBackend.emitQueryBody(
                 if (firstCall) {
                     emitObjectEnd()
                 }
+            } else if (named.name != Name.UNKNOWN && fieldRef != null && valueRef != null) {
+                if (firstCall) {
+                    emitObjectStart()
+                }
+                emitObjectKey(resolveFieldReference(fieldRef))
+                emitObjectStart()
+                emitObjectKey(registerConstant('$' + named.name.canonical))
+                emitContextValue(resolveValueReference(valueRef, fieldRef))
+                emitObjectEnd()
+                if (firstCall) {
+                    emitObjectEnd()
+                }
             }
         }
     }

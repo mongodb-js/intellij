@@ -1,5 +1,8 @@
 package com.mongodb.jbplugin.dialects.mongosh
 
+import com.mongodb.jbplugin.mql.BsonAnyOf
+import com.mongodb.jbplugin.mql.BsonArray
+import com.mongodb.jbplugin.mql.BsonInt32
 import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
@@ -210,6 +213,43 @@ class MongoshDialectFormatterTest {
                                     HasFieldReference(HasFieldReference.Known(Unit, "myField")),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["in", "nin"])
+    fun `can format a query with the in or nin operator`(operator: String) {
+        assertGeneratedQuery(
+            """
+            var collection = ""
+            var database = ""
+
+            db.getSiblingDB(database).getCollection(collection).find({ "myField": { "${"$"}$operator": [1, 2]}, })
+            """.trimIndent()
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    HasChildren(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.from(operator)),
+                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasValueReference(
+                                        HasValueReference.Constant(
+                                            Unit,
+                                            listOf(1, 2),
+                                            BsonArray(BsonAnyOf(BsonInt32))
+                                        )
                                     )
                                 )
                             )

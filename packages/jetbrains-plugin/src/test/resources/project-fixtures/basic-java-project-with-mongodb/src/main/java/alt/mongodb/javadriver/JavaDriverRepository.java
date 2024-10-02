@@ -20,15 +20,18 @@ public class JavaDriverRepository {
     public JavaDriverRepository(MongoClient client) {
         this.client = client;
     }
-    private List<Document> getGrade(String myColl) {
+    private List<Document> getGrade() {
         return client.getDatabase("sample_mflix")
                 .getCollection("movies")
                 .find(
-                        Filters.and(
-                                Filters.eq(IMDB_VOTES, 1),
-                                Filters.eq(AWARDS_WINS, 1)
-                        )
+                        Filters.ne("genres", "Comedy")
                 )
                 .into(new ArrayList<>());
+    }
+
+    private Document findBooksByGenre(String[] validGenres) {
+        return client.getDatabase("myDatabase")
+            .getCollection("myCollection")
+            .find(in("genre", validGenres)).first();
     }
 }

@@ -86,7 +86,10 @@ internal class NewConnectionActivatedProbeTestForLocalEnvironment :
         version = "7.0.14",
     )
 
-@RequiresMongoDbCluster(MongoDbTestingEnvironment.LOCAL_ATLAS)
+@RequiresMongoDbCluster(
+    version = MongoDbVersion.V7_0,
+    value = MongoDbTestingEnvironment.LOCAL_ATLAS
+)
 internal class NewConnectionActivatedProbeTestForAtlasCliEnvironment :
     NewConnectionActivatedProbeTest(
         isAtlas = false,
@@ -94,5 +97,5 @@ internal class NewConnectionActivatedProbeTestForAtlasCliEnvironment :
         isLocalhost = true,
         isEnterprise = true,
         isGenuine = true,
-        version = "7.0.12",
+        version = "7.0.14",
     )

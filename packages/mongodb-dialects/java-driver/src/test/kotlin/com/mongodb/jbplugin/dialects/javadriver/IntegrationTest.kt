@@ -5,32 +5,38 @@
 
 package com.mongodb.jbplugin.dialects.javadriver
 
-import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.roots.ContentEntry
+import com.intellij.openapi.roots.LanguageLevelModuleExtension
+import com.intellij.openapi.roots.LanguageLevelProjectExtension
+import com.intellij.openapi.roots.ModifiableRootModel
+import com.intellij.pom.java.AcceptedLanguageLevelsSettings
+import com.intellij.pom.java.LanguageLevel
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
+import com.intellij.testFramework.IdeaTestUtil
+import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.PsiTestUtil
+import com.intellij.testFramework.TestApplicationManager
+import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.mongodb.client.MongoClient
-import com.mongodb.client.model.Filters
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
 import java.lang.reflect.Method
-import java.net.URI
-import java.net.URL
-import java.nio.file.Paths
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
@@ -49,6 +55,7 @@ annotation class ParsingTest(
  * @see com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriverTest
  */
 @ExtendWith(IntegrationTestExtension::class)
+@TestDataPath("${'$'}CONTENT_ROOT/testData")
 annotation class IntegrationTest
 
 /**
@@ -65,10 +72,13 @@ internal class IntegrationTestExtension :
     private val testPathKey = "TESTPATH"
 
     override fun beforeAll(context: ExtensionContext) {
+        TestApplicationManager.getInstance()
+        val projectDescriptor = MongoDbProjectDescriptor(LanguageLevel.JDK_21)
+
         val projectFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
-                .createLightFixtureBuilder(context.requiredTestClass.simpleName)
+                .createLightFixtureBuilder(projectDescriptor, context.requiredTestClass.simpleName)
                 .fixture
 
         val testFixture =
@@ -81,31 +91,9 @@ internal class IntegrationTestExtension :
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
 
-        ApplicationManager.getApplication().invokeAndWait {
-            val module = testFixture.module
-
-            if (!JavaLibraryUtil.hasLibraryJar(module, "org.mongodb:mongodb-driver-sync:5.1.0")) {
-                runCatching {
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:mongodb-driver-sync:5.1.0",
-                        listOf(pathToClassJarFile(MongoClient::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:mongodb-driver-core:5.1.0",
-                        listOf(pathToClassJarFile(Filters::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:bson:5.1.0",
-                        listOf(pathToClassJarFile(ObjectId::class.java)),
-                    )
-                }
-            }
-        }
+        val projectExt = LanguageLevelProjectExtension.getInstance(projectFixture.project)
+        projectExt.languageLevel = LanguageLevel.JDK_21
+        IndexingTestUtil.waitUntilIndexesAreReady(projectFixture.project)
 
         PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
@@ -198,23 +186,6 @@ internal class IntegrationTestExtension :
             )
         }
     }
-
-    private fun pathToClassJarFile(javaClass: Class<*>): String {
-        val classResource: URL =
-            javaClass.getResource(javaClass.getSimpleName() + ".class")
-                ?: throw RuntimeException("class resource is null")
-        val url: String = classResource.toString()
-        if (url.startsWith("jar:file:")) {
-            // extract 'file:......jarName.jar' part from the url string
-            val path = url.replace("^jar:(file:.*[.]jar)!/.*".toRegex(), "$1")
-            try {
-                return Paths.get(URI(path)).toString()
-            } catch (e: Exception) {
-                throw RuntimeException("Invalid Jar File URL String")
-            }
-        }
-        throw RuntimeException("Invalid Jar File URL String")
-    }
 }
 
 fun PsiFile.getClassByName(name: String): PsiClass =
@@ -230,4 +201,36 @@ fun PsiFile.getQueryAtMethod(
     val method = actualClass.allMethods.first { it.name == methodName }
     val returnExpr = PsiUtil.findReturnStatements(method).last()
     return returnExpr.returnValue!!
+}
+
+private class MongoDbProjectDescriptor(
+    val languageLevel: LanguageLevel
+) : DefaultLightProjectDescriptor() {
+    override fun setUpProject(
+        project: Project,
+        handler: SetupHandler
+    ) {
+        if (languageLevel.isPreview || languageLevel == LanguageLevel.JDK_X) {
+            AcceptedLanguageLevelsSettings.allowLevel(project, languageLevel)
+        }
+
+        withRepositoryLibrary("org.mongodb:mongodb-driver-sync:5.1.0")
+        super.setUpProject(project, handler)
+    }
+
+    override fun getSdk(): Sdk {
+        return IdeaTestUtil.getMockJdk(languageLevel.toJavaVersion())
+    }
+
+    override fun configureModule(
+        module: Module,
+        model: ModifiableRootModel,
+        contentEntry: ContentEntry
+    ) {
+        model.getModuleExtension(LanguageLevelModuleExtension::class.java).languageLevel =
+            languageLevel
+
+        addJetBrainsAnnotations(model)
+        super.configureModule(module, model, contentEntry)
+    }
 }

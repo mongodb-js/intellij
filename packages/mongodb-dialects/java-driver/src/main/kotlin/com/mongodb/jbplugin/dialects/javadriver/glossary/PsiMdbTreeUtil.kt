@@ -321,36 +321,46 @@ fun PsiElement.tryToResolveAsConstantString(): String? =
 /**
  * Maps a PsiType to its BSON counterpart.
  *
- * @return
  */
 fun PsiType.toBsonType(): BsonType {
-    if (this.equalsToText("org.bson.types.ObjectId")) {
+    return this.canonicalText.toBsonType()
+}
+
+/**
+ * Maps a Java FQN to a BsonType.
+ */
+fun String.toBsonType(): BsonType {
+    if (this == ("org.bson.types.ObjectId")) {
         return BsonAnyOf(BsonObjectId, BsonNull)
-    } else if (this.equalsToText("boolean") || this.equalsToText("java.lang.Boolean")) {
+    } else if (this == ("boolean") || this == ("java.lang.Boolean")) {
         return BsonBoolean
-    } else if (this.equalsToText("short") || this.equalsToText("java.lang.Short")) {
+    } else if (this == ("short") || this == ("java.lang.Short")) {
         return BsonInt32
-    } else if (this.equalsToText("int") || this.equalsToText("java.lang.Integer")) {
+    } else if (this == ("int") || this == ("java.lang.Integer")) {
         return BsonInt32
-    } else if (this.equalsToText("long") || this.equalsToText("java.lang.Long")) {
+    } else if (this == ("long") || this == ("java.lang.Long")) {
         return BsonInt64
-    } else if (this.equalsToText("float") || this.equalsToText("java.lang.Float")) {
+    } else if (this == ("float") || this == ("java.lang.Float")) {
         return BsonDouble
-    } else if (this.equalsToText("double") || this.equalsToText("java.lang.Double")) {
+    } else if (this == ("double") || this == ("java.lang.Double")) {
         return BsonDouble
-    } else if (this.equalsToText("java.lang.CharSequence") ||
-        this.equalsToText("java.lang.String")
+    } else if (this == ("java.lang.CharSequence") ||
+        this == ("java.lang.String") ||
+        this == "String"
     ) {
         return BsonAnyOf(BsonString, BsonNull)
-    } else if (this.equalsToText("java.util.Date") ||
-        this.equalsToText("java.time.LocalDate") ||
-        this.equalsToText("java.time.LocalDateTime")
+    } else if (this == ("java.util.Date") ||
+        this == ("java.time.LocalDate") ||
+        this == ("java.time.LocalDateTime")
     ) {
         return BsonAnyOf(BsonDate, BsonNull)
-    } else if (this.equalsToText("java.math.BigInteger")) {
+    } else if (this == ("java.math.BigInteger")) {
         return BsonAnyOf(BsonInt64, BsonNull)
-    } else if (this.equalsToText("java.math.BigDecimal")) {
+    } else if (this == ("java.math.BigDecimal")) {
         return BsonAnyOf(BsonDecimal128, BsonNull)
+    } else if (this.endsWith("[]")) {
+        val baseType = this.substring(0, this.length - 2)
+        return BsonArray(baseType.toBsonType())
     }
 
     return BsonAny
@@ -392,4 +402,18 @@ fun PsiElement.meaningfulExpression(): PsiElement {
         }
         else -> this
     }
+}
+
+/**
+ * Resolves the method fuzzily. In case that a single implementation has multiple overloads, the
+ * default implementation from IntelliJ returns null, we will just get the first of them.
+ */
+fun PsiMethodCallExpression.fuzzyResolveMethod(): PsiMethod? {
+    val allResolutions = methodExpression.multiResolve(false)
+
+    if (allResolutions.isEmpty()) {
+        return null
+    }
+
+    return allResolutions.first().element as? PsiMethod
 }
