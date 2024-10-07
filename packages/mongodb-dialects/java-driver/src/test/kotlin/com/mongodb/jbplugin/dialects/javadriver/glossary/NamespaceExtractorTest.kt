@@ -438,4 +438,62 @@ public class JavaDriverRepository extends BaseRepository {
         assertEquals("myDatabase", namespace.database)
         assertEquals("myCollection", namespace.collection)
     }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+abstract class AbstractBaseRepository {
+    private final MongoClient client;
+    private final String database;
+    private final String collection;
+
+    protected AbstractBaseRepository(MongoClient client, String database, String collection) {
+        this.client = client;
+        this.database = database;
+        this.collection = collection;
+    }
+
+    protected final MongoCollection<Document> getCollection() {
+        return client.getDatabase(database).getCollection(collection);
+    }
+}
+
+abstract class BaseAuthBaseRepository extends AbstractBaseRepository {
+    protected AbstractBaseRepository(MongoClient client, String database, String collection) {
+        super(client, database, collection);
+    }
+}
+
+public class JavaDriverRepository extends BaseAuthBaseRepository {
+    public static final String DATABASE = "myDatabase";
+    public static final String COLLECTION = "myCollection";
+
+    public JavaDriverRepository(MongoClient client) {
+        super(client, DATABASE, COLLECTION);
+    }
+
+    public FindIterable<Document> exampleFind() {
+        return getCollection().find();
+    }
+}
+        """,
+    )
+    fun `extracts from a mms like example with multiple super classes`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("JavaDriverRepository", "exampleFind")
+        val namespace =
+            (
+                NamespaceExtractor.extractNamespace(
+                    methodToAnalyse
+                ).reference as HasCollectionReference.Known<PsiElement>
+                ).namespace
+        assertEquals("myDatabase", namespace.database)
+        assertEquals("myCollection", namespace.collection)
+    }
 }

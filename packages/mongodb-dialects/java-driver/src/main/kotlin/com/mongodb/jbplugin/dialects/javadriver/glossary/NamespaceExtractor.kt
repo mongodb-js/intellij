@@ -135,9 +135,9 @@ object NamespaceExtractor {
         // but might be resolvable through the actual class or the abstract class
         val resolvedScopes =
             constructorAssignments.mapNotNull { assignment ->
-                currentClass.constructors.firstNotNullOfOrNull {
+                currentClass.constructorsWithSuperClasses.firstNotNullOfOrNull {
                     if (assignment.parameter != null) {
-                        val callToSuperConstructor = getCallToSuperConstructor(it, constructorAssignments)
+                        val callToSuperConstructor = getCallToSuperConstructor(it)
 
                         val indexOfParameter =
                             assignment.constructor.parameterList.getParameterIndex(
@@ -232,7 +232,7 @@ object NamespaceExtractor {
         containingClass: PsiClass,
         field: Pair<AssignmentConcept?, PsiField>,
     ): List<FieldAndConstructorAssignment> {
-        return containingClass.constructors.flatMap { constructor ->
+        return containingClass.constructorsWithSuperClasses.flatMap { constructor ->
             val assignments =
                 findChildrenOfType(constructor, PsiAssignmentExpression::class.java)
             val fieldAssignment =
@@ -285,11 +285,9 @@ object NamespaceExtractor {
      */
     private fun getCallToSuperConstructor(
         currentConstructor: PsiMethod?,
-        constructorAssignments: List<FieldAndConstructorAssignment>,
     ): PsiMethodCallExpression? {
         return findChildrenOfType(currentConstructor, PsiMethodCallExpression::class.java).firstOrNull {
-            it.methodExpression.text == "super" &&
-                    it.methodExpression.resolve() == constructorAssignments.first().constructor
+            it.methodExpression.text == "super"
         }
     }
 
@@ -481,3 +479,7 @@ private fun PsiType?.guessAssignmentConcept(project: Project): AssignmentConcept
 
 private fun HasCollectionReference.CollectionReference<PsiElement>.isNotUnknown(): Boolean =
     !this.equals(HasCollectionReference.Unknown)
+
+private val PsiClass.constructorsWithSuperClasses: List<PsiMethod>
+    get() = constructors.toList() +
+        (superClass?.constructorsWithSuperClasses ?: emptyList<PsiMethod>())
