@@ -677,11 +677,8 @@ class BaseDao<Entity> {
 }
 
 class ActorDao extends BaseDao<Actor> {
-  static final String DB = DaoConstants.DB_NAME;
-  static final String COLLECTION = "myCollection";
-
   public ActorDao(MongoClient client, String dbName, String collectionName) {
-    super(client, Actor.class, DB, COLLECTION);
+    super(client, Actor.class, Actor.DB, Actor.COLLECTION);
   }
   
   public Optional<Actor> findById(String id) {
@@ -721,6 +718,9 @@ class AnotherDao3 extends BaseDao<Another> {
 }
 
 class Actor {
+   public static final String DB = DaoConstants.DB_NAME;
+   public static final String COLLECTION = "myCollection";
+     
   @BsonId
   public String id;
 

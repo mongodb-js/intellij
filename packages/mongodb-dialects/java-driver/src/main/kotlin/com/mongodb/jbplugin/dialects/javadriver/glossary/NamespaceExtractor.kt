@@ -33,8 +33,8 @@ object NamespaceExtractor {
             }
         }
 
-        var database = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.DATABASE }
-        var collection = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.COLLECTION }
+        val database = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.DATABASE }
+        val collection = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.COLLECTION }
 
         if (database == null && collection != null) {
             return HasCollectionReference(
@@ -111,6 +111,8 @@ object NamespaceExtractor {
         return when (currentRef) {
             is Either.Right ->
                 if (!doShareHierarchy(currentRef.value.element.findContainingClass(), currentClass)) {
+                    Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
+                } else if (currentRef.value.element.findContainingClass() == currentClass) {
                     Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
                 } else {
                     null
@@ -296,15 +298,18 @@ object NamespaceExtractor {
     }
 
     private fun doShareHierarchy(a: PsiClass, b: PsiClass): Boolean {
-        fun superClassesOf(a: PsiClass): List<PsiClass> {
-            if (a.superClass == null) {
+        fun superClassesOf(current: PsiClass): List<PsiClass> {
+            if (current.superClass == null) {
                 return emptyList()
             }
 
-            return superClassesOf(a.superClass!!) + a
+            return superClassesOf(current.superClass!!) + current
         }
 
-        return (superClassesOf(a) - superClassesOf(b)).isNotEmpty()
+        val aClasses = superClassesOf(a)
+        val bClasses = superClassesOf(b)
+
+        return aClasses.intersect(bClasses).isNotEmpty()
     }
 
     private fun Either<PsiElement, PsiReference>.tryToResolveAsConstantString(): String? {
