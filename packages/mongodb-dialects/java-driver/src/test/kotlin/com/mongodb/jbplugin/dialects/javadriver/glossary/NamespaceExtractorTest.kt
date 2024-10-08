@@ -627,36 +627,48 @@ class Actor {
         """
 import com.mongodb.ReadConcern;import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.Filters;
+import com.mongodb.client.MongoDatabase;import com.mongodb.client.model.Filters;
 import java.util.List;
 import java.util.Optional;
 import org.bson.Document;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
+class MongoClientContainer {
+    public MongoClient getClient() {
+        return null;
+    }
+}
+
 class BaseDao<Entity> {
-  private final MongoClient client;
-  private final String dbName;
-  private final String collName;
+  private final MongoClientContainer clientContainer;
+  protected final String dbName;
+  protected final String collName;
   private final Class<Entity> docClass;
   
-  protected BaseDao(MongoClient client, Class<Entity> entityClass, String dbName, String collectionName) {
-    this(client, entityClass, dbName, collectionName, false);
+  protected BaseDao(MongoClientContainer clientContainer, Class<Entity> entityClass, String dbName, String collectionName) {
+    this(clientContainer, entityClass, dbName, collectionName, false);
   }
   
-  protected BaseDao(MongoClient client, Class<Entity> entityClass, String dbName, String collectionName, boolean unused) {
-    this.client = client;
+  protected BaseDao(MongoClientContainer clientContainer, Class<Entity> entityClass, String dbName, String collectionName, boolean unused) {
+    this.clientContainer = clientContainer;
     this.dbName = dbName;
     this.collName = collectionName;
     this.docClass = entityClass;
   }
   
   protected MongoClient getClient() {
-    return client;
+    return clientContainer.getClient();
   }
   
-  protected MongoColleciton<T> getCollection() {
-    return getClient().getDatabase(dbName).getCollection(collName);
+  protected MongoCollection<T> getCollection() {
+    return getDatabase(getClient(), dbName)
+            .getCollection(collName, docClass)
+            .withCodecRegistry(CodecRegistries.fromRegistries());
+  }
+  
+  protected MongoDatabase getDatabase(MongoClient client, String databaseName) {
+    return client.getDatabase(databaseName);
   }
 }
 
@@ -674,7 +686,9 @@ class ActorDao extends BaseDao<Actor> {
   
   @Override
   protected MongoCollection<Actor> getCollection() {
-      return super.getCollection().withReadConcern(ReadConcern.MAJORITY).withWriteConcern(WriteConcern.MAJORITY);
+      return super.getCollection()
+                .withReadConcern(ReadConcern.MAJORITY)
+                .withWriteConcern(WriteConcern.MAJORITY);
   }
 }
 
