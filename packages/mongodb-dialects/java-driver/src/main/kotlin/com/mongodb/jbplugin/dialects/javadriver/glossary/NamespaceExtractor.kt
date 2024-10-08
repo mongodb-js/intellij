@@ -159,8 +159,11 @@ object NamespaceExtractor {
             methodCall.argumentList.expressions.getOrNull(paramIndex)?.let {
                 if (it.reference == null) {
                     Either.left(it)
-                } else {
+                } else if (doesClassInherit(it.reference?.element?.findContainingClass(), currentClass)) {
+                    doesClassInherit(it.reference?.element?.findContainingClass(), currentClass)
                     Either.right(it.reference!!)
+                } else {
+                    null
                 }
             }
         }
@@ -271,7 +274,11 @@ object NamespaceExtractor {
           }.toSet()
     }
 
-    private fun doesClassInherit(parent: PsiClass, child: PsiClass): Boolean {
+    private fun doesClassInherit(parent: PsiClass?, child: PsiClass): Boolean {
+        if (parent == null) {
+            return false
+        }
+
         if (child == parent) {
             return true
         }
@@ -280,7 +287,7 @@ object NamespaceExtractor {
             return false
         }
 
-        return doesClassInherit(child.superClass!!, parent)
+        return doesClassInherit(parent, child.superClass!!)
     }
 
     private fun Either<PsiElement, PsiReference>.tryToResolveAsConstantString(): String? {

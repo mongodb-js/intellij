@@ -692,7 +692,42 @@ class ActorDao extends BaseDao<Actor> {
   }
 }
 
+class AnotherDao extends BaseDao<Another> {
+  static final String DB = "myAnotherDatabase";
+  static final String COLLECTION = "myAnotherCollection";
+
+  public AnotherDao(MongoClient client, String dbName, String collectionName) {
+    super(client, Actor.class, DB, COLLECTION);
+  }
+}
+
+class AnotherDao2 extends BaseDao<Another> {
+  static final String DB = "myAnotherDatabase";
+  static final String COLLECTION = "myAnotherCollection";
+
+  public AnotherDao2(MongoClient client, String dbName, String collectionName) {
+    super(client, Actor.class, DB, COLLECTION);
+  }
+}
+
+class AnotherDao3 extends BaseDao<Another> {
+  static final String DB = "myAnotherDatabase";
+  static final String COLLECTION = "myAnotherCollection";
+
+  public AnotherDao3(MongoClient client, String dbName, String collectionName) {
+    super(client, Actor.class, DB, COLLECTION);
+  }
+}
+
 class Actor {
+  @BsonId
+  public String id;
+
+  @BsonProperty
+  public List<Document> policyAssignments;
+}
+
+class Another {
   @BsonId
   public String id;
 
