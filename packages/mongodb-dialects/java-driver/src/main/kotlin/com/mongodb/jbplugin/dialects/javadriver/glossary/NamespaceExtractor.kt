@@ -109,11 +109,12 @@ object NamespaceExtractor {
         }
 
         return when (currentRef) {
-            is Either.Right -> if (currentRef.value.element.findContainingClass() == currentClass) {
-                return Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
-            } else {
-                null
-            }
+            is Either.Right ->
+                if (!doShareHierarchy(currentRef.value.element.findContainingClass(), currentClass)) {
+                    Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
+                } else {
+                    null
+                }
             else -> currentRef
         }
     }
@@ -292,6 +293,18 @@ object NamespaceExtractor {
         }
 
         return doesClassInherit(parent, child.superClass!!)
+    }
+
+    private fun doShareHierarchy(a: PsiClass, b: PsiClass): Boolean {
+        fun superClassesOf(a: PsiClass): List<PsiClass> {
+            if (a.superClass == null) {
+                return emptyList()
+            }
+
+            return superClassesOf(a.superClass!!) + a
+        }
+
+        return (superClassesOf(a) - superClassesOf(b)).isNotEmpty()
     }
 
     private fun Either<PsiElement, PsiReference>.tryToResolveAsConstantString(): String? {

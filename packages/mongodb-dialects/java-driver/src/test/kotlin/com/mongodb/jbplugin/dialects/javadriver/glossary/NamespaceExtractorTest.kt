@@ -634,6 +634,10 @@ import org.bson.Document;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
+class DaoConstants {
+    public static final String DB_NAME = "myDatabase";
+}
+
 class MongoClientContainer {
     public MongoClient getClient() {
         return null;
@@ -673,7 +677,7 @@ class BaseDao<Entity> {
 }
 
 class ActorDao extends BaseDao<Actor> {
-  static final String DB = "myDatabase";
+  static final String DB = DaoConstants.DB_NAME;
   static final String COLLECTION = "myCollection";
 
   public ActorDao(MongoClient client, String dbName, String collectionName) {
