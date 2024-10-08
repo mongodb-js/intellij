@@ -466,7 +466,7 @@ abstract class AbstractBaseRepository {
 }
 
 abstract class BaseAuthBaseRepository extends AbstractBaseRepository {
-    protected AbstractBaseRepository(MongoClient client, String database, String collection) {
+    protected BaseAuthBaseRepository(MongoClient client, String database, String collection) {
         super(client, database, collection);
     }
 }
@@ -493,6 +493,206 @@ public class JavaDriverRepository extends BaseAuthBaseRepository {
                     methodToAnalyse
                 ).reference as HasCollectionReference.Known<PsiElement>
                 ).namespace
+        assertEquals("myDatabase", namespace.database)
+        assertEquals("myCollection", namespace.collection)
+    }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+abstract class Actor {
+    public static final String DB_NAME = "myDatabase";
+    public static final String COLLECTION_NAME = "myCollection";
+}
+
+abstract class BaseDao<T> {
+    private final MongoClient client;
+    private final String database;
+    private final String collection;
+
+    protected BaseDao(MongoClient client, String database, String collection) {
+        this(client, database, collection, true);
+    }
+    
+     protected BaseDao(MongoClient client, String database, String collection, boolean unused1) {
+        this(client, database, collection, unused1, true);
+    }
+    
+    protected BaseDao(MongoClient client, String database, String collection, boolean unused1, boolean unused2) {
+        this.client = client;
+        this.database = database;
+        this.collection = collection;
+    }
+
+    protected MongoDatabase getDatabase(MongoClient client, String databaseName) {
+        return client.getDatabase(databaseName);
+    }
+    
+    protected final MongoCollection<T> getCollection() {
+        return getDatabase(client, database)
+               .getCollection(collection);
+    }
+}
+
+public class ActorDao extends BaseDao<Actor> {
+    public ActorDao(MongoClient client) {
+        super(client, Actor.DB_NAME, Actor.COLLECTION_NAME);
+    }
+
+    public FindIterable<Document> exampleFind() {
+        return getCollection().find();
+    }
+}
+        """,
+    )
+    fun `extracts from a mms like example with multiple super classes and references to this`(
+        psiFile: PsiFile
+    ) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("ActorDao", "exampleFind")
+        val namespace =
+            (
+                NamespaceExtractor.extractNamespace(
+                    methodToAnalyse
+                ).reference as HasCollectionReference.Known<PsiElement>
+                ).namespace
+        assertEquals("myDatabase", namespace.database)
+        assertEquals("myCollection", namespace.collection)
+    }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import java.util.List;
+import java.util.Optional;
+import org.bson.Document;
+import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+
+class BaseDao<Entity> {
+  protected MongoCollection<Entity> collection;
+
+  BaseDao(MongoClient client, Class<Entity> entityClass, String dbName, String collectionName) {
+    this.collection = client.getDatabase(dbName).getCollection(collectionName).withDocumentClass(entityClass);
+  }
+
+  public Optional<Entity> findById(String id) {
+    return Optional.ofNullable(collection.find(Filters.eq("_id", id)).first());
+  }
+}
+
+class ActorDao extends BaseDao<Actor> {
+  static final String DB = "myDatabase";
+  static final String COLLECTION = "myCollection";
+
+  public ActorDao(MongoClient client, String dbName, String collectionName) {
+    super(client, Actor.class, DB, COLLECTION);
+  }
+  
+  public Optional<Actor> getById(String id) {
+    return findById(id);  
+  }
+}
+
+class Actor {
+  @BsonId
+  public String id;
+
+  @BsonProperty
+  public List<Document> policyAssignments;
+}
+        """,
+    )
+    fun `inheritance with document class and generics`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("ActorDao", "getById")
+        val namespace = (
+            NamespaceExtractor.extractNamespace(methodToAnalyse).reference
+                as HasCollectionReference.Known<PsiElement>
+            ).namespace
+        assertEquals("myDatabase", namespace.database)
+        assertEquals("myCollection", namespace.collection)
+    }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.ReadConcern;import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import java.util.List;
+import java.util.Optional;
+import org.bson.Document;
+import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+
+class BaseDao<Entity> {
+  private final MongoClient client;
+  private final String dbName;
+  private final String collName;
+  private final Class<Entity> docClass;
+  
+  protected BaseDao(MongoClient client, Class<Entity> entityClass, String dbName, String collectionName) {
+    this(client, entityClass, dbName, collectionName, false);
+  }
+  
+  protected BaseDao(MongoClient client, Class<Entity> entityClass, String dbName, String collectionName, boolean unused) {
+    this.client = client;
+    this.dbName = dbName;
+    this.collName = collectionName;
+    this.docClass = entityClass;
+  }
+  
+  protected MongoClient getClient() {
+    return client;
+  }
+  
+  protected MongoColleciton<T> getCollection() {
+    return getClient().getDatabase(dbName).getCollection(collName);
+  }
+}
+
+class ActorDao extends BaseDao<Actor> {
+  static final String DB = "myDatabase";
+  static final String COLLECTION = "myCollection";
+
+  public ActorDao(MongoClient client, String dbName, String collectionName) {
+    super(client, Actor.class, DB, COLLECTION);
+  }
+  
+  public Optional<Actor> findById(String id) {
+    return Optional.ofNullable(getCollection().find(Filters.eq("_id", id)).first()); 
+  }
+  
+  @Override
+  protected MongoCollection<Actor> getCollection() {
+      return super.getCollection().withReadConcern(ReadConcern.MAJORITY).withWriteConcern(WriteConcern.MAJORITY);
+  }
+}
+
+class Actor {
+  @BsonId
+  public String id;
+
+  @BsonProperty
+  public List<Document> policyAssignments;
+}
+        """,
+    )
+    fun `inheritance with document class and generics and overridden methods`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("ActorDao", "findById")
+        val namespace = (
+            NamespaceExtractor.extractNamespace(methodToAnalyse).reference
+                as HasCollectionReference.Known<PsiElement>
+            ).namespace
         assertEquals("myDatabase", namespace.database)
         assertEquals("myCollection", namespace.collection)
     }
