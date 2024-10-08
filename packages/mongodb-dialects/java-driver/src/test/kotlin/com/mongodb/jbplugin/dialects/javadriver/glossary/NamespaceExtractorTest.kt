@@ -711,11 +711,8 @@ class AnotherDao2 extends BaseDao<Another> {
 }
 
 class AnotherDao3 extends BaseDao<Another> {
-  static final String DB = "myAnotherDatabase";
-  static final String COLLECTION = "myAnotherCollection";
-
-  public AnotherDao3(MongoClient client, String dbName, String collectionName) {
-    super(client, Actor.class, DB, COLLECTION);
+  public AnotherDao3(MongoClient client) {
+    super(client, Actor.class, "myJsonDb", "myJsonColl");
   }
 }
 

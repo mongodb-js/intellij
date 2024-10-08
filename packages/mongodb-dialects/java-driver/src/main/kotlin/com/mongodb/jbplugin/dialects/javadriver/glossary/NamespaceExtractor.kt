@@ -22,7 +22,7 @@ object NamespaceExtractor {
         val setupMethods = findAllCandidateSetupMethodsForQuery(queryCollectionRef)
         val resolvableConcepts = setupMethods.flatMap {
             findAllResolvableConceptsInMethod(it)
-        }
+        }.distinctBy { (it.concept to it.usagePoint.textOffset) }
 
         val fillingExpressions = resolvableConcepts.mapNotNull { resolvable ->
             val element = findFillingExpressionForGivenResolvable(resolvable, currentClass)
@@ -74,6 +74,8 @@ object NamespaceExtractor {
         }
 
         var currentRef: Either<PsiElement, PsiReference> = resolvable.inputReference
+        var previousRef: Either<PsiElement, PsiReference>? = null
+
         var depth = 0
         // we do this in case we have a too complex recursive graph, we will just return null
         while (depth < maxReferenceDepth) {
@@ -95,6 +97,7 @@ object NamespaceExtractor {
             }
 
             if (nextReference != null) {
+                previousRef = currentRef
                 currentRef = nextReference
             } else {
                 break
@@ -157,10 +160,9 @@ object NamespaceExtractor {
         val paramIndex = psiParameter.index
         return methodCalls.firstNotNullOfOrNull { methodCall ->
             methodCall.argumentList.expressions.getOrNull(paramIndex)?.let {
-                if (it.reference == null) {
+                if (it.reference == null && doesClassInherit(it.findContainingClass(), currentClass)) {
                     Either.left(it)
                 } else if (doesClassInherit(it.reference?.element?.findContainingClass(), currentClass)) {
-                    doesClassInherit(it.reference?.element?.findContainingClass(), currentClass)
                     Either.right(it.reference!!)
                 } else {
                     null
@@ -208,7 +210,9 @@ object NamespaceExtractor {
             }
         }
 
-        return constructors + allMethods + currentMethod + allTransitiveMethods
+        return (constructors + allMethods + currentMethod + allTransitiveMethods).distinctBy {
+            it.textOffset
+        }.toSet()
     }
 
     /**
