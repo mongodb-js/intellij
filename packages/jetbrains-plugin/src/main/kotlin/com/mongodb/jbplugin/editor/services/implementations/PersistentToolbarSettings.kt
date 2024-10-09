@@ -40,6 +40,6 @@ private class PersistentToolbarSettings :
  *
  * @return
  */
-fun Project.useToolbarSettings(): ToolbarSettings = getService(
+fun Project.getToolbarSettings(): ToolbarSettings = getService(
     ToolbarSettingsStateComponent::class.java
 ).state

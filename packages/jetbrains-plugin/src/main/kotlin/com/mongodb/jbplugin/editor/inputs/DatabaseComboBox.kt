@@ -1,13 +1,16 @@
 package com.mongodb.jbplugin.editor.inputs
 
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.asSequence
 import com.intellij.ui.AnimatedIcon.ANIMATION_IN_RENDERER_ALLOWED
 import com.intellij.ui.components.JBLabel
-import com.mongodb.jbplugin.editor.models.DatabasesComboBoxLoadingState
+import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.i18n.Icons.scaledToText
 import com.mongodb.jbplugin.i18n.MdbToolbarMessages
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.awt.Component
 import java.awt.event.ItemEvent
 import java.awt.event.ItemListener
@@ -24,14 +27,10 @@ import javax.swing.event.PopupMenuListener
  * @param initialDatabases
  * @param initialSelectedDatabase
  */
-// Ktlint is reporting WRONG_WHITESPACE for line number 88 but everything seems alright there
-@Suppress("WRONG_WHITESPACE")
 class DatabaseComboBox(
     private val parent: JComponent,
-    private val onDatabaseSelected: (String) -> Unit,
-    private val onDatabaseUnselected: (String) -> Unit,
-    initialDatabases: List<String> = emptyList(),
-    initialSelectedDatabase: String? = null,
+    private val project: Project,
+    coroutineScope: CoroutineScope,
 ) {
     private val comboBoxComponent = DatabaseComboBoxComponent()
     private val comboBoxModel
@@ -47,11 +46,10 @@ class DatabaseComboBox(
         get() = comboBoxModel.selectedItem as String?
 
     private val selectionChangedListener: ItemListener = ItemListener { event ->
-        loadingDatabases = false
-        if (event.stateChange == ItemEvent.DESELECTED) {
-            onDatabaseUnselected(event.item as String)
+        if (event.stateChange == ItemEvent.DESELECTED && selectedDatabase == null) {
+            project.getToolbarModel().unselectDatabase(event.item as String)
         } else if (event.stateChange == ItemEvent.SELECTED) {
-            onDatabaseSelected(event.item as String)
+            project.getToolbarModel().selectDatabase(event.item as String)
         }
     }
     private val popupMenuListener = object : PopupMenuListener {
@@ -77,8 +75,17 @@ class DatabaseComboBox(
         comboBoxComponent.addPopupMenuListener(popupMenuListener)
         comboBoxComponent.setRenderer { _, value, index, _, _ -> renderComboBoxItem(value, index) }
 
-        populateComboBoxWithDatabases(initialDatabases)
-        selectDatabaseAndNotify(initialSelectedDatabase)
+        coroutineScope.launch {
+            project.getToolbarModel().toolbarState.collect { state ->
+                withoutSelectionChangedListener {
+                    loadingDatabases = state.databasesLoadingForSelectedDataSource
+                    if (state.databases != databases) {
+                        populateComboBoxWithDatabases(state.databases)
+                    }
+                    selectDatabaseAndNotify(state.selectedDatabase)
+                }
+            }
+        }
     }
 
     private fun withoutSelectionChangedListener(block: () -> Unit) {
@@ -134,30 +141,6 @@ class DatabaseComboBox(
     fun removeFromParent() {
         if (parent.components.contains(comboBoxComponent)) {
             parent.remove(comboBoxComponent)
-        }
-    }
-
-    fun setComboBoxState(databases: List<String>, selectedDatabase: String?) = withoutSelectionChangedListener {
-        populateComboBoxWithDatabases(databases)
-        selectDatabaseAndNotify(selectedDatabase)
-    }
-
-    fun unselectDatabase(database: String) {
-        if (selectedDatabase == database) {
-            selectDatabaseAndNotify(null)
-        }
-    }
-
-    fun onLoadingStateChanged(updatedLoadingState: DatabasesComboBoxLoadingState) {
-        when (updatedLoadingState) {
-            is DatabasesComboBoxLoadingState.Started -> loadingDatabases = true
-            is DatabasesComboBoxLoadingState.Finished -> {
-                loadingDatabases = false
-                populateComboBoxWithDatabases(updatedLoadingState.databases)
-                selectDatabaseAndNotify(updatedLoadingState.selectedDatabase)
-            }
-
-            is DatabasesComboBoxLoadingState.Errored -> loadingDatabases = false
         }
     }
 
