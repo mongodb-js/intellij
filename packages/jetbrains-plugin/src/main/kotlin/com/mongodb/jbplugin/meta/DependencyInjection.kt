@@ -50,7 +50,8 @@ private val asyncStatusRefreshScope = Dispatchers.IO.limitedParallelism(1)
 class AsyncState<E : Any, T : Any>(
     parent: Disposable,
     private val sharedFlow: SharedFlow<E>,
-    private val accessor: E.() -> T
+    private val accessor: E.() -> T,
+    private val onChange: suspend T.() -> Unit,
 ) : Disposable {
     private lateinit var state: T
     private val scope: CoroutineScope = CoroutineScope(asyncStatusRefreshScope)
@@ -58,7 +59,13 @@ class AsyncState<E : Any, T : Any>(
     init {
         scope.launchChildBackground {
             sharedFlow.collectLatest {
-                state = it.accessor()
+                val newState = it.accessor()
+                if (state != newState) {
+                    state = newState
+                    scope.launchChildBackground {
+                        state.onChange()
+                    }
+                }
             }
         }
 
@@ -95,16 +102,34 @@ class AsyncState<E : Any, T : Any>(
  * val computedNumber by sharedFlow.latest { numberInEvent * otherNumber }
  * ```
  *
+ * We can also react to changes if we provide an onChange callback. This callback will run in
+ * another coroutine and is a suspend function, so it can run more heavy functions.
+ *
+ * ```kt
+ * class EventNumber(val numberInEvent: Int, val otherNumber: Int)
+ * val sharedFlow: SharedFlow<EventNumber>
+ * val computedNumber by sharedFlow.latest(
+ *      onNewState = { numberInEvent * otherNumber },
+ *      onChange = {
+ *          val query = queryMongoDb(this) // this = the new state
+ *          setComboBoxModel(query)
+ *      }
+ * )
+ * ```
+ *
  * It will be closed when the current project is closed. If no projects are available,
  * it will be closed when the IDE is closed.
  */
 fun <E : Any, T : Any> SharedFlow<E>.latest(
     parent: Disposable = ProjectManager.getInstance().openProjects.firstOrNull()
         ?: ApplicationManager.getApplication(),
-    prop: E.() -> T
+    onNewState: E.() -> T,
+    onChange: suspend T.() -> Unit = {}
+
 ): AsyncState<E, T> =
     AsyncState(
         parent,
         this,
-        prop
+        onNewState,
+        onChange
     )
