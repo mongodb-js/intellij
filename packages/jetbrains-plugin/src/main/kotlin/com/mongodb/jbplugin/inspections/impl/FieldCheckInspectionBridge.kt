@@ -18,6 +18,7 @@ import com.mongodb.jbplugin.inspections.MongoDbInspection
 import com.mongodb.jbplugin.inspections.quickfixes.OpenConnectionChooserQuickFix
 import com.mongodb.jbplugin.linting.FieldCheckWarning
 import com.mongodb.jbplugin.linting.FieldCheckingLinter
+import com.mongodb.jbplugin.meta.injecting
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import kotlinx.coroutines.CoroutineScope
@@ -52,9 +53,7 @@ internal object FieldCheckLinterInspection : MongoDbInspection {
             return registerNoDatabaseSelectedProblem(coroutineScope, problems, query.source)
         }
 
-        val readModelProvider = query.source.project.getService(
-            DataGripBasedReadModelProvider::class.java
-        )
+        val readModelProvider by query.source.project.injecting<DataGripBasedReadModelProvider>()
 
         val result =
             FieldCheckingLinter.lintQuery(

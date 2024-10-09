@@ -23,12 +23,13 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.common.cleanApplicationState
 import com.intellij.testFramework.common.initTestApplication
 import com.intellij.testFramework.replaceService
+import com.mongodb.jbplugin.meta.injecting
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.LogMessageBuilder
 import com.mongodb.jbplugin.observability.RuntimeInformation
 import com.mongodb.jbplugin.observability.RuntimeInformationService
 import com.mongodb.jbplugin.settings.PluginSettings
-import com.mongodb.jbplugin.settings.useSettings
+import com.mongodb.jbplugin.settings.PluginSettingsStateComponent
 import kotlinx.coroutines.test.TestScope
 import org.junit.jupiter.api.extension.*
 import org.mockito.Mockito.mock
@@ -70,7 +71,8 @@ private class IntegrationTestExtension :
             )!!
         }
 
-        settings = useSettings()
+        val settingComponent by injecting<PluginSettingsStateComponent>()
+        settings = settingComponent.state
         settings.isTelemetryEnabled = true
         testScope = TestScope()
         project.withMockedService(application.getService(ClientSessionsManager::class.java))

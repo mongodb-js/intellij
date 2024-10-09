@@ -10,6 +10,7 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.util.ui.FormBuilder
 import com.mongodb.jbplugin.i18n.SettingsMessages
 import com.mongodb.jbplugin.i18n.TelemetryMessages
+import com.mongodb.jbplugin.meta.injecting
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -27,21 +28,22 @@ class PluginSettingsConfigurable : Configurable {
     }
 
     override fun isModified(): Boolean {
-        val savedSettings = useSettings()
+        val savedSettings by injecting<PluginSettingsStateComponent>()
         return settingsComponent.isTelemetryEnabledCheckBox.isSelected !=
-            savedSettings.isTelemetryEnabled
+            savedSettings.state.isTelemetryEnabled
     }
 
     override fun apply() {
-        val savedSettings =
-            useSettings().apply {
-                isTelemetryEnabled = settingsComponent.isTelemetryEnabledCheckBox.isSelected
-            }
+        val savedSettings by injecting<PluginSettingsStateComponent>()
+        savedSettings.state.apply {
+            isTelemetryEnabled = settingsComponent.isTelemetryEnabledCheckBox.isSelected
+        }
     }
 
     override fun reset() {
-        val savedSettings = useSettings()
-        settingsComponent.isTelemetryEnabledCheckBox.isSelected = savedSettings.isTelemetryEnabled
+        val savedSettings by injecting<PluginSettingsStateComponent>()
+        settingsComponent.isTelemetryEnabledCheckBox.isSelected =
+            savedSettings.state.isTelemetryEnabled
     }
 
     override fun getDisplayName() = SettingsMessages.message("settings.display-name")

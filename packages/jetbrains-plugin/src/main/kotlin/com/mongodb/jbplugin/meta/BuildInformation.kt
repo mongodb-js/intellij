@@ -16,6 +16,6 @@ object BuildInformation {
     private val properties: Properties = Properties().also {
         it.load(BuildInformation::class.java.getResourceAsStream("/build.properties"))
     }
-    val pluginVersion = properties["pluginVersion"]!!.toString()
-    val segmentApiKey = properties["segmentApiKey"]!!.toString()
+    val pluginVersion: String by properties
+    val segmentApiKey: String by properties
 }

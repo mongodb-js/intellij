@@ -16,6 +16,7 @@ import com.intellij.ide.PowerSaveMode
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.mongodb.jbplugin.meta.BuildInformation
+import com.mongodb.jbplugin.meta.injecting
 
 /**
  * @param gson
@@ -62,10 +63,7 @@ class LogMessage {
     private val gson = GsonBuilder().generateNonExecutableJson().disableJdkUnsafe().create()
 
     fun message(key: String): LogMessageBuilder {
-        val runtimeInformationService =
-            ApplicationManager.getApplication().getService(
-                RuntimeInformationService::class.java,
-            )
+        val runtimeInformationService by injecting<RuntimeInformationService>()
         val runtimeInformation = runtimeInformationService.get()
 
         return LogMessageBuilder(gson, key)

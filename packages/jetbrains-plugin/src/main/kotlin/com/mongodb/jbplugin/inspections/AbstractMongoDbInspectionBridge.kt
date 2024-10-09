@@ -10,6 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.editor.CachedQueryService
 import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.editor.dialect
+import com.mongodb.jbplugin.meta.injecting
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -51,7 +52,7 @@ abstract class AbstractMongoDbInspectionBridge(
                     val dataSource = fileInExpression.dataSource
                     val dialect = expression.containingFile.dialect ?: return@runReadAction
 
-                    val queryService = expression.project.getService(CachedQueryService::class.java)
+                    val queryService by expression.project.injecting<CachedQueryService>()
                     queryService.queryAt(expression)?.let { query ->
                         fileInExpression.virtualFile?.let {
                             inspection.visitMongoDbQuery(

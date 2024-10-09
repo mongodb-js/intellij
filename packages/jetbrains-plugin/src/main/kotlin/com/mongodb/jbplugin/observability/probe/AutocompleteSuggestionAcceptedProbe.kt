@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.dialects.Dialect
+import com.mongodb.jbplugin.meta.injecting
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.useLogMessage
@@ -75,8 +76,7 @@ class AutocompleteSuggestionAcceptedProbe(
         val listCopy = events.toList()
         events.clear()
 
-        val application = ApplicationManager.getApplication()
-        val telemetry = application.getService(TelemetryService::class.java)
+        val telemetry by injecting<TelemetryService>()
 
         listCopy
             .groupingBy {

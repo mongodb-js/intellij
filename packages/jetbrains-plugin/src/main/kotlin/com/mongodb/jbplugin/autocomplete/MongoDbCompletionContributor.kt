@@ -9,7 +9,6 @@ import com.intellij.codeInsight.lookup.AutoCompletionPolicy
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.database.dataSource.localDataSource
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.ElementPatternCondition
@@ -35,6 +34,7 @@ import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.editor.database
 import com.mongodb.jbplugin.editor.dialect
 import com.mongodb.jbplugin.i18n.Icons
+import com.mongodb.jbplugin.meta.injecting
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.observability.probe.AutocompleteSuggestionAcceptedProbe
@@ -65,10 +65,7 @@ internal object Database {
             result: CompletionResultSet,
         ) {
             val dataSource = parameters.originalFile.dataSource!!
-            val readModelProvider =
-                parameters.originalFile.project.getService(
-                    DataGripBasedReadModelProvider::class.java,
-                )
+            val readModelProvider by parameters.originalFile.project.injecting<DataGripBasedReadModelProvider>()
 
             val completions =
                 Autocompletion.autocompleteDatabases(
@@ -100,10 +97,7 @@ internal object Collection {
 
             database ?: return
 
-            val readModelProvider =
-                parameters.originalFile.project.getService(
-                    DataGripBasedReadModelProvider::class.java,
-                )
+            val readModelProvider by parameters.originalFile.project.injecting<DataGripBasedReadModelProvider>()
 
             val completions =
                 Autocompletion.autocompleteCollections(
@@ -137,10 +131,8 @@ internal object Field {
             if (database == null || collection == null) {
                 return
             }
-            val readModelProvider =
-                parameters.originalFile.project.getService(
-                    DataGripBasedReadModelProvider::class.java,
-                )
+
+            val readModelProvider by parameters.originalFile.project.injecting<DataGripBasedReadModelProvider>()
 
             val completions =
                 Autocompletion.autocompleteFields(
@@ -196,10 +188,7 @@ private object MongoDbElementPatterns {
             LookupElementBuilder
                 .create(entry)
                 .withInsertHandler { _, _ ->
-                    val application = ApplicationManager.getApplication()
-                    val probe = application.getService(
-                        AutocompleteSuggestionAcceptedProbe::class.java
-                    )
+                    val probe by injecting<AutocompleteSuggestionAcceptedProbe>()
 
                     when (this.type) {
                         AutocompletionEntry.AutocompletionEntryType.DATABASE ->
