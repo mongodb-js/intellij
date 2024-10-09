@@ -23,7 +23,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.common.cleanApplicationState
 import com.intellij.testFramework.common.initTestApplication
 import com.intellij.testFramework.replaceService
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.observability.LogMessage
 import com.mongodb.jbplugin.observability.LogMessageBuilder
 import com.mongodb.jbplugin.observability.RuntimeInformation
@@ -71,7 +71,7 @@ private class IntegrationTestExtension :
             )!!
         }
 
-        val settingComponent by injecting<PluginSettingsStateComponent>()
+        val settingComponent by service<PluginSettingsStateComponent>()
         settings = settingComponent.state
         settings.isTelemetryEnabled = true
         testScope = TestScope()

@@ -14,7 +14,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import com.mongodb.jbplugin.i18n.TelemetryMessages
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.observability.probe.PluginActivatedProbe
 import com.mongodb.jbplugin.settings.PluginSettingsConfigurable
 import com.mongodb.jbplugin.settings.pluginSetting
@@ -54,7 +54,7 @@ class ActivatePluginPostStartupActivity(
 ) : StartupActivity, DumbAware {
     override fun runActivity(project: Project) {
         cs.launch {
-            val pluginActivated by injecting<PluginActivatedProbe>()
+            val pluginActivated by service<PluginActivatedProbe>()
             pluginActivated.pluginActivated()
 
             var firstTimeTelemetry by pluginSetting<Boolean> {

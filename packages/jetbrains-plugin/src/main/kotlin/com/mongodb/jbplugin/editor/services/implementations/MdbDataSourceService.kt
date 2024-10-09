@@ -16,7 +16,7 @@ import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
 import com.mongodb.jbplugin.editor.services.ConnectionState
 import com.mongodb.jbplugin.editor.services.DataSourceService
 import com.mongodb.jbplugin.editor.services.DatabasesLoadingState
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import kotlinx.coroutines.CoroutineScope
 
 private val log = logger<MdbDataSourceService>()
@@ -44,7 +44,7 @@ class MdbDataSourceService(
         coroutineScope.launchChildBackground {
             onLoadingStateChanged(DatabasesLoadingState.Started)
             try {
-                val readModel by project.injecting<DataGripBasedReadModelProvider>()
+                val readModel by project.service<DataGripBasedReadModelProvider>()
                 val databases = readModel.slice(dataSource, ListDatabases.Slice)
                 onLoadingStateChanged(
                     DatabasesLoadingState.Finished(databases.databases.map { it.name })

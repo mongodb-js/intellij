@@ -18,7 +18,7 @@ import com.mongodb.jbplugin.inspections.MongoDbInspection
 import com.mongodb.jbplugin.inspections.quickfixes.OpenConnectionChooserQuickFix
 import com.mongodb.jbplugin.linting.NamespaceCheckWarning
 import com.mongodb.jbplugin.linting.NamespaceCheckingLinter
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.mql.Node
 import kotlinx.coroutines.CoroutineScope
 
@@ -48,7 +48,7 @@ internal object NamespaceCheckingLinterInspection : MongoDbInspection {
             return
         }
 
-        val readModelProvider by query.source.project.injecting<DataGripBasedReadModelProvider>()
+        val readModelProvider by query.source.project.service<DataGripBasedReadModelProvider>()
         val result =
             NamespaceCheckingLinter.lintQuery(
                 dataSource,

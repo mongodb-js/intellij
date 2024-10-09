@@ -6,7 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.meta.BuildInformation
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.settings.pluginSetting
 import com.segment.analytics.Analytics
 import com.segment.analytics.messages.TrackMessage
@@ -41,7 +41,7 @@ internal class TelemetryService : AppLifecycleListener {
             return
         }
 
-        val runtimeInformationService by injecting<RuntimeInformationService>()
+        val runtimeInformationService by service<RuntimeInformationService>()
         val runtimeInfo = runtimeInformationService.get()
 
         val message = TrackMessage.builder(event.name)

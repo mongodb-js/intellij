@@ -10,7 +10,7 @@ import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.accessadapter.slice.BuildInfo
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.useLogMessage
@@ -39,8 +39,8 @@ class ConnectionFailureProbe : DatabaseConnectionManager.Listener {
 
         val exception = if (th is SQLException) th.cause else th
 
-        val telemetryService by injecting<TelemetryService>()
-        val readModelProvider by project.injecting<DataGripBasedReadModelProvider>()
+        val telemetryService by service<TelemetryService>()
+        val readModelProvider by project.service<DataGripBasedReadModelProvider>()
 
         val dataSource = connectionPoint.dataSource
         val serverInfo = readModelProvider.slice(dataSource, BuildInfo.Slice)

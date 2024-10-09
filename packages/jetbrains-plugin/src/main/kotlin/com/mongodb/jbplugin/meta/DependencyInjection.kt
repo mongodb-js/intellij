@@ -11,10 +11,10 @@ class DependencyInjection<out T>(private val cm: ComponentManager, private val j
     }
 }
 
-inline fun <reified T> injecting(): DependencyInjection<T> {
+inline fun <reified T> service(): DependencyInjection<T> {
     return DependencyInjection(ApplicationManager.getApplication(), T::class.java)
 }
 
-inline fun <reified T> Project.injecting(): DependencyInjection<T> {
+inline fun <reified T> Project.service(): DependencyInjection<T> {
     return DependencyInjection(this, T::class.java)
 }

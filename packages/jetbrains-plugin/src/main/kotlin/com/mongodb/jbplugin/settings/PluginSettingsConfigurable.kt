@@ -10,7 +10,7 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.util.ui.FormBuilder
 import com.mongodb.jbplugin.i18n.SettingsMessages
 import com.mongodb.jbplugin.i18n.TelemetryMessages
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -28,20 +28,20 @@ class PluginSettingsConfigurable : Configurable {
     }
 
     override fun isModified(): Boolean {
-        val savedSettings by injecting<PluginSettingsStateComponent>()
+        val savedSettings by service<PluginSettingsStateComponent>()
         return settingsComponent.isTelemetryEnabledCheckBox.isSelected !=
             savedSettings.state.isTelemetryEnabled
     }
 
     override fun apply() {
-        val savedSettings by injecting<PluginSettingsStateComponent>()
+        val savedSettings by service<PluginSettingsStateComponent>()
         savedSettings.state.apply {
             isTelemetryEnabled = settingsComponent.isTelemetryEnabledCheckBox.isSelected
         }
     }
 
     override fun reset() {
-        val savedSettings by injecting<PluginSettingsStateComponent>()
+        val savedSettings by service<PluginSettingsStateComponent>()
         settingsComponent.isTelemetryEnabledCheckBox.isSelected =
             savedSettings.state.isTelemetryEnabled
     }

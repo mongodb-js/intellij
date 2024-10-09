@@ -13,7 +13,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.accessadapter.slice.BuildInfo
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasTargetCluster
 import io.github.z4kn4fein.semver.Version
@@ -71,7 +71,7 @@ class CachedQueryService(
 
         return runCatching {
             if (dataSource != null && dataSource.isConnected()) {
-                val readModel by query.source.project.injecting<DataGripBasedReadModelProvider>()
+                val readModel by query.source.project.service<DataGripBasedReadModelProvider>()
                 val buildInfo = readModel.slice(dataSource, BuildInfo.Slice)
 
                 queryWithDb.withTargetCluster(

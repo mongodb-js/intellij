@@ -34,7 +34,7 @@ import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.editor.database
 import com.mongodb.jbplugin.editor.dialect
 import com.mongodb.jbplugin.i18n.Icons
-import com.mongodb.jbplugin.meta.injecting
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.observability.probe.AutocompleteSuggestionAcceptedProbe
@@ -65,7 +65,7 @@ internal object Database {
             result: CompletionResultSet,
         ) {
             val dataSource = parameters.originalFile.dataSource!!
-            val readModelProvider by parameters.originalFile.project.injecting<DataGripBasedReadModelProvider>()
+            val readModelProvider by parameters.originalFile.project.service<DataGripBasedReadModelProvider>()
 
             val completions =
                 Autocompletion.autocompleteDatabases(
@@ -97,7 +97,7 @@ internal object Collection {
 
             database ?: return
 
-            val readModelProvider by parameters.originalFile.project.injecting<DataGripBasedReadModelProvider>()
+            val readModelProvider by parameters.originalFile.project.service<DataGripBasedReadModelProvider>()
 
             val completions =
                 Autocompletion.autocompleteCollections(
@@ -132,7 +132,7 @@ internal object Field {
                 return
             }
 
-            val readModelProvider by parameters.originalFile.project.injecting<DataGripBasedReadModelProvider>()
+            val readModelProvider by parameters.originalFile.project.service<DataGripBasedReadModelProvider>()
 
             val completions =
                 Autocompletion.autocompleteFields(
@@ -188,7 +188,7 @@ private object MongoDbElementPatterns {
             LookupElementBuilder
                 .create(entry)
                 .withInsertHandler { _, _ ->
-                    val probe by injecting<AutocompleteSuggestionAcceptedProbe>()
+                    val probe by service<AutocompleteSuggestionAcceptedProbe>()
 
                     when (this.type) {
                         AutocompletionEntry.AutocompletionEntryType.DATABASE ->
