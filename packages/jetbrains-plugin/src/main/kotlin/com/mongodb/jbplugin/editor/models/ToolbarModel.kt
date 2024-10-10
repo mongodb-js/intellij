@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
-import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -106,16 +105,6 @@ class ToolbarModel(
 
     fun initialise() {
         if (isInitialised.compareAndSet(false, true)) {
-            val toolbarSettings = project.getToolbarSettings()
-            val dataSourceToBeSelected = _toolbarState.value.dataSources.find {
-                it.uniqueId == toolbarSettings.dataSourceId
-            }
-            dataSourceToBeSelected?.let {
-                coroutineScope.launch {
-                    toolbarEvents.emit(DataSourceSelected(it, true))
-                }
-            }
-
             coroutineScope.launchChildBackground {
                 toolbarEvents.collect { toolbarEvent ->
                     when (toolbarEvent) {
@@ -152,35 +141,48 @@ class ToolbarModel(
                     }
                 }
             }
+
+            val toolbarSettings = project.getToolbarSettings()
+            _toolbarState.value.dataSources.find {
+                it.uniqueId == toolbarSettings.dataSourceId
+            }?.let {
+                coroutineScope.launchChildBackground {
+                    toolbarEvents.emit(DataSourceSelected(it, true))
+                }
+            }
         }
     }
 
     fun selectDataSource(dataSource: LocalDataSource) {
-        coroutineScope.launch { toolbarEvents.emit(DataSourceSelected(dataSource)) }
+        coroutineScope.launchChildBackground { toolbarEvents.emit(DataSourceSelected(dataSource)) }
     }
 
     fun unselectDataSource(dataSource: LocalDataSource) {
-        coroutineScope.launch { toolbarEvents.emit(DataSourceUnselected(dataSource)) }
+        coroutineScope.launchChildBackground {
+            toolbarEvents.emit(DataSourceUnselected(dataSource))
+        }
     }
 
     fun selectDatabase(database: String) {
-        coroutineScope.launch { toolbarEvents.emit(DatabaseSelected(database)) }
+        coroutineScope.launchChildBackground { toolbarEvents.emit(DatabaseSelected(database)) }
     }
 
     fun unselectDatabase(database: String) {
-        coroutineScope.launch { toolbarEvents.emit(DatabaseUnselected(database)) }
+        coroutineScope.launchChildBackground { toolbarEvents.emit(DatabaseUnselected(database)) }
     }
 
     fun dataSourcesChanged() {
-        coroutineScope.launch { toolbarEvents.emit(DataSourcesChanged) }
+        coroutineScope.launchChildBackground { toolbarEvents.emit(DataSourcesChanged) }
     }
 
     fun dataSourceRemoved(dataSource: LocalDataSource) {
-        coroutineScope.launch { toolbarEvents.emit(DataSourceRemoved(dataSource)) }
+        coroutineScope.launchChildBackground { toolbarEvents.emit(DataSourceRemoved(dataSource)) }
     }
 
     fun dataSourceTerminated(dataSource: LocalDataSource) {
-        coroutineScope.launch { toolbarEvents.emit(DataSourceTerminated(dataSource)) }
+        coroutineScope.launchChildBackground {
+            toolbarEvents.emit(DataSourceTerminated(dataSource))
+        }
     }
 
     suspend fun dataSourceConnectionStarted(dataSource: LocalDataSource) {
@@ -252,7 +254,11 @@ class ToolbarModel(
     ) {
         val oldState = _toolbarState.value
         val newState = _toolbarState.updateAndGet { previousState ->
-            if (previousState.selectedDataSource?.uniqueId != selectedDataSource.uniqueId) {
+            if (
+                previousState.selectedDataSource?.uniqueId != selectedDataSource.uniqueId &&
+                previousState.dataSources.find { it.uniqueId == selectedDataSource.uniqueId } !=
+                null
+            ) {
                 previousState.copy(
                     selectedDataSource = selectedDataSource,
                     selectedDataSourceConnecting = false,
@@ -269,10 +275,11 @@ class ToolbarModel(
 
         project.getDataSourceService().connect(selectedDataSource)
 
+        // Detach the previously attached DataSource and Database from Editor and ToolbarSettings
         if (
             newState.selectedDataSource?.uniqueId == selectedDataSource.uniqueId &&
             newState.selectedDatabase == null &&
-            // We would like to reset the database to null only when it is not an initial selection
+            // We would detach the previous selection only when it is not an initial selection
             !isInitialSelection
         ) {
             project.getToolbarSettings().database = null
@@ -413,7 +420,7 @@ class ToolbarModel(
         if (newState.selectedDatabase == null) {
             project.getToolbarSettings().database = null
             val editorService = project.getEditorService()
-            editorService.attachDatabaseToSelectedEditor(database)
+            editorService.detachDatabaseFromSelectedEditor(database)
             editorService.reAnalyzeSelectedEditor(applyReadAction = true)
         }
     }

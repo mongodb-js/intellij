@@ -24,10 +24,10 @@ import java.io.Serializable
         )
     ]
 )
-private class ToolbarSettingsStateComponent :
+internal class ToolbarSettingsStateComponent :
     SimplePersistentStateComponent<PersistentToolbarSettings>(PersistentToolbarSettings())
 
-private class PersistentToolbarSettings :
+internal class PersistentToolbarSettings :
     BaseState(),
     Serializable,
     ToolbarSettings {
