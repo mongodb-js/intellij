@@ -48,4 +48,35 @@ class SpringCriteriaContextExtractorTest {
         val context = SpringCriteriaContextExtractor.gatherContext(project)
         assertNull(context.database)
     }
+
+    @Test
+    @AdditionalFile(
+        fileName = "application.yaml",
+        value = """
+            spring:
+                data:
+                    mongodb:
+                        database: myDatabase
+        """
+    )
+    fun `does extract from the application yaml in a nested structure`(
+        project: Project
+    ) {
+        val context = SpringCriteriaContextExtractor.gatherContext(project)
+        assertEquals("myDatabase", context.database)
+    }
+
+    @Test
+    @AdditionalFile(
+        fileName = "application.yml",
+        value = """
+            spring.data.mongodb.database: myDatabase
+        """
+    )
+    fun `does extract from the application yaml in an inline structure`(
+        project: Project
+    ) {
+        val context = SpringCriteriaContextExtractor.gatherContext(project)
+        assertEquals("myDatabase", context.database)
+    }
 }
