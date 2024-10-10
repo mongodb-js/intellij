@@ -85,22 +85,22 @@ private fun <S> MongoshBackend.emitQueryBody(
     val named = node.component<Named>()
     val fieldRef = node.component<HasFieldReference<S>>()
     val valueRef = node.component<HasValueReference<S>>()
-    val hasChildren = node.component<HasChildren<S>>()
+    val hasFilter = node.component<HasFilter<S>>()
 
-    if (hasChildren != null && fieldRef == null && valueRef == null && named == null) {
+    if (hasFilter != null && fieldRef == null && valueRef == null && named == null) {
         // 1. has children, nothing else (root node)
         if (firstCall) {
             emitObjectStart()
         }
 
-        hasChildren.children.forEach {
+        hasFilter.children.forEach {
             emitQueryBody(it)
             emitObjectValueEnd()
         }
         if (firstCall) {
             emitObjectEnd()
         }
-    } else if (hasChildren == null && fieldRef != null && valueRef != null && named == null) {
+    } else if (hasFilter == null && fieldRef != null && valueRef != null && named == null) {
         // 2. no children, only a field: value case
         if (firstCall) {
             emitObjectStart()
@@ -126,7 +126,7 @@ private fun <S> MongoshBackend.emitQueryBody(
                     emitContextValue(resolveValueReference(valueRef, fieldRef))
                 }
 
-                hasChildren?.children?.forEach {
+                hasFilter?.children?.forEach {
                     emitQueryBody(it)
                     emitObjectValueEnd()
                 }
@@ -170,7 +170,7 @@ private fun <S> MongoshBackend.emitQueryBody(
                 }
                 emitObjectKey(registerConstant('$' + named.name.canonical))
                 emitArrayStart()
-                hasChildren?.children?.forEach {
+                hasFilter?.children?.forEach {
                     emitObjectStart()
                     emitQueryBody(it)
                     emitObjectEnd()
@@ -180,7 +180,7 @@ private fun <S> MongoshBackend.emitQueryBody(
                 if (firstCall) {
                     emitObjectEnd()
                 }
-            } else if (named.name == Name.NOT && hasChildren?.children?.size == 1) {
+            } else if (named.name == Name.NOT && hasFilter?.children?.size == 1) {
                 // the not operator is a special case
                 // because we receive it as:
                 // $not: { $field$: $condition$ }
@@ -188,7 +188,7 @@ private fun <S> MongoshBackend.emitQueryBody(
                 // $field$: { $not: $condition$ }
                 // we will do a JIT translation
 
-                var innerChild = hasChildren.children.first()
+                var innerChild = hasFilter.children.first()
                 val operation = innerChild.component<Named>()
                 val fieldRef = innerChild.component<HasFieldReference<S>>()
                 val valueRef = innerChild.component<HasValueReference<S>>()

@@ -41,7 +41,7 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val node = SpringCriteriaDialectParser.parse(query)
 
-        val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
         val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
         val collectionReference = node.component<HasCollectionReference<*>>()!!.reference
@@ -88,7 +88,7 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val node = SpringCriteriaDialectParser.parse(query)
 
-        val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
         val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
         val collectionReference = node.component<HasCollectionReference<*>>()!!.reference
@@ -135,7 +135,7 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allBooks")
         val node = SpringCriteriaDialectParser.parse(query)
 
-        val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
         val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
 
@@ -181,11 +181,11 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val node = SpringCriteriaDialectParser.parse(query)
 
-        val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
         val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
 
-        val whereHiddenIs0 = node.component<HasChildren<PsiElement>>()!!.children[1]
+        val whereHiddenIs0 = node.component<HasFilter<PsiElement>>()!!.children[1]
         val referenceToHidden = whereHiddenIs0.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceTo0 = whereHiddenIs0.component<HasValueReference<PsiElement>>()!!.reference
 
@@ -241,13 +241,13 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val node = SpringCriteriaDialectParser.parse(query)
 
-        val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
         val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
 
-        val andOperator = node.component<HasChildren<PsiElement>>()!!.children[1]
-        val hiddenIsFalse = andOperator.component<HasChildren<PsiElement>>()!!.children[0]
-        val validIsTrue = andOperator.component<HasChildren<PsiElement>>()!!.children[1]
+        val andOperator = node.component<HasFilter<PsiElement>>()!!.children[1]
+        val hiddenIsFalse = andOperator.component<HasFilter<PsiElement>>()!!.children[0]
+        val validIsTrue = andOperator.component<HasFilter<PsiElement>>()!!.children[1]
 
         val referenceToHidden = hiddenIsFalse.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceToFalse = hiddenIsFalse.component<HasValueReference<PsiElement>>()!!.reference
@@ -313,13 +313,13 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val node = SpringCriteriaDialectParser.parse(query)
 
-        val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
         val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
 
-        val orOperator = node.component<HasChildren<PsiElement>>()!!.children[1]
-        val hiddenIsFalse = orOperator.component<HasChildren<PsiElement>>()!!.children[0]
-        val validIsTrue = orOperator.component<HasChildren<PsiElement>>()!!.children[1]
+        val orOperator = node.component<HasFilter<PsiElement>>()!!.children[1]
+        val hiddenIsFalse = orOperator.component<HasFilter<PsiElement>>()!!.children[0]
+        val validIsTrue = orOperator.component<HasFilter<PsiElement>>()!!.children[1]
 
         val referenceToHidden = hiddenIsFalse.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceToFalse = hiddenIsFalse.component<HasValueReference<PsiElement>>()!!.reference
@@ -386,13 +386,13 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val node = SpringCriteriaDialectParser.parse(query)
 
-        val whereReleasedIsTrue = node.component<HasChildren<PsiElement>>()!!.children[0]
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
         val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
 
-        val norOperator = node.component<HasChildren<PsiElement>>()!!.children[1]
-        val hiddenIsFalse = norOperator.component<HasChildren<PsiElement>>()!!.children[0]
-        val validIsTrue = norOperator.component<HasChildren<PsiElement>>()!!.children[1]
+        val norOperator = node.component<HasFilter<PsiElement>>()!!.children[1]
+        val hiddenIsFalse = norOperator.component<HasFilter<PsiElement>>()!!.children[0]
+        val validIsTrue = norOperator.component<HasFilter<PsiElement>>()!!.children[1]
 
         val referenceToHidden = hiddenIsFalse.component<HasFieldReference<PsiElement>>()!!.reference
         val referenceToFalse = hiddenIsFalse.component<HasValueReference<PsiElement>>()!!.reference

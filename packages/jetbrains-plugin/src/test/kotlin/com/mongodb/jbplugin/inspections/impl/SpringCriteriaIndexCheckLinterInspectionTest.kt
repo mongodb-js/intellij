@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.inspections.impl
 
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.slice.ExplainQuery
@@ -55,7 +54,6 @@ class BookRepository {
         """,
     )
     fun `shows an inspection when the query is a collscan`(
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val (dataSource, readModelProvider) = fixture.setupConnection()

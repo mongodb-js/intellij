@@ -22,8 +22,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 
-// Ktlint is reporting LONG_LINE for line numbers that seems completely fine
-@Suppress("LONG_LINE")
 @IntegrationTest
 class EditorToolbarDecoratorTest {
     @Nested

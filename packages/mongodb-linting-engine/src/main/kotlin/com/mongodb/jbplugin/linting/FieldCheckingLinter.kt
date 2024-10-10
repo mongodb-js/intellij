@@ -8,9 +8,9 @@ import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.linting.FieldCheckWarning.FieldDoesNotExist
 import com.mongodb.jbplugin.mql.*
-import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.components.HasValueReference
 
 private typealias FieldCheckWarnings<S> = List<FieldCheckWarning<S>>
@@ -177,7 +177,7 @@ sealed interface Reference<S> {
 }
 
 private fun <S> Node<S>.getAllFieldAndValueReferences(): FieldAndValueReferences<S> {
-    val hasChildren = component<HasChildren<S>>()
+    val hasChildren = component<HasFilter<S>>()
     val otherRefs =
         hasChildren?.children?.flatMap { it.getAllFieldAndValueReferences() } ?: emptyList()
     val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs

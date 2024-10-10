@@ -426,7 +426,7 @@ public class Repository {
 
         val and = hasFilter.children[0]
         assertEquals(Name.AND, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
@@ -488,7 +488,7 @@ public class Repository {
 
         val and = hasFilter.children[0]
         assertEquals(Name.NOT, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
@@ -684,7 +684,7 @@ public class Repository {
 
         val and = hasFilter.children[0]
         assertEquals(Name.AND, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
@@ -935,9 +935,9 @@ public class Repository {
 
         val combine = hasUpdate.children[0]
         assertEquals(Name.COMBINE, combine.component<Named>()!!.name)
-        assertEquals(2, combine.component<HasChildren<Unit?>>()!!.children.size)
+        assertEquals(2, combine.component<HasFilter<Unit?>>()!!.children.size)
 
-        val updates = combine.component<HasChildren<Unit?>>()!!.children
+        val updates = combine.component<HasFilter<Unit?>>()!!.children
         assertEquals(Name.SET, updates[0].component<Named>()!!.name)
         assertEquals(Name.UNSET, updates[1].component<Named>()!!.name)
     }

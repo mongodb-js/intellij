@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.codeActions.impl
 
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.fixtures.CodeInsightTest
@@ -41,7 +40,6 @@ public class Repository {
         """,
     )
     fun `does show a gutter icon if not connected`(
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
@@ -75,7 +73,6 @@ public class Repository {
         """,
     )
     fun `does show a gutter icon if connected`(
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.setupConnection()

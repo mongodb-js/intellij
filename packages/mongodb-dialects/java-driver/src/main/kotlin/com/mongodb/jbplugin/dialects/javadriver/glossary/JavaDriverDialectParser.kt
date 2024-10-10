@@ -252,7 +252,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 filter,
                 listOf(
                     Named(Name.from(method.name)),
-                    HasChildren(
+                    HasFilter(
                         filter.argumentList.expressions
                             .mapNotNull { resolveToFiltersCall(it) }
                             .mapNotNull { parseFilterExpression(it) },
@@ -349,7 +349,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 filter,
                 listOf(
                     Named(Name.from(method.name)),
-                    HasChildren(
+                    HasFilter(
                         filter.argumentList.expressions
                             .mapNotNull { resolveToUpdatesCall(it) }
                             .mapNotNull { parseUpdatesExpression(it) },

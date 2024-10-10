@@ -1,7 +1,5 @@
 package com.mongodb.jbplugin.inspections.impl
 
-import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
@@ -46,7 +44,6 @@ public class Repository {
         """,
     )
     fun `shows an inspection when there is no connection attached to the current editor`(
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
@@ -81,8 +78,6 @@ public class Repository {
         """,
     )
     fun `shows an inspection when the field does not exist in the current namespace`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val (dataSource, readModelProvider) = fixture.setupConnection()
@@ -124,8 +119,6 @@ public class Repository {
         """,
     )
     fun `shows an inspection when a provided value cannot be assigned to a field because of detected type mismatch`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val (dataSource, readModelProvider) = fixture.setupConnection()
