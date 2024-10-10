@@ -15,6 +15,7 @@ import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
 import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.editor.services.DataSourceService
+import com.mongodb.jbplugin.observability.useLogMessage
 import io.ktor.util.collections.*
 import kotlinx.coroutines.CoroutineScope
 
@@ -47,7 +48,9 @@ class MdbDataSourceService(
                 )
             } catch (exception: Exception) {
                 log.error(
-                    "Error while listing databases for DataSource(${dataSource.uniqueId})",
+                    useLogMessage(
+                        "Error while listing databases for DataSource(${dataSource.uniqueId})"
+                    ).build(),
                     exception
                 )
                 toolbarModel.databasesLoadingFailed(dataSource, exception)
@@ -84,13 +87,17 @@ class MdbDataSourceService(
                 toolbarModel.dataSourceConnectionSuccessful(dataSource)
             } catch (exception: ConnectionNotConnectedException) {
                 log.warn(
-                    "Could not connect to DataSource(${dataSource.uniqueId})",
+                    useLogMessage(
+                        "Could not connect to DataSource(${dataSource.uniqueId})"
+                    ).build(),
                     exception
                 )
                 toolbarModel.dataSourceConnectionUnsuccessful(dataSource)
             } catch (exception: Exception) {
                 log.error(
-                    "Error while connecting to DataSource(${dataSource.uniqueId})",
+                    useLogMessage(
+                        "Error while connecting to DataSource(${dataSource.uniqueId})"
+                    ).build(),
                     exception
                 )
                 toolbarModel.dataSourceConnectionFailed(dataSource, exception)

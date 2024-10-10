@@ -55,8 +55,6 @@ class EditorToolbarDecorator(
         ApplicationManager.getApplication().runReadAction {
             val editorService = project.getEditorService()
 
-            project.getToolbarModel().initialise()
-
             this.project = project
             this.setupSubscriptionsForProject(project)
 

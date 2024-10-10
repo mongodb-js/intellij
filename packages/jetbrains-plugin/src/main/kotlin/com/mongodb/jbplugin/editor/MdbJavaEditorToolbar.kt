@@ -72,17 +72,21 @@ class MdbJavaEditorToolbar(
 
     // Initializing DataSourceComboBox lazily because it also kickstart a connection if a DataSource is to be
     // pre-selected which is why it is better to do it only when we start showing the toolbar in attachToEditor
-    private val dataSourceComboBox: DataSourceComboBox = DataSourceComboBox(
-        parent = dropdownsPanel,
-        project = project,
-        coroutineScope = coroutineScope,
-    )
+    private val dataSourceComboBox: DataSourceComboBox by lazy {
+        DataSourceComboBox(
+            parent = dropdownsPanel,
+            project = project,
+            coroutineScope = coroutineScope,
+        )
+    }
 
-    private val databaseComboBox: DatabaseComboBox = DatabaseComboBox(
-        parent = dropdownsPanel,
-        project = project,
-        coroutineScope = coroutineScope,
-    )
+    private val databaseComboBox: DatabaseComboBox by lazy {
+        DatabaseComboBox(
+            parent = dropdownsPanel,
+            project = project,
+            coroutineScope = coroutineScope,
+        )
+    }
 
     init {
         // Setup UI
@@ -105,6 +109,7 @@ class MdbJavaEditorToolbar(
     }
 
     fun attachToEditor(editor: Editor, showDatabaseComboBox: Boolean) {
+        project.getToolbarModel().initialise()
         dataSourceComboBox.attachToParent()
         if (showDatabaseComboBox) {
             showDatabasesComboBox()
@@ -123,6 +128,7 @@ class MdbJavaEditorToolbar(
     }
 
     fun attachToParent(parent: JComponent, showDatabaseComboBox: Boolean) {
+        project.getToolbarModel().initialise()
         dataSourceComboBox.attachToParent()
         if (showDatabaseComboBox) {
             showDatabasesComboBox()

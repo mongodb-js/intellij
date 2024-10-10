@@ -18,7 +18,6 @@ import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabaseUnselected
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabasesLoadingFailed
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabasesLoadingStarted
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabasesLoadingSuccessful
-import com.mongodb.jbplugin.editor.services.DataSourceService
 import com.mongodb.jbplugin.editor.services.ToolbarSettings.Companion.UNINITIALIZED_DATABASE
 import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
@@ -30,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 data class ToolbarState(
@@ -40,10 +40,13 @@ data class ToolbarState(
     val databasesLoadingFailedForSelectedDataSource: Boolean = false,
     val databases: List<String> = emptyList(),
     val selectedDatabase: String? = null,
-    private val dataSourceService: DataSourceService,
+    private val project: Project,
+    private val stateId: String = UUID.randomUUID().toString(),
 ) {
     val dataSources: List<LocalDataSource>
-        get() = dataSourceService.listMongoDbDataSources()
+        get() {
+            return project.getDataSourceService().listMongoDbDataSources()
+        }
 }
 
 sealed interface ToolbarEvent {
@@ -90,7 +93,7 @@ class ToolbarModel(
     private val coroutineScope: CoroutineScope,
 ) {
     private val _toolbarState = MutableStateFlow(
-        ToolbarState(dataSourceService = project.getDataSourceService())
+        ToolbarState(project = project)
     )
 
     val toolbarState: StateFlow<ToolbarState> = _toolbarState
@@ -112,9 +115,9 @@ class ToolbarModel(
                     toolbarEvents.emit(DataSourceSelected(it, true))
                 }
             }
+
             coroutineScope.launchChildBackground {
                 toolbarEvents.collect { toolbarEvent ->
-                    println("ToolbarEvent: $toolbarEvent")
                     when (toolbarEvent) {
                         DataSourcesChanged -> handleDataSourcesChanged()
                         is DataSourceRemoved ->
@@ -209,7 +212,7 @@ class ToolbarModel(
     }
 
     private fun handleDataSourcesChanged() {
-        _toolbarState.update { it.copy() }
+        _toolbarState.update { it.copy(stateId = UUID.randomUUID().toString()) }
     }
 
     // Reverted in case of Termination, Removal, Un selection, Unsuccessful connection
