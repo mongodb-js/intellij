@@ -33,6 +33,7 @@ owasp-encoder = "1.2.3"
 testContainers = "1.19.8"
 spring-mongodb="4.3.2"
 semver-parser="2.0.0"
+snakeyaml="2.3"
 
 [libraries]
 ## Kotlin compileOnly libraries. They must not be bundled because they are already part of the
@@ -48,6 +49,7 @@ bson-kotlin = { group  = "org.mongodb", name = "bson-kotlin", version.ref = "mon
 mongodb-driver = { group = "org.mongodb", name = "mongodb-driver-kotlin-sync", version.ref = "mongodb-driver" }
 owasp-encoder = { group = "org.owasp.encoder", name = "encoder", version.ref = "owasp-encoder" }
 semver-parser = { group = "io.github.z4kn4fein", name = "semver", version.ref = "semver-parser" }
+snakeyaml = { group = "org.yaml", name = "snakeyaml", version.ref = "snakeyaml" }
 ######################################################
 ## Testing Libraries.
 testing-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "jupiter" }
