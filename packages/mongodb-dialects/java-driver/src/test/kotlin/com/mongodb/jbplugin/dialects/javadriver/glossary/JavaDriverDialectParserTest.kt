@@ -1,11 +1,16 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.javadriver.IntegrationTest
 import com.mongodb.jbplugin.dialects.javadriver.ParsingTest
+import com.mongodb.jbplugin.dialects.javadriver.WithFile
+import com.mongodb.jbplugin.dialects.javadriver.caret
 import com.mongodb.jbplugin.dialects.javadriver.getQueryAtMethod
 import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
@@ -16,6 +21,8 @@ import com.mongodb.jbplugin.mql.BsonObjectId
 import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.components.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 
 @IntegrationTest
 class JavaDriverDialectParserTest {
@@ -128,12 +135,13 @@ public final class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val knownReference =
-            parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
+        val knownReference = parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
+        val command = parsedQuery.component<IsCommand>()
         val namespace = knownReference.namespace
 
         assertEquals("simple", namespace.database)
         assertEquals("books", namespace.collection)
+        assertEquals(IsCommand.CommandType.FIND_ONE, command?.type)
     }
 
     @ParsingTest(
@@ -1217,5 +1225,75 @@ public class Repository {
             listOf("Fantasy", 50),
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value,
         )
+    }
+
+    @WithFile(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public final class Repository {
+    private final MongoCollection<Document> collection;
+    
+    public Repository(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+    
+    public Object randomQuery() {
+        return this.collection."|"();
+    }
+}
+        """,
+    )
+    @ParameterizedTest
+    @CsvSource(
+        value = [
+            "method;;expected",
+            "countDocuments;;COUNT_DOCUMENTS",
+            "estimatedDocumentCount;;ESTIMATED_DOCUMENT_COUNT",
+            "distinct;;DISTINCT",
+            "find;;FIND_MANY",
+            "aggregate;;AGGREGATE",
+            "insertOne;;INSERT_ONE",
+            "insertMany;;INSERT_MANY",
+            "deleteOne;;DELETE_ONE",
+            "deleteMany;;DELETE_MANY",
+            "replaceOne;;REPLACE_ONE",
+            "updateOne;;UPDATE_ONE",
+            "updateMany;;UPDATE_MANY",
+            "findOneAndDelete;;FIND_ONE_AND_DELETE",
+            "findOneAndUpdate;;FIND_ONE_AND_UPDATE",
+            "createIndex;;UNKNOWN",
+        ],
+        delimiterString = ";;",
+        useHeadersInDisplayName = true
+    )
+    fun `supports all relevant commands from the driver`(
+        method: String,
+        expected: IsCommand.CommandType,
+        psiFile: PsiFile
+    ) {
+        WriteCommandAction.runWriteCommandAction(psiFile.project) {
+            val elementAtCaret = psiFile.caret()
+            val javaFacade = JavaPsiFacade.getInstance(psiFile.project)
+            val methodToTest = javaFacade.parserFacade.createReferenceFromText(method, null)
+            elementAtCaret.replace(methodToTest)
+        }
+
+        ApplicationManager.getApplication().runReadAction {
+            val query = psiFile.getQueryAtMethod("Repository", "randomQuery")
+            val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+            val knownReference = parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
+            val command = parsedQuery.component<IsCommand>()
+            val namespace = knownReference.namespace
+
+            assertEquals("simple", namespace.database)
+            assertEquals("books", namespace.collection)
+            assertEquals(expected, command?.type)
+        }
     }
 }

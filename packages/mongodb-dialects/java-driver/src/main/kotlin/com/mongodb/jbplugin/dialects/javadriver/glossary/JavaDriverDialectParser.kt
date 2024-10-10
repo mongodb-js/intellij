@@ -31,7 +31,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val currentCall =
             source as? PsiMethodCallExpression ?: return Node(source, listOf(collectionReference))
 
-        val calledMethod = currentCall.resolveMethod()
+        val calledMethod = currentCall.fuzzyResolveMethod()
         if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
             val hasChildren =
                 HasChildren(
@@ -42,6 +42,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return Node(
                 source,
                 listOf(
+                    methodToCommand(calledMethod),
                     collectionReference,
                     hasChildren,
                 ),
@@ -67,7 +68,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         } else {
                             innerQuery
                         }
-                    } ?: Node(source, listOf(collectionReference))
+                    } ?: Node(source, listOf(collectionReference, methodToCommand(calledMethod)))
             } ?: return Node(source, listOf(collectionReference))
         }
     }
@@ -432,6 +433,30 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         } ?: return null
 
         return bottomLevel
+    }
+
+    private fun methodToCommand(method: PsiMethod): IsCommand {
+        return IsCommand(
+            when (method.name) {
+                "countDocuments" -> IsCommand.CommandType.COUNT_DOCUMENTS
+                "estimatedDocumentCount" -> IsCommand.CommandType.ESTIMATED_DOCUMENT_COUNT
+                "distinct" -> IsCommand.CommandType.DISTINCT
+                "find" -> IsCommand.CommandType.FIND_MANY
+                "first" -> IsCommand.CommandType.FIND_ONE
+                "aggregate" -> IsCommand.CommandType.AGGREGATE
+                "insertOne" -> IsCommand.CommandType.INSERT_ONE
+                "insertMany" -> IsCommand.CommandType.INSERT_MANY
+                "deleteOne" -> IsCommand.CommandType.DELETE_ONE
+                "deleteMany" -> IsCommand.CommandType.DELETE_MANY
+                "replaceOne" -> IsCommand.CommandType.REPLACE_ONE
+                "updateOne" -> IsCommand.CommandType.UPDATE_ONE
+                "updateMany" -> IsCommand.CommandType.UPDATE_MANY
+                "findOneAndDelete" -> IsCommand.CommandType.FIND_ONE_AND_DELETE
+                "findOneAndReplace" -> IsCommand.CommandType.FIND_ONE_AND_REPLACE
+                "findOneAndUpdate" -> IsCommand.CommandType.FIND_ONE_AND_UPDATE
+                else -> IsCommand.CommandType.UNKNOWN
+            }
+        )
     }
 }
 

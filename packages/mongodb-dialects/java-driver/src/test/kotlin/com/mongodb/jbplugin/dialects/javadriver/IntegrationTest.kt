@@ -21,6 +21,8 @@ import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiLiteralExpression
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.testFramework.IdeaTestUtil
@@ -45,6 +47,12 @@ import kotlin.io.path.absolutePathString
 @Retention(AnnotationRetention.RUNTIME)
 @Test
 annotation class ParsingTest(
+    val fileName: String,
+    @Language("java") val value: String,
+)
+
+@Retention(AnnotationRetention.RUNTIME)
+annotation class WithFile(
     val fileName: String,
     @Language("java") val value: String,
 )
@@ -106,21 +114,25 @@ internal class IntegrationTestExtension :
         val modulePath = context.getStore(namespace).get(testPathKey).toString()
 
         ApplicationManager.getApplication().invokeAndWait {
-            val parsingTest =
-                context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
-                    ?: return@invokeAndWait
+            val parsingTest: ParsingTest? = context.requiredTestMethod.getAnnotation(
+                ParsingTest::class.java
+            )
+            val withFile: WithFile? = context.requiredTestMethod.getAnnotation(WithFile::class.java)
+
+            val cfgFileName = parsingTest?.fileName ?: withFile?.fileName ?: return@invokeAndWait
+            val cfgContents = parsingTest?.value ?: withFile?.value ?: return@invokeAndWait
 
             val fileName = Path(
                 modulePath,
                 "src",
                 "main",
                 "java",
-                parsingTest.fileName
+                cfgFileName
             ).absolutePathString()
 
             fixture.configureByText(
                 fileName,
-                parsingTest.value,
+                cfgContents
             )
         }
     }
@@ -202,6 +214,14 @@ fun PsiFile.getQueryAtMethod(
     val returnExpr = PsiUtil.findReturnStatements(method).last()
     return returnExpr.returnValue!!
 }
+
+fun PsiFile.caret(): PsiElement = PsiTreeUtil.findChildrenOfType(
+    this,
+    PsiLiteralExpression::class.java
+)
+    .first {
+        it.textMatches(""""|"""")
+    }
 
 private class MongoDbProjectDescriptor(
     val languageLevel: LanguageLevel
