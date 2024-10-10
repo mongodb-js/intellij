@@ -177,9 +177,9 @@ sealed interface Reference<S> {
 }
 
 private fun <S> Node<S>.getAllFieldAndValueReferences(): FieldAndValueReferences<S> {
-    val hasChildren = component<HasFilter<S>>()
+    val hasFilter = component<HasFilter<S>>()
     val otherRefs =
-        hasChildren?.children?.flatMap { it.getAllFieldAndValueReferences() } ?: emptyList()
+        hasFilter?.children?.flatMap { it.getAllFieldAndValueReferences() } ?: emptyList()
     val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
     val valueRef = component<HasValueReference<S>>()?.reference
     return if (fieldRef is HasFieldReference.Known) {
