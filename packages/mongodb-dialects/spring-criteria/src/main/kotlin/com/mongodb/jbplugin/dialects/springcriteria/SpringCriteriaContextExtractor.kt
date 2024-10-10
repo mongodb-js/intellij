@@ -3,9 +3,11 @@ package com.mongodb.jbplugin.dialects.springcriteria
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.util.containers.tail
 import com.mongodb.jbplugin.dialects.ConnectionContext
 import com.mongodb.jbplugin.dialects.ConnectionContextExtractor
 import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
+import org.yaml.snakeyaml.Yaml
 import java.util.*
 
 object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
@@ -14,13 +16,34 @@ object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
     )
 
     override fun gatherContext(contentRoot: Project): ConnectionContext {
-        val database = extractDatabase(contentRoot)
+        val database = extractDatabaseFromProperties(contentRoot)
+            ?: extractDatabaseFromYaml(contentRoot)
+
         return ConnectionContext(
             database = database
         )
     }
 
-    private fun extractDatabase(project: Project): String? {
+    private fun extractDatabaseFromYaml(project: Project): String? {
+        val allVirtualFiles = FilenameIndex.getVirtualFilesByName(
+            "application.yaml",
+            GlobalSearchScope.projectScope(project)
+        ) + FilenameIndex.getVirtualFilesByName(
+            "application.yml",
+            GlobalSearchScope.projectScope(project)
+        ) // YAML can use both extensions, and both are allowed in Spring
+
+        if (allVirtualFiles.isEmpty()) {
+            return null
+        }
+        val yamlFile = allVirtualFiles.first()
+        val yaml = Yaml()
+        val config = yaml.load<Map<String, Any>>(yamlFile.inputStream)
+
+        return readNestedPath(config, "spring.data.mongodb.database".split("."))
+    }
+
+    private fun extractDatabaseFromProperties(project: Project): String? {
         val allVirtualFiles = FilenameIndex.getVirtualFilesByName(
             "application.properties",
             GlobalSearchScope.projectScope(project)
@@ -46,5 +69,24 @@ object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
         }
 
         return value
+    }
+
+    private fun readNestedPath(map: Map<String, Any>, path: List<String>): String? {
+        val value = map.getOrDefault(path.joinToString(separator = "."), null)
+        if (value is String) {
+            return value
+        }
+
+        val nextPath = path.tail()
+        if (nextPath.isEmpty()) {
+            return null
+        }
+
+        val nextMap = map.getOrDefault(path.first(), null)
+        if (nextMap != null && nextMap is Map<*, *>) {
+            return readNestedPath(nextMap as Map<String, Any>, nextPath)
+        }
+
+        return null
     }
 }

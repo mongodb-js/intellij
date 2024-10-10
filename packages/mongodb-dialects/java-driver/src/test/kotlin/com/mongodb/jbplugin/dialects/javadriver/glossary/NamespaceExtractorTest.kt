@@ -438,4 +438,67 @@ public class JavaDriverRepository extends BaseRepository {
         assertEquals("myDatabase", namespace.database)
         assertEquals("myCollection", namespace.collection)
     }
+
+    @ParsingTest(
+        "Repository.java",
+        """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+abstract class BaseRepository {
+    private final MongoClient client;
+    private final String database;
+    private final String collection;
+
+    protected BaseRepository(MongoClient client, String database, String collection) {
+        this.client = client;
+        this.database = database;
+        this.collection = collection;
+    }
+
+    protected final MongoCollection<Document> getCollection() {
+        return client.getDatabase(database).getCollection(collection);
+    }
+    
+    protected String joinFields(String ...args) {
+        return String.join(".", args);
+    }
+}
+
+public class JavaDriverRepository extends BaseRepository {
+    public static final String DATABASE = "myDatabase";
+    public static final String COLLECTION = "myCollection";
+
+    public JavaDriverRepository(MongoClient client) {
+        super(client, DATABASE, COLLECTION);
+    }
+
+    public FindIterable<Document> exampleFind() {
+        var query = eq(Utils.joinFields(""))
+        return getCollection().find();
+    }
+}
+
+class Utils {
+    public static String joinFields(String ...args) {
+        return String.join(".", args);
+    }
+}
+        """,
+    )
+    fun `support for compile time constant expressions for field names`(psiFile: PsiFile) {
+        val methodToAnalyse = psiFile.getQueryAtMethod("JavaDriverRepository", "exampleFind")
+        val namespace =
+            (
+                NamespaceExtractor.extractNamespace(
+                    methodToAnalyse
+                ).reference as HasCollectionReference.Known<PsiElement>
+                ).namespace
+        assertEquals("myDatabase", namespace.database)
+        assertEquals("myCollection", namespace.collection)
+    }
 }
