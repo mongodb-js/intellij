@@ -3,6 +3,7 @@ package com.mongodb.jbplugin.inspections.quickfixes
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.rd.util.launchChildOnUi
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import kotlinx.coroutines.CoroutineScope
 
@@ -22,6 +23,8 @@ class OpenConnectionChooserQuickFix(
         project: Project,
         descriptor: ProblemDescriptor,
     ) {
-        MdbJavaEditorToolbar.showModalForSelection(project)
+        coroutineScope.launchChildOnUi {
+            MdbJavaEditorToolbar.showModalForSelection(project, coroutineScope)
+        }
     }
 }

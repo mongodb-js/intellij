@@ -4,10 +4,12 @@ import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.project.Project
+import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.editor.services.MdbPluginDisposable
 import com.mongodb.jbplugin.editor.services.implementations.MdbDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.MdbEditorService
 import com.mongodb.jbplugin.fixtures.IntegrationTest
+import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.withMockedService
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -22,8 +24,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 
-// Ktlint is reporting LONG_LINE for line numbers that seems completely fine
-@Suppress("LONG_LINE")
 @IntegrationTest
 class EditorToolbarDecoratorTest {
     @Nested
@@ -123,14 +123,16 @@ class EditorToolbarDecoratorTest {
     @DisplayName("when dataSourceAdded is triggered")
     inner class EditorToolbarDecoratorDataSourceAdded {
         @Test
-        fun `refreshes the toolbar with the added DataSource`(
-            project: Project
+        fun `updates ToolbarModel with the added DataSource`(
+            project: Project,
         ) = runTest {
-            val decorator = EditorToolbarDecorator(TestScope())
+            val testScope = TestScope()
+            val decorator = EditorToolbarDecorator(testScope)
             val dataSourceService = mock<MdbDataSourceService>()
-            val editorService = mock<MdbEditorService>()
-            project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
+
+            // initialise the toolbar model
+            project.getToolbarModel().initialise()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
@@ -141,25 +143,34 @@ class EditorToolbarDecoratorTest {
             decorator.execute(project)
             runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            assertFalse(toolbar.getToolbarState().dataSources.contains(dataSource))
+            val toolbarState = project.getToolbarModel().toolbarState.value
+            assertFalse(
+                toolbarState.dataSources.contains(dataSource)
+            )
 
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
             decorator.dataSourceAdded(dataSourceManager, dataSource)
             runCurrent()
 
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSource))
+            eventually {
+                val newToolbarState = project.getToolbarModel().toolbarState.value
+                assertFalse(toolbarState == newToolbarState)
+                assertTrue(
+                    newToolbarState.dataSources.contains(dataSource)
+                )
+            }
         }
 
         @Test
-        fun `refreshes the toolbar with the added DataSource, while preserving the current selection`(
+        fun `updates ToolbarModel with the added DataSource, while preserving the current selection`(
             project: Project
         ) = runTest {
             val decorator = EditorToolbarDecorator(TestScope())
             val dataSourceService = mock<MdbDataSourceService>()
-            val editorService = mock<MdbEditorService>()
-            project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
+
+            // initialise the toolbar model
+            project.getToolbarModel().initialise()
 
             // Mocks for our assertions
             val existingDataSource = mock<LocalDataSource>()
@@ -167,20 +178,15 @@ class EditorToolbarDecoratorTest {
             val newDataSource = mock<LocalDataSource>()
             val dataSourceManager = mock<LocalDataSourceManager>()
 
-            // Defining an early behaviour of not having anything
+            // Defining an early behaviour of having just one data source
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(existingDataSources)
             decorator.execute(project)
             runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            toolbar.setToolbarState(
-                ToolbarState(existingDataSources, existingDataSource, emptyList(), null)
-            )
-            runCurrent()
-
-            assertTrue(toolbar.getToolbarState().dataSources.contains(existingDataSource))
+            val toolbarState = project.getToolbarModel().toolbarState.value
+            assertTrue(toolbarState.dataSources.contains(existingDataSource))
             assertEquals(
-                toolbar.getToolbarState().selectedDataSource?.uniqueId,
+                toolbarState.selectedDataSource?.uniqueId,
                 existingDataSource.uniqueId
             )
 
@@ -190,11 +196,15 @@ class EditorToolbarDecoratorTest {
             decorator.dataSourceAdded(dataSourceManager, newDataSource)
             runCurrent()
 
-            assertTrue(toolbar.getToolbarState().dataSources.contains(newDataSource))
-            assertEquals(
-                toolbar.getToolbarState().selectedDataSource?.uniqueId,
-                existingDataSource.uniqueId
-            )
+            eventually {
+                val newToolbarState = project.getToolbarModel().toolbarState.value
+                assertFalse(toolbarState == newToolbarState)
+                assertTrue(toolbarState.dataSources.contains(newDataSource))
+                assertEquals(
+                    toolbarState.selectedDataSource?.uniqueId,
+                    existingDataSource.uniqueId
+                )
+            }
         }
     }
 
@@ -202,14 +212,15 @@ class EditorToolbarDecoratorTest {
     @DisplayName("when dataSourceChanged is triggered")
     inner class EditorToolbarDecoratorDataSourceChanged {
         @Test
-        fun `refreshes the toolbar with the changed DataSource`(
+        fun `updates ToolbarModel with the changed DataSource`(
             project: Project
         ) = runTest {
             val decorator = EditorToolbarDecorator(TestScope())
             val dataSourceService = mock<MdbDataSourceService>()
-            val editorService = mock<MdbEditorService>()
-            project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
+
+            // initialise the toolbar model
+            project.getToolbarModel().initialise()
 
             // Mocks for our assertions
             // Both instances are for same DataSource
@@ -220,31 +231,39 @@ class EditorToolbarDecoratorTest {
 
             val dataSourceManager = mock<LocalDataSourceManager>()
 
-            // Defining an early behaviour of not having anything
+            // Defining an early behaviour having an old data source
             `when`(
                 dataSourceService.listMongoDbDataSources()
             ).thenReturn(listOf(dataSourceInstanceOne))
             decorator.execute(project)
+            runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSourceInstanceOne))
+            val toolbarState = project.getToolbarModel().toolbarState.value
+            assertTrue(toolbarState.dataSources.contains(dataSourceInstanceOne))
 
             `when`(
                 dataSourceService.listMongoDbDataSources()
             ).thenReturn(listOf(dataSourceInstanceTwo))
             decorator.dataSourceChanged(dataSourceManager, dataSourceInstanceTwo)
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSourceInstanceTwo))
+            runCurrent()
+
+            eventually {
+                val newToolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState != newToolbarState)
+                assertTrue(toolbarState.dataSources.contains(dataSourceInstanceTwo))
+            }
         }
 
         @Test
-        fun `refreshes the toolbar with the changed DataSource and preserves the selection, if the selection itself is the changed DataSource`(
+        fun `updates ToolbarModel with the changed DataSource and preserves the selection, if the selection itself is the changed DataSource`(
             project: Project
         ) = runTest {
             val decorator = EditorToolbarDecorator(TestScope())
             val dataSourceService = mock<MdbDataSourceService>()
-            val editorService = mock<MdbEditorService>()
-            project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
+
+            // initialise ToolbarModel
+            project.getToolbarModel().initialise()
 
             // Mocks for our assertions
             // Both instances are for same DataSource
@@ -255,35 +274,39 @@ class EditorToolbarDecoratorTest {
             val dataSourceInstanceTwo = mock<LocalDataSource>()
             `when`(dataSourceInstanceTwo.uniqueId).thenReturn("1FOO")
             `when`(dataSourceInstanceTwo.name).thenReturn("Instance Two")
-            val existingDataSources = listOf(dataSourceInstanceOne)
 
             val dataSourceManager = mock<LocalDataSourceManager>()
 
-            // Defining an early behaviour of not having anything
+            // Defining an early behaviour of having an old instance
             `when`(
                 dataSourceService.listMongoDbDataSources()
             ).thenReturn(listOf(dataSourceInstanceOne))
             decorator.execute(project)
+            project.getToolbarModel().selectDataSource(dataSourceInstanceOne)
+            runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            toolbar.setToolbarState(
-                ToolbarState(existingDataSources, dataSourceInstanceOne, emptyList(), null)
-            )
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSourceInstanceOne))
-            assertEquals(
-                toolbar.getToolbarState().selectedDataSource?.uniqueId,
-                dataSourceInstanceOne.uniqueId
-            )
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState.dataSources.contains(dataSourceInstanceOne))
+                assertEquals(
+                    toolbarState.selectedDataSource?.uniqueId,
+                    dataSourceInstanceOne.uniqueId
+                )
+            }
 
             `when`(
                 dataSourceService.listMongoDbDataSources()
             ).thenReturn(listOf(dataSourceInstanceTwo))
             decorator.dataSourceChanged(dataSourceManager, dataSourceInstanceTwo)
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSourceInstanceTwo))
-            assertEquals(
-                toolbar.getToolbarState().selectedDataSource?.uniqueId,
-                dataSourceInstanceTwo.uniqueId
-            )
+            val newToolbarState = project.getToolbarModel().toolbarState.value
+
+            eventually {
+                assertTrue(newToolbarState.dataSources.contains(dataSourceInstanceTwo))
+                assertEquals(
+                    newToolbarState.selectedDataSource?.uniqueId,
+                    dataSourceInstanceTwo.uniqueId
+                )
+            }
         }
     }
 
@@ -291,7 +314,7 @@ class EditorToolbarDecoratorTest {
     @DisplayName("when dataSourceRemoved is triggered")
     inner class EditorToolbarDecoratorDataSourceRemoved {
         @Test
-        fun `refreshes the toolbar with the removed DataSource`(
+        fun `updates ToolbarModel with the removed DataSource`(
             project: Project
         ) = runTest {
             val decorator = EditorToolbarDecorator(TestScope())
@@ -299,28 +322,34 @@ class EditorToolbarDecoratorTest {
             val editorService = mock<MdbEditorService>()
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
+
+            project.getToolbarModel().initialise()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
             val dataSourceManager = mock<LocalDataSourceManager>()
 
-            // Defining an early behaviour of not having anything
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
             decorator.execute(project)
             runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSource))
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState.dataSources.contains(dataSource))
+            }
 
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(emptyList())
             decorator.dataSourceRemoved(dataSourceManager, dataSource)
             runCurrent()
 
-            assertFalse(toolbar.getToolbarState().dataSources.contains(dataSource))
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertFalse(toolbarState.dataSources.contains(dataSource))
+            }
         }
 
         @Test
-        fun `refreshes the toolbar with the removed DataSource and also remove the current selection, if the selection is the removed DataSource`(
+        fun `updates ToolbarModel with the removed DataSource and also remove the current selection, if the selection is the removed DataSource`(
             project: Project
         ) = runTest {
             val decorator = EditorToolbarDecorator(TestScope())
@@ -328,33 +357,37 @@ class EditorToolbarDecoratorTest {
             val editorService = mock<MdbEditorService>()
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
+
+            project.getToolbarModel().initialise()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
             val existingDataSources = listOf(dataSource)
             val dataSourceManager = mock<LocalDataSourceManager>()
 
-            // Defining an early behaviour of not having anything
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(existingDataSources)
             decorator.execute(project)
+            project.getToolbarModel().selectDataSource(dataSource)
             runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            toolbar.setToolbarState(
-                ToolbarState(existingDataSources, dataSource, emptyList(), null)
-            )
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSource))
-            assertEquals(
-                toolbar.getToolbarState().selectedDataSource?.uniqueId,
-                dataSource.uniqueId
-            )
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState.dataSources.contains(dataSource))
+                assertEquals(
+                    toolbarState.selectedDataSource?.uniqueId,
+                    dataSource.uniqueId
+                )
+            }
 
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(emptyList())
             decorator.dataSourceRemoved(dataSourceManager, dataSource)
             runCurrent()
 
-            assertFalse(toolbar.getToolbarState().dataSources.contains(dataSource))
-            assertNull(toolbar.getToolbarState().selectedDataSource)
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertFalse(toolbarState.dataSources.contains(dataSource))
+                assertNull(toolbarState.selectedDataSource)
+            }
         }
     }
 
@@ -362,7 +395,7 @@ class EditorToolbarDecoratorTest {
     @DisplayName("when onTerminated is triggered")
     inner class EditorToolbarDecoratorOnTerminate {
         @Test
-        fun `refresh the DataSource list with the disconnected DataSource`(
+        fun `updates ToolbarModel's DataSource list with the disconnected DataSource`(
             project: Project
         ) = runTest {
             val decorator = EditorToolbarDecorator(TestScope())
@@ -370,6 +403,8 @@ class EditorToolbarDecoratorTest {
             val editorService = mock<MdbEditorService>()
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
+
+            project.getToolbarModel().initialise()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
@@ -379,18 +414,22 @@ class EditorToolbarDecoratorTest {
             decorator.execute(project)
             runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSource))
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState.dataSources.contains(dataSource))
+            }
 
-            `when`(dataSourceService.listMongoDbDataSources()).thenReturn(emptyList())
             decorator.onTerminated(dataSource, null)
             runCurrent()
 
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSource))
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState.dataSources.contains(dataSource))
+            }
         }
 
         @Test
-        fun `refresh the DataSource list with the disconnected DataSource and also remove the current selection, if the selection is the disconnected DataSource`(
+        fun `updates ToolbarModel's DataSource list with the disconnected DataSource and also remove the current selection, if the selection is the disconnected DataSource`(
             project: Project
         ) = runTest {
             val decorator = EditorToolbarDecorator(TestScope())
@@ -399,6 +438,8 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
 
+            project.getToolbarModel().initialise()
+
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
             val existingDataSources = listOf(dataSource)
@@ -406,24 +447,26 @@ class EditorToolbarDecoratorTest {
             // Defining an early behaviour of not having anything
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(existingDataSources)
             decorator.execute(project)
+            project.getToolbarModel().selectDataSource(dataSource)
             runCurrent()
 
-            val toolbar = decorator.getToolbarForTests()!!
-            toolbar.setToolbarState(
-                ToolbarState(existingDataSources, dataSource, emptyList(), null)
-            )
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSource))
-            assertEquals(
-                toolbar.getToolbarState().selectedDataSource?.uniqueId,
-                dataSource.uniqueId
-            )
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState.dataSources.contains(dataSource))
+                assertEquals(
+                    toolbarState.selectedDataSource?.uniqueId,
+                    dataSource.uniqueId
+                )
+            }
 
-            `when`(dataSourceService.listMongoDbDataSources()).thenReturn(emptyList())
             decorator.onTerminated(dataSource, null)
             runCurrent()
 
-            assertTrue(toolbar.getToolbarState().dataSources.contains(dataSource))
-            assertNull(toolbar.getToolbarState().selectedDataSource)
+            eventually {
+                val toolbarState = project.getToolbarModel().toolbarState.value
+                assertTrue(toolbarState.dataSources.contains(dataSource))
+                assertNull(toolbarState.selectedDataSource)
+            }
         }
     }
 }

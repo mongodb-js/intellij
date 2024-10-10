@@ -11,12 +11,9 @@ import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.psi.util.PsiModificationTracker
-import com.mongodb.jbplugin.editor.models.implementations.ProjectDataSourceModel
-import com.mongodb.jbplugin.editor.models.implementations.ProjectDatabaseModel
+import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.editor.services.MdbPluginDisposable
-import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
-import com.mongodb.jbplugin.editor.services.implementations.useToolbarSettings
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.annotations.TestOnly
 
@@ -56,27 +53,14 @@ class EditorToolbarDecorator(
     // we override the stored project and toolbar everytime it is called
     override suspend fun execute(project: Project) {
         ApplicationManager.getApplication().runReadAction {
-            val toolbarSettings = project.useToolbarSettings()
-            val editorService = getEditorService(project)
-            val dataSourceService = getDataSourceService(project)
-
-            val dataSourceModel = ProjectDataSourceModel(
-                toolbarSettings = toolbarSettings,
-                dataSourceService = dataSourceService,
-                editorService = editorService
-            )
-            val databaseModel = ProjectDatabaseModel(
-                toolbarSettings = toolbarSettings,
-                dataSourceService = dataSourceService,
-                editorService = editorService
-            )
+            val editorService = project.getEditorService()
 
             this.project = project
             this.setupSubscriptionsForProject(project)
 
             this.toolbar = MdbJavaEditorToolbar(
-                dataSourceModel = dataSourceModel,
-                databaseModel = databaseModel,
+                project = project,
+                coroutineScope = coroutineScope,
             )
 
             editorService.toggleToolbarForSelectedEditor(this.toolbar!!, false)
@@ -88,7 +72,7 @@ class EditorToolbarDecorator(
             if (it.isDisposed) {
                 null
             } else {
-                getEditorService(it)
+                it.getEditorService()
             }
         }
 
@@ -102,7 +86,7 @@ class EditorToolbarDecorator(
             if (it.isDisposed) {
                 null
             } else {
-                getEditorService(it)
+                it.getEditorService()
             }
         }
         editorService?.removeDialectForSelectedEditor()
@@ -114,22 +98,53 @@ class EditorToolbarDecorator(
 
     override fun <T : RawDataSource?> dataSourceAdded(manager: DataSourceManager<T>, dataSource: T & Any) {
         // An added DataSource can't possibly change the selection state hence just reloading the DataSources
-        toolbar?.reloadDataSources()
+        val toolbarModel = project?.let {
+            if (it.isDisposed) {
+                null
+            } else {
+                it.getToolbarModel()
+            }
+        }
+
+        toolbarModel?.dataSourcesChanged()
     }
 
     override fun <T : RawDataSource?> dataSourceRemoved(manager: DataSourceManager<T>, dataSource: T & Any) {
         // A removed DataSource might be our selected one so we first remove it and then reload the DataSources
         // Unselection when happened is expected to trigger state change listener so that will update
         // also the attached resources to the selected editor and the stored DataSource in ToolbarSettings
-        toolbar?.unselectDataSource(dataSource as LocalDataSource)
-        toolbar?.reloadDataSources()
+        val toolbarModel = project?.let {
+            if (it.isDisposed) {
+                null
+            } else {
+                it.getToolbarModel()
+            }
+        }
+
+        toolbarModel?.dataSourceRemoved(dataSource as LocalDataSource)
     }
 
     override fun <T : RawDataSource?> dataSourceChanged(manager: DataSourceManager<T>?, dataSource: T?) {
-        toolbar?.reloadDataSources()
+        val toolbarModel = project?.let {
+            if (it.isDisposed) {
+                null
+            } else {
+                it.getToolbarModel()
+            }
+        }
+
+        toolbarModel?.dataSourcesChanged()
     }
 
     override fun onTerminated(dataSource: LocalDataSource, configuration: ConsoleRunConfiguration?) {
-        toolbar?.unselectDataSource(dataSource)
+        val toolbarModel = project?.let {
+            if (it.isDisposed) {
+                null
+            } else {
+                it.getToolbarModel()
+            }
+        }
+
+        toolbarModel?.dataSourceTerminated(dataSource)
     }
 }
