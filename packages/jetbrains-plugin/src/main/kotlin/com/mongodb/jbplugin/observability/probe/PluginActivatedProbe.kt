@@ -1,9 +1,9 @@
 package com.mongodb.jbplugin.observability.probe
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.useLogMessage
@@ -16,8 +16,7 @@ private val logger: Logger = logger<PluginActivatedProbe>()
 @Service
 class PluginActivatedProbe {
     fun pluginActivated() {
-        val application = ApplicationManager.getApplication()
-        val telemetry = application.getService(TelemetryService::class.java)
+        val telemetry by service<TelemetryService>()
 
         telemetry.sendEvent(TelemetryEvent.PluginActivated)
 

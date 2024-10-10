@@ -6,7 +6,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.meta.BuildInformation
-import com.mongodb.jbplugin.settings.useSettings
+import com.mongodb.jbplugin.meta.service
+import com.mongodb.jbplugin.settings.pluginSetting
 import com.segment.analytics.Analytics
 import com.segment.analytics.messages.TrackMessage
 
@@ -34,14 +35,13 @@ internal class TelemetryService : AppLifecycleListener {
     }
 
     fun sendEvent(event: TelemetryEvent) {
-        if (!useSettings().isTelemetryEnabled) {
+        val isTelemetryEnabled by pluginSetting { ::isTelemetryEnabled }
+
+        if (!isTelemetryEnabled) {
             return
         }
 
-        val runtimeInformationService =
-            ApplicationManager.getApplication().getService(
-                RuntimeInformationService::class.java,
-            )
+        val runtimeInformationService by service<RuntimeInformationService>()
         val runtimeInfo = runtimeInformationService.get()
 
         val message = TrackMessage.builder(event.name)
@@ -58,7 +58,7 @@ internal class TelemetryService : AppLifecycleListener {
     }
 
     override fun appWillBeClosed(isRestart: Boolean) {
-        val telemetryEnabled = useSettings().isTelemetryEnabled
+        val telemetryEnabled by pluginSetting { ::isTelemetryEnabled }
 
         logger.info(
             useLogMessage("Shutting down Segment analytics because the IDE is closing.")

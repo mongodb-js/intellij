@@ -4,13 +4,13 @@ import com.intellij.database.dataSource.DatabaseConnection
 import com.intellij.database.dataSource.DatabaseConnectionManager
 import com.intellij.database.dataSource.DatabaseConnectionPoint
 import com.intellij.execution.rmi.RemoteObject
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.accessadapter.slice.BuildInfo
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.useLogMessage
@@ -39,10 +39,9 @@ class ConnectionFailureProbe : DatabaseConnectionManager.Listener {
 
         val exception = if (th is SQLException) th.cause else th
 
-        val application = ApplicationManager.getApplication()
-        val telemetryService = application.getService(TelemetryService::class.java)
+        val telemetryService by service<TelemetryService>()
+        val readModelProvider by project.service<DataGripBasedReadModelProvider>()
 
-        val readModelProvider = project.getService(DataGripBasedReadModelProvider::class.java)
         val dataSource = connectionPoint.dataSource
         val serverInfo = readModelProvider.slice(dataSource, BuildInfo.Slice)
         val telemetryEvent =

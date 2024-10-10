@@ -3,12 +3,12 @@ package com.mongodb.jbplugin.observability.probe
 import com.intellij.database.console.client.VisibleDatabaseSessionClient
 import com.intellij.database.console.session.DatabaseSession
 import com.intellij.database.console.session.DatabaseSessionStateListener
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.accessadapter.slice.BuildInfo
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.useLogMessage
@@ -35,12 +35,8 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
     }
 
     override fun connected(session: DatabaseSession) {
-        val application = ApplicationManager.getApplication()
-        val telemetryService = application.getService(TelemetryService::class.java)
-
-        val readModelProvider = session.project.getService(
-            DataGripBasedReadModelProvider::class.java
-        )
+        val telemetryService by service<TelemetryService>()
+        val readModelProvider by session.project.service<DataGripBasedReadModelProvider>()
         val dataSource = session.connectionPoint.dataSource
 
         if (!dataSource.isMongoDbDataSource()) {

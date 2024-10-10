@@ -19,6 +19,7 @@ import com.mongodb.jbplugin.inspections.MongoDbInspection
 import com.mongodb.jbplugin.inspections.quickfixes.OpenDataSourceConsoleAppendingCode
 import com.mongodb.jbplugin.linting.IndexCheckWarning
 import com.mongodb.jbplugin.linting.IndexCheckingLinter
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.mql.Node
 import kotlinx.coroutines.CoroutineScope
 
@@ -48,10 +49,7 @@ internal object IndexCheckLinterInspection : MongoDbInspection {
             return
         }
 
-        val readModelProvider = query.source.project.getService(
-            DataGripBasedReadModelProvider::class.java
-        )
-
+        val readModelProvider by query.source.project.service<DataGripBasedReadModelProvider>()
         val result =
             IndexCheckingLinter.lintQuery(
                 dataSource,
