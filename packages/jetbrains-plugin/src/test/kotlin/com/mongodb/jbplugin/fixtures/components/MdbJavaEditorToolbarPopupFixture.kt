@@ -40,7 +40,7 @@ class MdbJavaEditorToolbarPopupFixture(
             )
         }.isSuccess
 
-    fun ok(text: String = "OK", timeout: Duration = 5.seconds) {
+    fun ok(text: String = "OK", timeout: Duration = 10.seconds) {
         val button = find<JButtonFixture>(byXpath("//div[@text='$text']"))
         waitFor(
             timeout.toJavaDuration(),

@@ -36,6 +36,9 @@ class MongoDbRunQueryActionUiTest {
         remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
         val popup = remoteRobot.findJavaEditorToolbarPopup()
         popup.cancel()
+        remoteRobot.ideaFrame().ensureNotificationIsVisible(
+            "Run query aborted"
+        )
     }
 
     @Test

@@ -122,11 +122,13 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
         return NotificationGroupManager.getInstance()
             .getNotificationGroup("com.mongodb.jbplugin.notifications.Connection")
             .createNotification(
-                "Run query aborted",
-                "Cannot run query without a selected DataSource. Please select a DataSource from the modal and click \"Run Query\".",
+                CodeActionsMessages.message("code.action.run.query.aborted.notification.title"),
+                CodeActionsMessages.message("code.action.run.query.aborted.notification.message"),
                 NotificationType.INFORMATION,
             ).addAction(
-                NotificationAction.create("TRY AGAIN") { _, notification ->
+                NotificationAction.create(
+                    CodeActionsMessages.message("code.action.run.query.aborted.notification.action")
+                ) { _, notification ->
                     onTryAgainAction()
                     notification.expire()
                 }
