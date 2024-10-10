@@ -40,7 +40,9 @@ object SpringCriteriaContextExtractor : ConnectionContextExtractor<Project> {
         val yaml = Yaml()
         val config = yaml.load<Map<String, Any>>(yamlFile.inputStream)
 
-        return readNestedPath(config, "spring.data.mongodb.database".split("."))
+        return tryResolveConstantString(
+            readNestedPath(config, "spring.data.mongodb.database".split("."))
+        )
     }
 
     private fun extractDatabaseFromProperties(project: Project): String? {
