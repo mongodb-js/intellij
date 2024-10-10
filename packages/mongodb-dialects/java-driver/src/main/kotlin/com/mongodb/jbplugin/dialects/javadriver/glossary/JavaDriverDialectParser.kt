@@ -33,18 +33,16 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         val calledMethod = currentCall.fuzzyResolveMethod()
         if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
-            val hasChildren =
-                HasChildren(
-                    parseAllFiltersFromCurrentCall(currentCall) +
-                        parseAllUpdatesFromCurrentCall(currentCall),
-                )
+            val hasFilters = HasFilter(parseAllFiltersFromCurrentCall(currentCall))
+            val hasUpdates = HasUpdates(parseAllUpdatesFromCurrentCall(currentCall))
 
             return Node(
                 source,
                 listOf(
                     methodToCommand(calledMethod),
                     collectionReference,
-                    hasChildren,
+                    hasFilters,
+                    hasUpdates
                 ),
             )
         } else {
@@ -63,7 +61,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         )
                     }.firstNotNullOfOrNull {
                         val innerQuery = parse(it)
-                        if (!innerQuery.hasComponent<HasChildren<PsiElement>>()) {
+                        if (!innerQuery.hasComponent<HasFilter<PsiElement>>()) {
                             null
                         } else {
                             innerQuery
