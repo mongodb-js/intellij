@@ -5,7 +5,7 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
-* [INTELLIJ-44](https://jira.mongodb.org/browse/INTELLIJ-91) Ability to load the Spring configuration from
+* [INTELLIJ-44](https://jira.mongodb.org/browse/INTELLIJ-44) Ability to load the Spring configuration from
 the current project's application.yml
 * [INTELLIJ-91](https://jira.mongodb.org/browse/INTELLIJ-91): Ability to trigger autocompletion automatically for string constants
 in a query.
