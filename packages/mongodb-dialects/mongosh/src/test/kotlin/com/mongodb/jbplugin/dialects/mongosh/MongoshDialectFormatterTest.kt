@@ -27,7 +27,7 @@ class MongoshDialectFormatterTest {
             Node(
                 Unit,
                 listOf(
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,
@@ -58,7 +58,7 @@ class MongoshDialectFormatterTest {
                 Unit,
                 listOf(
                     HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,
@@ -91,7 +91,7 @@ class MongoshDialectFormatterTest {
             Node(
                 Unit,
                 listOf(
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,
@@ -124,7 +124,7 @@ class MongoshDialectFormatterTest {
                 Unit,
                 listOf(
                     Named(Name.from(operator)),
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,
@@ -155,13 +155,13 @@ class MongoshDialectFormatterTest {
                 Unit,
                 listOf(
                     HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,
                                 listOf(
                                     Named(Name.NOT),
-                                    HasChildren(
+                                    HasFilter(
                                         listOf(
                                             Node(
                                                 Unit,
@@ -204,7 +204,7 @@ class MongoshDialectFormatterTest {
             Node(
                 Unit,
                 listOf(
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,
@@ -237,7 +237,7 @@ class MongoshDialectFormatterTest {
             Node(
                 Unit,
                 listOf(
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,
@@ -276,7 +276,7 @@ class MongoshDialectFormatterTest {
                     HasCollectionReference(
                         HasCollectionReference.Known(Unit, Unit, Namespace("myDb", "myCollection"))
                     ),
-                    HasChildren(
+                    HasFilter(
                         listOf(
                             Node(
                                 Unit,

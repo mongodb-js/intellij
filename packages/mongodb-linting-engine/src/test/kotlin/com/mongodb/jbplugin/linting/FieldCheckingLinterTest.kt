@@ -3,9 +3,9 @@ package com.mongodb.jbplugin.linting
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.mql.*
-import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.components.HasValueReference
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -44,7 +44,7 @@ class FieldCheckingLinterTest {
                         HasCollectionReference(
                             HasCollectionReference.Known(null, null, collectionNamespace)
                         ),
-                        HasChildren(
+                        HasFilter(
                             listOf(
                                 Node(
                                     null,
@@ -101,7 +101,7 @@ class FieldCheckingLinterTest {
                         HasCollectionReference(
                             HasCollectionReference.Known(null, null, collectionNamespace)
                         ),
-                        HasChildren(
+                        HasFilter(
                             listOf(
                                 Node(
                                     null,
@@ -161,7 +161,7 @@ class FieldCheckingLinterTest {
                         HasCollectionReference(
                             HasCollectionReference.Known(null, null, collectionNamespace)
                         ),
-                        HasChildren(
+                        HasFilter(
                             listOf(
                                 Node(
                                     null,

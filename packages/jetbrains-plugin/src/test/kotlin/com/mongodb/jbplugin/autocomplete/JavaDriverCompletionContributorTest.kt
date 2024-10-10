@@ -1,8 +1,6 @@
 package com.mongodb.jbplugin.autocomplete
 
 import com.intellij.database.util.common.containsElements
-import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
@@ -45,8 +43,6 @@ public class Repository {
         """,
     )
     fun `should autocomplete databases from the current connection`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
@@ -100,8 +96,6 @@ public class Repository {
         """,
     )
     fun `should autocomplete collections from the current connection and inferred database`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
@@ -152,8 +146,6 @@ public class Repository {
         """,
     )
     fun `should autocomplete fields from the current namespace`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
@@ -211,8 +203,6 @@ public class Repository {
         """,
     )
     fun `should autocomplete fields from the current namespace in the filters of an update`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
@@ -270,8 +260,6 @@ public class Repository {
         """,
     )
     fun `should autocomplete fields from the current namespace in the updates of an update`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)

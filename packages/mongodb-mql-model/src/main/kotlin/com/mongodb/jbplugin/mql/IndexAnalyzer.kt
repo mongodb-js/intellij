@@ -11,9 +11,9 @@
 
 package com.mongodb.jbplugin.mql
 
-import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.components.HasValueReference
 
 /**
@@ -39,8 +39,8 @@ object IndexAnalyzer {
     }
 
     private fun <S> Node<S>.allFieldReferences(): List<Pair<String, S>> {
-        val hasChildren = component<HasChildren<S>>()
-        val otherRefs = hasChildren?.children?.flatMap { it.allFieldReferences() } ?: emptyList()
+        val hasFilter = component<HasFilter<S>>()
+        val otherRefs = hasFilter?.children?.flatMap { it.allFieldReferences() } ?: emptyList()
         val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
         val valueRef = component<HasValueReference<S>>()?.reference
         return if (fieldRef is HasFieldReference.Known) {

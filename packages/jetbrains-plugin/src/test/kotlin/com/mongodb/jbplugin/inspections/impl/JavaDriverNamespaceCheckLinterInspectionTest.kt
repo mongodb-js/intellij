@@ -1,7 +1,5 @@
 package com.mongodb.jbplugin.inspections.impl
 
-import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
@@ -43,8 +41,6 @@ public class Repository {
         """,
     )
     fun `shows an inspection when the database does not exist in the current data source`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val (dataSource, readModelProvider) = fixture.setupConnection()
@@ -84,8 +80,6 @@ public class Repository {
         """,
     )
     fun `shows an inspection when the collection does not exist in the current data source`(
-        project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val (dataSource, readModelProvider) = fixture.setupConnection()

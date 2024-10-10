@@ -5,8 +5,8 @@ import com.mongodb.jbplugin.mql.Node
 
 /**
  * @param S
- * @property filter
+ * @property children
  */
 data class HasFilter<S>(
-    val filter: Node<S>,
+    val children: List<Node<S>>,
 ) : Component
