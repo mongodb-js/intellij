@@ -4,14 +4,14 @@
 
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
-import com.intellij.openapi.project.Project
+import com.intellij.database.util.common.containsElements
 import com.intellij.psi.*
-import com.intellij.psi.util.PsiTreeUtil.findChildrenOfAnyType
-import com.intellij.psi.util.PsiTreeUtil.findChildrenOfType
+import com.intellij.psi.search.GlobalSearchScopes
+import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.findParentOfType
 import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
-
-private typealias FoundAssignedPsiFields = List<Pair<AssignmentConcept, PsiField>>
 
 @Suppress("ktlint") // it seems the class is too complex for ktlint to understand it
 object NamespaceExtractor {
@@ -19,465 +19,324 @@ object NamespaceExtractor {
         val currentClass = query.findContainingClass()
         val queryCollectionRef = query.findMongoDbCollectionReference() ?: query
 
-        val allMethodCallsInMethod = queryCollectionRef.collectTypeUntil(
-            PsiMethodCallExpression::class.java,
-            PsiMethod::class.java
-        ) + findChildrenOfType(query, PsiMethodCallExpression::class.java)
+        val setupMethods = findAllCandidateSetupMethodsForQuery(queryCollectionRef)
+        val resolvableConcepts = setupMethods.flatMap {
+            findAllResolvableConceptsInMethod(it)
+        }.distinctBy { (it.concept to it.usagePoint.textOffset) }
 
-        val referencesToMongoDbClasses =
-            allMethodCallsInMethod.mapNotNull {
-                it.findCurrentReferenceToMongoDbObject()
-            }.distinct() + listOfNotNull(queryCollectionRef.reference)
-
-        val constructorAssignmentFromConstructorRefs: List<FieldAndConstructorAssignment> =
-            referencesToMongoDbClasses.flatMap { ref ->
-                val resolution = ref.resolve() ?: return@flatMap emptyList()
-
-                when (resolution) {
-                    // we assume constructor injection
-                    // find in the constructor how it's defined
-                    is PsiField -> {
-                        return@flatMap resolveConstructorArgumentReferencesForField(
-                            resolution.findContainingClass(),
-                            Pair(null, resolution),
-                        )
-                    }
-                    // this can be either a chain call of methods, like getDatabase(..).getCollection()
-                    // with constant values or references to fields
-                    is PsiMethod -> {
-                        val innerMethodCalls = findChildrenOfType(
-                            resolution,
-                            PsiMethodCallExpression::class.java
-                        )
-                        val resolutions =
-                            innerMethodCalls
-                                .asSequence()
-                                .filter {
-                                    it.type?.isMongoDbClass(it.project) == true
-                                }.mapNotNull {
-                                    runCatching {
-                                        extractRelevantFieldsFromChain(it)
-                                    }.getOrNull()
-                                }.flatten()
-                                .distinctBy { it.first }
-                                .toList()
-
-                        val containingClass = resolution.findContainingClass()
-                        return@flatMap resolutions.flatMap {
-                            resolveConstructorArgumentReferencesForField(containingClass, it)
-                        }
-                    }
-
-                    else ->
-                        return@flatMap emptyList()
-                }
+        val fillingExpressions = resolvableConcepts.mapNotNull { resolvable ->
+            val element = findFillingExpressionForGivenResolvable(resolvable, currentClass)
+            if (element != null && element.tryToResolveAsConstantString() != null) {
+                resolvable to element
+            } else {
+                null
             }
+        }
 
-        val constructorAssignmentFromMethodsRefs: List<FieldAndConstructorAssignment> = allMethodCallsInMethod
-            .mapNotNull {
-                // if we can remove the namespace from this call, return directly
-                // we don't need to traverse the tree anymore
-                val maybeNamespace = runCatching { extractNamespaceFromDriverConfigurationMethodChain(it) }
-                    .getOrNull()
-                if (maybeNamespace?.isNotUnknown() == true) {
-                    return HasCollectionReference(maybeNamespace)
-                }
-                it.findMongoDbClassReference(it.project)
-            }.flatMap {
-                when (it.reference?.resolve()) {
-                    is PsiField ->
-                        resolveConstructorArgumentReferencesForField(
-                            currentClass,
-                            Pair(null, it.reference?.resolve() as PsiField),
-                        )
+        val database = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.DATABASE }
+        val collection = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.COLLECTION }
 
-                    is PsiMethod -> {
-                        val method = it.reference?.resolve() as PsiMethod
-                        if (method.containingClass?.isMongoDbClass(method.project) == true
-                            && it is PsiMethodCallExpression
-                        ) {
-                            return HasCollectionReference(
-                                extractNamespaceFromDriverConfigurationMethodChain(
-                                    it
-                                )
-                            )
-                        }
-                        val allInnerExpressions = findChildrenOfAnyType(
-                            method,
-                            PsiMethodCallExpression::class.java,
-                            PsiExpression::class.java
-                        )
-
-                        val foundNamespace = allInnerExpressions
-                            .filterIsInstance<PsiMethodCallExpression>()
-                            .firstNotNullOfOrNull {
-                                val reference = extractNamespaceFromDriverConfigurationMethodChain(it)
-                                if (reference.isNotUnknown()) {
-                                    reference
-                                } else {
-                                    null
-                                }
-                            }
-
-                        if (foundNamespace != null) {
-                            return HasCollectionReference(foundNamespace)
-                        }
-
-                        emptyList()
-                    }
-
-                    else -> emptyList()
-                }
-            }
-
-        val constructorAssignments = constructorAssignmentFromConstructorRefs + constructorAssignmentFromMethodsRefs
-        // at this point, we need to resolve fields or parameters that are not known yet
-        // but might be resolvable through the actual class or the abstract class
-        val resolvedScopes =
-            constructorAssignments.mapNotNull { assignment ->
-                currentClass.constructors.firstNotNullOfOrNull {
-                    if (assignment.parameter != null) {
-                        val callToSuperConstructor = getCallToSuperConstructor(it, constructorAssignments)
-
-                        val indexOfParameter =
-                            assignment.constructor.parameterList.getParameterIndex(
-                                assignment.parameter,
-                            )
-
-                        runCatching {
-                            Pair(
-                                assignment.concept,
-                                callToSuperConstructor!!.argumentList.expressions[indexOfParameter],
-                            )
-                        }.getOrNull()
-                    } else {
-                        Pair(assignment.concept, assignment.resolutionExpression)
-                    }
-                }
-            }
-
-        val collection = resolvedScopes.find { it.first == AssignmentConcept.COLLECTION }
-        val database = resolvedScopes.find { it.first == AssignmentConcept.DATABASE }
-        val client = resolvedScopes.find { it.first == AssignmentConcept.CLIENT }
-
-        if (collection != null && database == null) {
-            // if we have a parameter for the collection, but we don't have the database
-            // assume it's a call to getDatabase().getCollection()
+        if (database == null && collection != null) {
             return HasCollectionReference(
-                extractNamespaceFromDriverConfigurationMethodChain(collection.second as PsiMethodCallExpression)
+              HasCollectionReference.OnlyCollection(collection.first.usagePoint, collection.second.tryToResolveAsConstantString()!!)
             )
-        } else if (collection != null && database != null) {
-            // if we have a parameter for a collection and database, try to resolve them either
-            // from the parent constructor or the actual constructor
-            val databaseString = database.second.tryToResolveAsConstantString()!!
-            val collectionString = collection.second.tryToResolveAsConstantString()!!
-            return HasCollectionReference(
-                HasCollectionReference.Known(
-                    databaseSource = database.second,
-                    collectionSource = collection.second,
-                    namespace = Namespace(databaseString, collectionString)
-                )
-            )
-        } else if (client != null || resolvedScopes.size == 1) {
-            // if it's not a client and there is only one resolved variable
-            // guess from the actual constructor
-            val mongodbNamespaceDriverExpression =
-                currentClass.constructors.firstNotNullOfOrNull {
-                    val callToSuperConstructor =
-                        findChildrenOfType(it, PsiMethodCallExpression::class.java).first {
-                            it.methodExpression.text == "super" &&
-                                    it.methodExpression.resolve() == constructorAssignments.first().constructor
-                        }
+        }
 
-                    val indexOfParameter =
-                        constructorAssignments.first().constructor.parameterList.getParameterIndex(
-                            constructorAssignments.first().parameter!!,
-                        )
-                    callToSuperConstructor.argumentList.expressions[indexOfParameter]
-                }
-
+        if (database != null && collection != null) {
             return HasCollectionReference(
-                extractNamespaceFromDriverConfigurationMethodChain(
-                    mongodbNamespaceDriverExpression as PsiMethodCallExpression,
+              HasCollectionReference.Known(
+                database.first.usagePoint, collection.first.usagePoint,
+                Namespace(
+                  database.second.tryToResolveAsConstantString()!!,
+                  collection.second.tryToResolveAsConstantString()!!,
                 )
+              )
             )
         }
 
         return HasCollectionReference(
-            HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
+          HasCollectionReference.Unknown.cast(),
         )
     }
 
     /**
-     * Returns all the relevant assignments and fields that are target of the received
-     * field
-     *
-     * Example input:
-     *
-     * containingClass = PsiClass:MyRepository
-     * field = Pair(AssignmentConcept.COLLECTION, PsiField:myCollection)
-     *
-     * Example output:
-     * listOf(
-     *  FieldAndConstructorAssignment(
-     *      concept = AssignmentCollection.COLLECTION,
-     *      field = PsiField: myCollection,
-     *      constructor = PsiMethod: MyRepository(MongoCollection),
-     *      parameter = PsiParameter:MongoCollection@index 0,
-     *      resolutionExpression = null, // because it's an assignment without any additional logic
-     * ))
-     *
+     * Given a resolvable, find the references upwards to that resolvable for our current
+     * class. If we have a fan out inheritance chain, which is typical with repositories
+     * (for example, a BaseDao con have multiple implementations) we only care for now
+     * on our class.
      */
-    private fun resolveConstructorArgumentReferencesForField(
-        containingClass: PsiClass,
-        field: Pair<AssignmentConcept?, PsiField>,
-    ): List<FieldAndConstructorAssignment> {
-        return containingClass.constructors.flatMap { constructor ->
-            val assignments =
-                findChildrenOfType(constructor, PsiAssignmentExpression::class.java)
-            val fieldAssignment =
-                assignments.find { assignment ->
-                    assignment.lExpression.reference?.resolve() == field.second
+    private fun findFillingExpressionForGivenResolvable(resolvable: Resolvable, currentClass: PsiClass): Either<PsiElement, PsiReference>? {
+        val maxReferenceDepth = 50
+
+        if (resolvable.inputReference == null) {
+            val asConstant = resolvable.usagePoint.tryToResolveAsConstant()
+            return if(asConstant.first) Either.left(resolvable.usagePoint) else null
+        }
+
+        var currentRef: Either<PsiElement, PsiReference> = resolvable.inputReference
+        var previousRef: Either<PsiElement, PsiReference>? = null
+
+        var depth = 0
+        // we do this in case we have a too complex recursive graph, we will just return null
+        while (depth < maxReferenceDepth) {
+            depth++
+
+            if (currentRef is Either.Left) {
+                return currentRef
+            }
+
+            val referencedElement = (currentRef as Either.Right).value.resolve()
+            val nextReference = when (referencedElement) {
+                is PsiParameter -> findTopmostCallingReferenceToParameter(referencedElement, currentClass)
+                is PsiField -> if (referencedElement.initializer != null) {
+                    referencedElement.initializer?.reference?.let { Either.right(it) }
+                } else {
+                    findReferenceThatFillsField(referencedElement, currentClass)
                 }
-            fieldAssignment?.let {
-                val assignmentConcept =
-                    field.first
-                        ?: fieldAssignment.type.guessAssignmentConcept(fieldAssignment.project)
-                        ?: return emptyList()
-                val asParameter = fieldAssignment.rExpression?.reference?.resolve() as? PsiParameter
-                asParameter?.let {
-                    listOf(
-                        FieldAndConstructorAssignment(
-                            assignmentConcept,
-                            field.second,
-                            constructor,
-                            asParameter,
-                            null,
-                        ),
-                    )
-                } ?: run {
-                    // extract from chain
-                    val foundAssignments =
-                        extractRelevantAssignments(
-                            constructor,
-                            fieldAssignment.rExpression as PsiMethodCallExpression,
-                        )
-                    foundAssignments.ifEmpty {
-                        listOf(
-                            FieldAndConstructorAssignment(
-                                assignmentConcept,
-                                field.second,
-                                constructor,
-                                null,
-                                fieldAssignment.rExpression,
-                            ),
-                        )
-                    }
+                else -> referencedElement?.reference?.let { Either.right(it) }
+            }
+
+            if (nextReference != null) {
+                previousRef = currentRef
+                currentRef = nextReference
+            } else {
+                break
+            }
+        }
+
+        if (depth >= maxReferenceDepth) {
+            return null
+        }
+
+        return when (currentRef) {
+            is Either.Right ->
+                if (!doShareHierarchy(currentRef.value.element.findContainingClass(), currentClass)) {
+                    Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
+                } else if (currentRef.value.element.findContainingClass() == currentClass) {
+                    Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
+                } else {
+                    null
                 }
-            } ?: emptyList()
+            else -> currentRef
         }
     }
 
-    /**
-     * Gets the relevant call to the super constructor within the current
-     * constructor, if it's compatible with the current constructor signature,
-     * based on the field assignments.
-     */
-    private fun getCallToSuperConstructor(
-        currentConstructor: PsiMethod?,
-        constructorAssignments: List<FieldAndConstructorAssignment>,
-    ): PsiMethodCallExpression? {
-        return findChildrenOfType(currentConstructor, PsiMethodCallExpression::class.java).firstOrNull {
-            it.methodExpression.text == "super" &&
-                    it.methodExpression.resolve() == constructorAssignments.first().constructor
+    private fun findReferenceThatFillsField(psiField: PsiField, currentClass: PsiClass): Either<PsiElement, PsiReference>? {
+        val constructorsExposingField = findAllConstructorsExposingField(psiField)
+
+        // for each constructor, resolve the parameter for this field
+        val allParamRefs = constructorsExposingField.mapNotNull {
+            val assignment = it.findAllChildrenOfType(PsiAssignmentExpression::class.java).find {
+                it.lExpression.reference?.resolve() == psiField
+            }
+
+            val parameter = assignment?.rExpression?.reference?.resolve() as? PsiParameter
+            if (parameter != null) {
+                findTopmostCallingReferenceToParameter(parameter, currentClass)
+            } else {
+                null
+            }
         }
+
+        return allParamRefs.firstOrNull()
     }
 
-    /**
-     * Extracts the namespace from a chain of calls like:
-     * ```kotlin
-     * client.getDatabase(...).getCollection(...)
-     * ```
-     */
-    private fun extractNamespaceFromDriverConfigurationMethodChain(callExpr: PsiMethodCallExpression):
-            HasCollectionReference.CollectionReference<PsiElement> {
-        val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
-        val collection: String? =
-            if (returnsCollection) {
-                callExpr.argumentList.expressions.getOrNull(0)?.tryToResolveAsConstantString()
-            } else {
-                null
-            }
+    private fun findAllConstructorsExposingField(psiField: PsiField): List<PsiMethod> =
+        psiField.containingClass?.constructors?.filter {
+            it.findAllChildrenOfType(PsiAssignmentExpression::class.java).containsElements {
+                it.lExpression.reference?.resolve() == psiField
+            } || it.body?.text?.contains("this(") == true
+        } ?: emptyList()
 
-        val dbExpression =
-            if (callExpr.type?.isMongoDbDatabaseClass(callExpr.project) == true) {
-                callExpr
-            } else if (callExpr.methodExpression.qualifierExpression
-                    ?.type
-                    ?.isMongoDbDatabaseClass(callExpr.project) == true
-            ) {
-                callExpr.methodExpression.qualifierExpression as PsiMethodCallExpression?
-            } else {
-                null
-            }
+    private fun findTopmostCallingReferenceToParameter(psiParameter: PsiParameter, currentClass: PsiClass): Either<PsiElement, PsiReference>? {
+        val method = psiParameter.findContainingMethod() ?: return null
 
-        val database: String? =
-            dbExpression?.let {
-                dbExpression.argumentList.expressions.getOrNull(0)?.tryToResolveAsConstantString()
-            }
-
-        if (database == null || collection == null) {
-            return HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
-        }
-
-        return HasCollectionReference.Known(
-            databaseSource = dbExpression,
-            collectionSource = callExpr.argumentList.expressions.getOrElse(0) { callExpr },
-            Namespace(database, collection)
+        val searchParams = ReferencesSearch.SearchParameters(
+          method,
+          GlobalSearchScopes.projectProductionScope(currentClass.project),
+          false
         )
+
+        val methodCalls = ReferencesSearch.search(searchParams).findAll().mapNotNull { it.element.parent }.filterIsInstance<PsiMethodCallExpression>()
+        // from these method calls we know which argument is relevant for us
+        // we can just gather it by index and check if we can resolve it
+        val paramIndex = psiParameter.index
+        return methodCalls.firstNotNullOfOrNull { methodCall ->
+            methodCall.argumentList.expressions.getOrNull(paramIndex)?.let {
+                if (it.reference == null && doesClassInherit(it.findContainingClass(), currentClass)) {
+                    Either.left(it)
+                } else if (doesClassInherit(it.reference?.element?.findContainingClass(), currentClass)) {
+                    Either.right(it.reference!!)
+                } else {
+                    null
+                }
+            }
+        }
     }
 
     /**
-     * Extract all the field assignments from a constructor that are relevant
-     * for the current method call expression. For example, if we have the following
-     * callExpr:
-     *
-     * ```kotlin
-     * client.getDatabase(...).getCollection(...)
-     * ```
-     *
-     * The only relevant field to extract is client from the constructor.
+     * Find all candidate external methods that can be used to set up the query context
+     * (database / collection)
      */
-    private fun extractRelevantAssignments(
-        constructor: PsiMethod,
-        callExpr: PsiMethodCallExpression,
-    ): List<FieldAndConstructorAssignment> {
-        val result = mutableListOf<FieldAndConstructorAssignment>()
-        val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
-        if (returnsCollection) {
-            val parameter =
-                callExpr.argumentList.expressions.getOrNull(0)
-                    ?.reference
-                    ?.resolve() as? PsiParameter
-            parameter?.let {
-                result.add(
-                    FieldAndConstructorAssignment(
-                        AssignmentConcept.COLLECTION,
-                        null,
-                        constructor,
-                        parameter,
-                        null,
-                    ),
-                )
-            }
-        }
+    private fun findAllCandidateSetupMethodsForQuery(query: PsiElement): Set<PsiMethod> {
+        val currentClass = query.findContainingClass()
 
-        val dbExpression =
-            if (callExpr.type?.isMongoDbDatabaseClass(callExpr.project) == true) {
-                callExpr
-            } else if (callExpr.methodExpression.qualifierExpression
-                    ?.type
-                    ?.isMongoDbDatabaseClass(callExpr.project) == true
-            ) {
-                callExpr.methodExpression.qualifierExpression as PsiMethodCallExpression?
+        // we are always a candidate for setting up the query context
+        val currentMethod = query.findContainingMethod() ?: return emptySet()
+
+        // first, we assume that all our constructors are relevant
+        val constructors = currentMethod.findContainingClass().constructorsWithSuperClasses.toSet()
+
+        // now, we need to find out references to other method that might return a mongodb type,
+        // strings, or are from a super class
+        val allMethods = currentMethod.findAllChildrenOfType(PsiMethodCallExpression::class.java)
+          .filter {
+              it.type?.isMongoDbCollectionClass(query.project) == true||
+              it.type?.isMongoDbDatabaseClass(query.project) == true ||
+              it.type?.canonicalText?.endsWith("String") == true ||
+                (it.fuzzyResolveMethod() != null &&
+                  doesClassInherit(it.fuzzyResolveMethod()?.containingClass!!, currentClass)
+                  )
+
+          }.mapNotNull {
+              it.fuzzyResolveMethod()
+          }.toSet()
+
+        val allTransitiveMethods = allMethods.flatMap {
+            it.findAllChildrenOfType(PsiMethodCallExpression::class.java)
+        }.flatMap {
+            val method = it.resolveMethod() ?: return@flatMap emptySet()
+            if (method.containingClass == currentClass || doesClassInherit(method.containingClass!!, currentClass)) {
+                setOf(method)
             } else {
-                null
-            }
-
-        dbExpression?.let {
-            val parameter =
-                dbExpression.argumentList.expressions.getOrNull(0)
-                    ?.reference
-                    ?.resolve() as? PsiParameter
-            parameter?.let {
-                result.add(
-                    FieldAndConstructorAssignment(
-                        AssignmentConcept.DATABASE,
-                        null,
-                        constructor,
-                        parameter,
-                        null,
-                    ),
-                )
+                emptySet()
             }
         }
 
-        return result
+        return (constructors + allMethods + currentMethod + allTransitiveMethods).distinctBy {
+            it.textOffset
+        }.toSet()
     }
 
-    private fun extractRelevantFieldsFromChain(callExpr: PsiMethodCallExpression): FoundAssignedPsiFields {
-        val result = mutableListOf<Pair<AssignmentConcept, PsiField>>()
-        val returnsCollection = callExpr.type?.isMongoDbCollectionClass(callExpr.project) == true
-        if (returnsCollection) {
-            val field =
-                callExpr.argumentList.expressions[0]
-                    ?.reference
-                    ?.resolve() as? PsiField
-            field?.let {
-                result.add(Pair(AssignmentConcept.COLLECTION, field))
-            }
+    /**
+     * For a given method (either a constructor, the method itself, overrides...) returns
+     * the list of references to either collections or databases for the MongoDB driver
+     */
+    private fun findAllResolvableConceptsInMethod(method: PsiMethod): Set<Resolvable> {
+        return method.findAllChildrenOfType(PsiExpression::class.java)
+          .filter {
+              it.type?.isMongoDbClass(method.project) == true
+          }.flatMap {
+              when (it) {
+                  is PsiMethodCallExpression -> {
+                      val method = it.fuzzyResolveMethod()
+                      if (method == null) {
+                          return@flatMap emptySet<Resolvable>()
+                      }
+
+                      if (it.argumentList.expressions.size == 0) { // unknown method, so go inside
+                          return@flatMap findAllResolvableConceptsInMethod(method)
+                      }
+
+                      val arg = it.argumentList.expressions.firstOrNull {
+                          it.type?.canonicalText?.endsWith("String") == true
+                      } ?: return@flatMap emptyList()
+
+                      when (method.name) {
+                          "getCollection" -> listOf(Resolvable(
+                            AssignmentConcept.COLLECTION, arg, arg.reference?.let { Either.right(it) }
+                          ))
+                          "getDatabase" -> listOf(Resolvable(
+                            AssignmentConcept.DATABASE, arg, arg.reference?.let { Either.right(it) }
+                          ))
+                          else -> it.argumentList.expressions.filter {
+                              it.reference?.resolve() is PsiParameter
+                          }.mapNotNull {
+                              val param = it.reference?.resolve() as? PsiParameter
+                              when (param?.name) {
+                                  "collection" -> Resolvable(
+                                    AssignmentConcept.COLLECTION, it, it.reference?.let { Either.right(it) }
+                                  )
+                                  "database" -> Resolvable(
+                                    AssignmentConcept.DATABASE, it, it.reference?.let { Either.right(it) }
+                                  )
+                                  else -> null
+                              }
+                          }
+                      }
+                  } else -> {
+                      if (it.type?.isMongoDbCollectionClass(method.project) == true) {
+                          listOf(Resolvable(
+                            AssignmentConcept.COLLECTION, it, it.reference?.let { Either.right(it) }
+                          ))
+                      } else if (it.type?.isMongoDbDatabaseClass(method.project) == true) {
+                          listOf(Resolvable(
+                            AssignmentConcept.DATABASE, it, it.reference?.let { Either.right(it) }
+                          ))
+                      } else {
+                          emptyList()
+                      }
+                  }
+              }
+          }.toSet()
+    }
+
+    private fun doesClassInherit(parent: PsiClass?, child: PsiClass): Boolean {
+        if (parent == null) {
+            return false
         }
 
-        val dbExpression =
-            if (callExpr.type?.isMongoDbDatabaseClass(callExpr.project) == true) {
-                callExpr
-            } else if (callExpr.methodExpression.qualifierExpression
-                    ?.type
-                    ?.isMongoDbDatabaseClass(callExpr.project) == true
-            ) {
-                callExpr.methodExpression.qualifierExpression as PsiMethodCallExpression?
-            } else {
-                null
-            }
-
-        dbExpression?.let {
-            val field =
-                dbExpression.argumentList.expressions.getOrNull(0)
-                    ?.reference
-                    ?.resolve() as? PsiField
-            field?.let {
-                result.add(Pair(AssignmentConcept.DATABASE, field))
-            }
+        if (child == parent) {
+            return true
         }
 
-        return result
+        if (child.superClass == null) {
+            return false
+        }
+
+        return doesClassInherit(parent, child.superClass!!)
+    }
+
+    private fun doShareHierarchy(a: PsiClass, b: PsiClass): Boolean {
+        fun superClassesOf(current: PsiClass): List<PsiClass> {
+            if (current.superClass == null) {
+                return emptyList()
+            }
+
+            return superClassesOf(current.superClass!!) + current
+        }
+
+        val aClasses = superClassesOf(a)
+        val bClasses = superClassesOf(b)
+
+        return aClasses.intersect(bClasses).isNotEmpty()
+    }
+
+    private fun Either<PsiElement, PsiReference>.tryToResolveAsConstantString(): String? {
+        return when (this) {
+            is Either.Left -> value.tryToResolveAsConstantString()
+            is Either.Right -> value.resolve()?.tryToResolveAsConstantString()
+        }
     }
 }
 
 private enum class AssignmentConcept {
-    CLIENT,
     DATABASE,
     COLLECTION,
 }
 
-/**
- * @property concept
- * @property field
- * @property constructor
- * @property parameter
- * @property resolutionExpression
- */
-private data class FieldAndConstructorAssignment(
+private data class Resolvable(
     val concept: AssignmentConcept,
-    val field: PsiField?,
-    val constructor: PsiMethod,
-    val parameter: PsiParameter?,
-    val resolutionExpression: PsiExpression?,
+    val usagePoint: PsiExpression,
+    val inputReference: Either<PsiElement, PsiReference>?
 )
 
-private fun PsiType?.guessAssignmentConcept(project: Project): AssignmentConcept? {
-    this ?: return null
+private val PsiParameter.index: Int
+    get() = findContainingMethod()!!.parameterList.getParameterIndex(this)
 
-    return if (isMongoDbClientClass(project)) {
-        AssignmentConcept.CLIENT
-    } else if (isMongoDbDatabaseClass(project)) {
-        AssignmentConcept.DATABASE
-    } else if (isMongoDbCollectionClass(project)) {
-        AssignmentConcept.COLLECTION
-    } else {
-        null
-    }
-}
+private fun PsiElement.findContainingMethod(): PsiMethod? =
+    findParentOfType<PsiMethod>()
 
-private fun HasCollectionReference.CollectionReference<PsiElement>.isNotUnknown(): Boolean =
-    !this.equals(HasCollectionReference.Unknown)
+private val PsiClass.constructorsWithSuperClasses: List<PsiMethod>
+    get() = constructors.toList() +
+        (superClass?.constructorsWithSuperClasses ?: emptyList<PsiMethod>())
