@@ -23,7 +23,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         methodToCommand((source as? PsiMethodCallExpression)?.fuzzyResolveMethod()).type !=
             IsCommand.CommandType.UNKNOWN
 
-    override fun attachment(source: PsiElement): PsiElement = source.findFirstParentOrNull {
+    override fun attachment(source: PsiElement): PsiElement = source.findTopParentBy {
         isCandidateForQuery(it)
     }!!
 
@@ -423,16 +423,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 } ?: HasValueReference.Unknown
             }
         return valueReference as HasValueReference.ValueReference<PsiElement>
-    }
-
-    private fun findStartOfQuery(element: PsiElement): PsiMethodCallExpression? {
-        val methodCalls = element.findAllChildrenOfType(PsiMethodCallExpression::class.java)
-        val bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
-            val method = methodCall.resolveMethod() ?: return@find false
-            method.containingClass?.isMongoDbCollectionClass(method.project) == true
-        } ?: return null
-
-        return bottomLevel
     }
 
     private fun methodToCommand(method: PsiMethod?): IsCommand {

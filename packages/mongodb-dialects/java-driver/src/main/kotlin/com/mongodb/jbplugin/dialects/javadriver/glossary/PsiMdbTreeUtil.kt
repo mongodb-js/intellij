@@ -421,10 +421,10 @@ fun PsiMethodCallExpression.fuzzyResolveMethod(): PsiMethod? {
 /**
  * Returns the first parent matching a condition.
  */
-fun PsiElement?.findFirstParentOrNull(filter: (PsiElement) -> Boolean): PsiElement? {
-    if (this != null && filter(this)) {
-        return this
+fun PsiElement?.findTopParentBy(filter: (PsiElement) -> Boolean): PsiElement? {
+    return if (this != null && filter(this)) {
+        this.parent?.findTopParentBy(filter) ?: this
     } else {
-        return this?.parent?.findFirstParentOrNull(filter)
+        this?.parent?.findTopParentBy(filter)
     }
 }

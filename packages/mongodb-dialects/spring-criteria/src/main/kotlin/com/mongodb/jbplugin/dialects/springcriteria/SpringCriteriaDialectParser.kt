@@ -22,7 +22,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         inferCommandFromMethod((source as? PsiMethodCallExpression)?.fuzzyResolveMethod()).type !=
             IsCommand.CommandType.UNKNOWN
 
-    override fun attachment(source: PsiElement): PsiElement = source.findFirstParentOrNull {
+    override fun attachment(source: PsiElement): PsiElement = source.findTopParentBy {
         isCandidateForQuery(it)
     }!!
 

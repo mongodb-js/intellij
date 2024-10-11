@@ -30,6 +30,6 @@ public class SpringCriteriaRepository {
     }
 
     private void updateLanguageOfAllMoviesWithRatingAtLeast(int rating, String newLanguage) {
-        template.updateMulti(query(where("").gte(rating)), update("key", "value"), Movie.class);
+        template.updateMulti(query(where("tomatoes.viewer.rating").gte(rating)), update("key", "value"), Movie.class);
     }
 }
