@@ -13,10 +13,10 @@ import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvide
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isMongoDbDataSource
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
-import com.mongodb.jbplugin.editor.services.ConnectionState
+import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.editor.services.DataSourceService
-import com.mongodb.jbplugin.editor.services.DatabasesLoadingState
-import com.mongodb.jbplugin.meta.service
+import com.mongodb.jbplugin.observability.useLogMessage
+import io.ktor.util.collections.*
 import kotlinx.coroutines.CoroutineScope
 
 private val log = logger<MdbDataSourceService>()
@@ -25,8 +25,6 @@ private val log = logger<MdbDataSourceService>()
  * @param project
  * @param coroutineScope
  */
-// Ktlint complains about line 33 being too long but there is nothing there
-@Suppress("LONG_LINE")
 @Service(Service.Level.PROJECT)
 class MdbDataSourceService(
     private val project: Project,
@@ -37,69 +35,72 @@ class MdbDataSourceService(
             ?.dataSources?.filter { it.isMongoDbDataSource() }
             ?: emptyList()
 
-    override fun listDatabasesForDataSource(
-        dataSource: LocalDataSource,
-        onLoadingStateChanged: (DatabasesLoadingState) -> Unit
-    ) {
+    override fun listDatabasesForDataSource(dataSource: LocalDataSource) {
+        val toolbarModel = project.getToolbarModel()
         coroutineScope.launchChildBackground {
-            onLoadingStateChanged(DatabasesLoadingState.Started)
+            toolbarModel.databasesLoadingStarted(dataSource)
             try {
-                val readModel by project.service<DataGripBasedReadModelProvider>()
+                val readModel = project.getService(DataGripBasedReadModelProvider::class.java)
                 val databases = readModel.slice(dataSource, ListDatabases.Slice)
-                onLoadingStateChanged(
-                    DatabasesLoadingState.Finished(databases.databases.map { it.name })
+                toolbarModel.databasesLoadingSuccessful(
+                    dataSource,
+                    databases.databases.map { it.name }
                 )
             } catch (exception: Exception) {
                 log.error(
-                    "Error while listing databases for DataSource(${dataSource.uniqueId})",
+                    useLogMessage(
+                        "Error while listing databases for DataSource(${dataSource.uniqueId})"
+                    ).build(),
                     exception
                 )
-                onLoadingStateChanged(DatabasesLoadingState.Errored(exception))
+                toolbarModel.databasesLoadingFailed(dataSource, exception)
             }
         }
     }
 
-    override fun connect(
-        dataSource: LocalDataSource,
-        onConnectionStateChanged: suspend (ConnectionState) -> Unit
-    ) {
+    override fun connect(dataSource: LocalDataSource) {
+        val toolbarModel = project.getToolbarModel()
         coroutineScope.launchChildBackground {
-            onConnectionStateChanged(ConnectionState.ConnectionStarted)
+            toolbarModel.dataSourceConnectionStarted(dataSource)
             if (dataSource.isConnected()) {
-                onConnectionStateChanged(ConnectionState.ConnectionSuccess)
+                toolbarModel.dataSourceConnectionSuccessful(dataSource)
                 return@launchChildBackground
             }
 
-            val connectionManager = DatabaseConnectionManager.getInstance()
-            val connectionHandler =
-                connectionManager
-                    .build(project, dataSource)
-                    .setRequestor(ConnectionRequestor.Anonymous())
-                    .setAskPassword(true)
-                    .setRunConfiguration(
-                        ConsoleRunConfiguration.newConfiguration(project).apply {
-                            setOptionsFromDataSource(dataSource)
-                        },
-                    )
-
             try {
+                val connectionManager = DatabaseConnectionManager.getInstance()
+                val connectionHandler =
+                    connectionManager
+                        .build(project, dataSource)
+                        .setRequestor(ConnectionRequestor.Anonymous())
+                        .setAskPassword(true)
+                        .setRunConfiguration(
+                            ConsoleRunConfiguration.newConfiguration(project).apply {
+                                setOptionsFromDataSource(dataSource)
+                            },
+                        )
+
                 val connection = connectionHandler.create()?.get()
                 if (connection == null || !dataSource.isConnected()) {
                     throw ConnectionNotConnectedException()
                 }
-                onConnectionStateChanged(ConnectionState.ConnectionSuccess)
+                toolbarModel.dataSourceConnectionSuccessful(dataSource)
             } catch (exception: ConnectionNotConnectedException) {
                 log.warn(
-                    "Could not connect to DataSource(${dataSource.uniqueId})",
+                    useLogMessage(
+                        "Could not connect to DataSource(${dataSource.uniqueId})"
+                    ).build(),
                     exception
                 )
-                onConnectionStateChanged(ConnectionState.ConnectionUnsuccessful)
+                toolbarModel.dataSourceConnectionUnsuccessful(dataSource)
             } catch (exception: Exception) {
                 log.error(
-                    "Error while connecting to DataSource(${dataSource.uniqueId})",
+                    useLogMessage(
+                        "Error while connecting to DataSource(${dataSource.uniqueId})"
+                    ).build(),
                     exception
                 )
-                onConnectionStateChanged(ConnectionState.ConnectionFailed(dataSource))
+                toolbarModel.dataSourceConnectionFailed(dataSource, exception)
             }
         }
     }
@@ -114,6 +115,6 @@ class MdbDataSourceService(
  * @param project
  * @return
  */
-fun getDataSourceService(project: Project): DataSourceService = project.getService(
+fun Project.getDataSourceService(): DataSourceService = getService(
     MdbDataSourceService::class.java
 )
