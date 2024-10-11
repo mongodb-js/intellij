@@ -7,6 +7,9 @@ import com.intellij.psi.util.findParentOfType
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.*
+import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.extractCollectionFromParameter
+import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.extractCollectionFromQueryChain
+import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.or
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
@@ -22,38 +25,38 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     override fun attachment(source: PsiElement): PsiElement = source.findCriteriaWhereExpression()!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
-        if (source !is PsiExpression) {
+        if (source !is PsiMethodCallExpression) {
             return Node(source, emptyList())
         }
 
-        val criteriaChain = source.findCriteriaWhereExpression() ?: return Node(source, emptyList())
-        val targetCollection = QueryTargetCollectionExtractor.extractCollection(source)
+        val mongoOpCall = source.findSpringMongoDbExpression()
+        val mongoOpMethod = mongoOpCall?.fuzzyResolveMethod()
 
-        val mongoOpCall = criteriaChain.parentMongoDbOperation() ?: return Node(source, emptyList())
-        val mongoOpMethod =
-            mongoOpCall.fuzzyResolveMethod() ?: return Node(mongoOpCall, emptyList())
-
+        val inferredFromChain = extractCollectionFromQueryChain(mongoOpCall)
         val command = inferCommandFromMethod(mongoOpMethod)
 
         // not all methods work the same way (sigh) so we will need a big `when` to handle
         // each special case
-        return when (mongoOpMethod.name) {
+        return when (mongoOpMethod?.name) {
             "all",
             "one" -> {
                 // these are terminal operators, so the query is just above us (below in the PSI)
                 val actualMethod = mongoOpCall.firstChild?.firstChild as? PsiMethodCallExpression
-                    ?: return Node(mongoOpCall, listOf(command, targetCollection))
+                    ?: return Node(mongoOpCall, listOf(command, inferredFromChain))
 
                 return Node(
                     actualMethod,
                     listOf(
                         command,
-                        targetCollection,
+                        inferredFromChain.or(
+                            extractCollectionFromParameter(
+                                actualMethod.argumentList.expressions.getOrNull(1)
+                            )
+                        ),
                         HasFilter(
                             parseFilterRecursively(
                                 actualMethod.argumentList.expressions.getOrNull(0)
-                            )
-                                .reversed()
+                            ).reversed()
                         )
                     )
                 )
@@ -72,7 +75,11 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                             .reversed()
@@ -87,7 +94,11 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                             .reversed()
@@ -98,14 +109,23 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
+                    HasFilter(parseFindById(mongoOpCall.argumentList.expressions.getOrNull(0)))
                 )
             )
             "findDistinct" -> Node(
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                             .reversed()
@@ -116,21 +136,33 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                 )
             )
             "insertAll" -> Node(
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                 )
             )
             "remove" -> Node(
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                             .reversed()
@@ -141,7 +173,11 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 mongoOpMethod,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                             .reversed()
@@ -149,10 +185,14 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
             else -> Node(
-                mongoOpCall,
+                mongoOpCall!!,
                 listOf(
                     command,
-                    targetCollection,
+                    inferredFromChain.or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ),
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                     )
@@ -195,6 +235,25 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         }
 
         return isString && methodCall.isCriteriaExpression()
+    }
+
+    private fun parseFindById(
+        valueFilterExpression: PsiElement?
+    ): List<Node<PsiElement>> {
+        if (valueFilterExpression == null) return emptyList()
+
+        // basically, it's template.findById(id)
+        // so we need to generate a value from the expression
+        return listOf(
+            Node(
+                valueFilterExpression,
+                listOf(
+                    Named(Name.EQ),
+                    HasFieldReference(HasFieldReference.Known(valueFilterExpression, "_id")),
+                    psiExpressionToValueReference(valueFilterExpression as? PsiExpression)
+                )
+            )
+        )
     }
 
     private fun parseFilterRecursively(
@@ -247,29 +306,9 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val fieldMethodCall =
             valueMethodCall.firstChild.firstChild.meaningfulExpression() as? PsiMethodCallExpression
                 ?: return emptyList()
-        val valuePsi = valueMethodCall.argumentList.expressions.getOrNull(0)
-        val fieldPsi = fieldMethodCall.argumentList.expressions.getOrNull(0)
 
-        val field = fieldPsi?.tryToResolveAsConstantString()
-        val fieldReference = when (field) {
-            null -> HasFieldReference(HasFieldReference.Unknown)
-            else -> HasFieldReference(HasFieldReference.Known(fieldPsi, field))
-        }
-        val (_, value) = valuePsi?.tryToResolveAsConstant() ?: (false to null)
-        val valueReference = when (value) {
-            null -> when (valuePsi?.type) {
-                null -> HasValueReference(HasValueReference.Unknown)
-                else -> HasValueReference(
-                    HasValueReference.Runtime(
-                        valuePsi,
-                        valuePsi.type?.toBsonType() ?: BsonAny
-                    )
-                )
-            }
-            else -> HasValueReference(
-                HasValueReference.Constant(valuePsi, value, value.javaClass.toBsonType(value))
-            )
-        }
+        val fieldReference = inferFieldReference(fieldMethodCall)
+        val valueReference = inferValueReference(valueMethodCall)
 
         val operationName = operatorName(valueFilterMethod)
 
@@ -297,6 +336,42 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         return thisQueryNode
     }
 
+    private fun inferValueReference(valueMethodCall: PsiMethodCallExpression): HasValueReference<out Any?> {
+        val valuePsi = valueMethodCall.argumentList.expressions.getOrNull(0)
+        return psiExpressionToValueReference(valuePsi)
+    }
+
+    private fun psiExpressionToValueReference(valuePsi: PsiExpression?): HasValueReference<out Any?> {
+        val (_, value) = valuePsi?.tryToResolveAsConstant() ?: (false to null)
+        val valueReference = when (value) {
+            null -> when (valuePsi?.type) {
+                null -> HasValueReference(HasValueReference.Unknown)
+                else -> HasValueReference(
+                    HasValueReference.Runtime(
+                        valuePsi,
+                        valuePsi.type?.toBsonType() ?: BsonAny
+                    )
+                )
+            }
+
+            else -> HasValueReference(
+                HasValueReference.Constant(valuePsi, value, value.javaClass.toBsonType(value))
+            )
+        }
+        return valueReference
+    }
+
+    private fun inferFieldReference(fieldMethodCall: PsiMethodCallExpression): HasFieldReference<out Any> {
+        val fieldPsi = fieldMethodCall.argumentList.expressions.getOrNull(0)
+
+        val field = fieldPsi?.tryToResolveAsConstantString()
+        val fieldReference = when (field) {
+            null -> HasFieldReference(HasFieldReference.Unknown)
+            else -> HasFieldReference(HasFieldReference.Known(fieldPsi, field))
+        }
+        return fieldReference
+    }
+
     private fun operatorName(currentCriteriaMethod: PsiMethod): Named {
         val name = currentCriteriaMethod.name.replace("Operator", "")
         val named = Named(name.toName())
@@ -307,9 +382,9 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
      * List of methods from here:
      * https://docs.spring.io/spring-data/mongodb/docs/current/api/org/springframework/data/mongodb/core/MongoOperations.html
      */
-    private fun inferCommandFromMethod(mongoOpMethod: PsiMethod): IsCommand {
+    private fun inferCommandFromMethod(mongoOpMethod: PsiMethod?): IsCommand {
         return IsCommand(
-            when (mongoOpMethod.name) {
+            when (mongoOpMethod?.name) {
                 "aggregate", "aggregateStream" -> IsCommand.CommandType.AGGREGATE
                 "count", "exactCount" -> IsCommand.CommandType.COUNT_DOCUMENTS
                 "estimatedCount" -> IsCommand.CommandType.ESTIMATED_DOCUMENT_COUNT
@@ -369,19 +444,18 @@ private fun PsiMethodCallExpression.isCriteriaQueryMethod(): Boolean {
     return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
 }
 
-private fun PsiMethodCallExpression.parentMongoDbOperation(): PsiMethodCallExpression? {
-    var parentMethodCall = findParentOfType<PsiMethodCallExpression>() ?: return null
-    val method = parentMethodCall.fuzzyResolveMethod() ?: return null
-
+private fun PsiMethodCallExpression.findSpringMongoDbExpression(): PsiMethodCallExpression? {
+    val method = fuzzyResolveMethod() ?: return null
     if (INTERFACES_WITH_QUERY_METHODS.any {
-            method.containingClass?.qualifiedName?.contains(it) ==
-                true
+            method.containingClass?.qualifiedName?.contains(it) == true
         }
     ) {
-        return parentMethodCall.parentMongoDbOperation() ?: parentMethodCall
+        var parentMethodCall = findParentOfType<PsiMethodCallExpression>()
+        return parentMethodCall?.findSpringMongoDbExpression() ?: this
+    } else {
+        var parentMethodCall = findParentOfType<PsiMethodCallExpression>() ?: return null
+        return parentMethodCall.findSpringMongoDbExpression()
     }
-
-    return parentMethodCall.parentMongoDbOperation()
 }
 
 private fun String.toName(): Name = when (this) {

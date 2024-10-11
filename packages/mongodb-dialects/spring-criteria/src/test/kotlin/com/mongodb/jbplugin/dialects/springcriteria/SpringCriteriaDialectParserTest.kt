@@ -177,6 +177,53 @@ class Repository {
         this.template = template;
     }
     
+    public Book randomBook() {
+        return template.findById("123456", Book.class);
+    }
+}
+        """
+    )
+    fun `supports for findById`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "randomBook")
+        val node = SpringCriteriaDialectParser.parse(query)
+
+        val collectionReference = node.component<HasCollectionReference<PsiElement>>()!!.reference
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
+        val idReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
+        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+
+        collectionReference as HasCollectionReference.OnlyCollection
+        idReference as HasFieldReference.Known<PsiElement>
+        valueReference as HasValueReference.Constant
+
+        assertEquals("book", collectionReference.collection)
+        assertEquals("_id", idReference.fieldName)
+        assertEquals("123456", valueReference.value)
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
     public List<Book> allReleasedBooks() {
         return template.query(Book.class)
                        .matching(where("released").is(true).and("hidden").is(0))
