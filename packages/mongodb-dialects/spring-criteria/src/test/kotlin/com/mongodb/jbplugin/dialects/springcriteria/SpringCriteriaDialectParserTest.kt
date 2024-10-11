@@ -702,4 +702,75 @@ class Repository {
             assertEquals(expected, command?.type)
         }
     }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
+import static org.springframework.data.mongodb.core.query.Update.update;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public Book randomBook() {
+        return template.updateFirst(query(where("field").is("123456")), update("another", 1).set("third", 3), Book.class);
+    }
+}
+        """
+    )
+    fun `supports for update queries queries`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "randomBook")
+        val node = SpringCriteriaDialectParser.parse(query)
+
+        val collectionReference = node.component<HasCollectionReference<PsiElement>>()!!.reference
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
+        val filterFieldReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
+        val filterValueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+
+        val updateFieldTo1 = node.component<HasUpdates<PsiElement>>()!!.children[0]
+        val updateFieldReference = updateFieldTo1.component<HasFieldReference<PsiElement>>()!!.reference
+        val updateValueReference = updateFieldTo1.component<HasValueReference<PsiElement>>()!!.reference
+
+        val setThirdTo3 = node.component<HasUpdates<PsiElement>>()!!.children[1]
+        val updateFieldReference3 = setThirdTo3.component<HasFieldReference<PsiElement>>()!!.reference
+        val updateValueReference3 = setThirdTo3.component<HasValueReference<PsiElement>>()!!.reference
+
+        collectionReference as HasCollectionReference.OnlyCollection
+        filterFieldReference as HasFieldReference.Known<PsiElement>
+        filterValueReference as HasValueReference.Constant
+
+        updateFieldReference as HasFieldReference.Known<PsiElement>
+        updateValueReference as HasValueReference.Constant
+
+        updateFieldReference3 as HasFieldReference.Known<PsiElement>
+        updateValueReference3 as HasValueReference.Constant
+
+        assertEquals("book", collectionReference.collection)
+
+        assertEquals("field", filterFieldReference.fieldName)
+        assertEquals("123456", filterValueReference.value)
+
+        assertEquals("another", updateFieldReference.fieldName)
+        assertEquals(1, updateValueReference.value)
+
+        assertEquals("third", updateFieldReference3.fieldName)
+        assertEquals(3, updateValueReference3.value)
+    }
 }

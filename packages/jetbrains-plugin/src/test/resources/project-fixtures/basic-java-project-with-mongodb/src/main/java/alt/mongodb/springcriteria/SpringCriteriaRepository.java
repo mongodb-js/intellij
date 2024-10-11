@@ -2,7 +2,6 @@ package alt.mongodb.springcriteria;
 
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.query.UpdateDefinition;
 
 import java.util.List;
 

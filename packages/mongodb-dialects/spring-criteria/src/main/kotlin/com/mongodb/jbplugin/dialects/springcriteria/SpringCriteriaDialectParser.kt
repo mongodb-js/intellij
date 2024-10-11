@@ -111,6 +111,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                             .reversed()
+                    ),
+                    HasUpdates(
+                        parseUpdateRecursively(mongoOpCall.argumentList.expressions.getOrNull(1))
+                            .reversed()
                     )
                 )
             )
