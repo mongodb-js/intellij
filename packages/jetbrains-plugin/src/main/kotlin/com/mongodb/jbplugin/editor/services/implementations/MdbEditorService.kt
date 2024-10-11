@@ -20,6 +20,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
+import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.editor.services.EditorService
 import com.mongodb.jbplugin.observability.useLogMessage
 
@@ -129,12 +130,12 @@ class MdbEditorService(private val project: Project) : EditorService {
             currentEditor.virtualFile?.putUserData(Keys.attachedToolbar, toolbar)
             // If we already have some toolbar state then we preserve that as well
             // when toggling the toolbar for new editor
-            val (_, selectedDataSource, _, selectedDatabase) = toolbar.getToolbarState()
-            selectedDataSource?.let {
-                attachDataSourceToSelectedEditor(selectedDataSource)
+            val toolbarState = project.getToolbarModel().toolbarState.value
+            toolbarState.selectedDataSource?.let {
+                attachDataSourceToSelectedEditor(it)
             }
-            if (selectedDatabase != null && databaseComboBoxVisible) {
-                attachDatabaseToSelectedEditor(selectedDatabase)
+            if (toolbarState.selectedDatabase != null && databaseComboBoxVisible) {
+                attachDatabaseToSelectedEditor(toolbarState.selectedDatabase)
             }
             reAnalyzeSelectedEditor(applyReadActionForFileAnalyses)
         } ?: run {
@@ -161,6 +162,6 @@ class MdbEditorService(private val project: Project) : EditorService {
  * @param project
  * @return
  */
-fun getEditorService(project: Project): EditorService = project.getService(
+fun Project.getEditorService(): EditorService = getService(
     MdbEditorService::class.java
 )

@@ -46,6 +46,9 @@ class MdbJavaEditorToolbarFixture(
     fun detachDataSource() {
         eventually {
             dataSources.selectItem("Detach data source")
+            if (!dataSources.selectedText().contains("Attach MongoDB")) {
+                throw Exception("Could not detach data source")
+            }
         }
     }
 }

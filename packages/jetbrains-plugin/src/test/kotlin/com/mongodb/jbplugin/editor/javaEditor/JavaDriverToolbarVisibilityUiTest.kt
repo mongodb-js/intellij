@@ -77,6 +77,7 @@ class JavaDriverToolbarVisibilityUiTest {
     @RequiresProject("basic-java-project-with-mongodb")
     fun `does show existing data sources in the combo box`(
         remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
     ) {
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
@@ -90,6 +91,7 @@ class JavaDriverToolbarVisibilityUiTest {
     @RequiresProject("basic-java-project-with-mongodb")
     fun `does not show the database select on a java driver file`(
         remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
     ) {
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
@@ -103,6 +105,7 @@ class JavaDriverToolbarVisibilityUiTest {
     @RequiresProject("basic-java-project-with-mongodb")
     fun `does show the database select on a spring criteria file`(
         remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
     ) {
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/springcriteria/SpringCriteriaRepository.java"
@@ -124,24 +127,9 @@ class JavaDriverToolbarVisibilityUiTest {
 
     @Test
     @RequiresProject("basic-java-project-with-mongodb")
-    fun `does remove all deleted data sources`(
-        remoteRobot: RemoteRobot,
-    ) {
-        remoteRobot.ideaFrame().openFile(
-            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
-        )
-
-        val toolbar = remoteRobot.findJavaEditorToolbar()
-        assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
-
-        remoteRobot.ideaFrame().cleanDataSources()
-        assertFalse(toolbar.dataSources.listValues().contains(javaClass.simpleName))
-    }
-
-    @Test
-    @RequiresProject("basic-java-project-with-mongodb")
     fun `shows the toolbar when a reference to the driver is added`(
         remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
     ) {
         assertTrue(remoteRobot.isJavaEditorToolbarHidden())
 

@@ -33,7 +33,7 @@ public class Repository {
     }
 
     public FindIterable<Document> exampleFind() {
-        return <warning descr="Cannot resolve \"myDatabase\" database reference in the connected data source.">client.getDatabase("myDatabase")</warning>
+        return client.getDatabase(<warning descr="Cannot resolve \"myDatabase\" database reference in the connected data source.">"myDatabase"</warning>)
                 .getCollection("myCollection")
                 .find(eq("nonExistingField", "123"));
     }

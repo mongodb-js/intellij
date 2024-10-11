@@ -10,7 +10,9 @@ import com.mongodb.jbplugin.mql.Namespace
 data class HasCollectionReference<S>(
     val reference: CollectionReference<S>,
 ) : Component {
-    data object Unknown : CollectionReference<Any>
+    data object Unknown : CollectionReference<Any> {
+        inline fun <reified T> cast() = Unknown as T
+    }
 
     /**
      * Makes a copy of HasCollectionReference after changing the underlying reference to Known
