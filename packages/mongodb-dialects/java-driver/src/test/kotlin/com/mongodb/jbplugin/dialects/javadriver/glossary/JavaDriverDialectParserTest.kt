@@ -489,11 +489,11 @@ public class Repository {
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
         val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+            parsedQuery.component<HasFilter<Unit?>>()!!
 
         val and = hasChildren.children[0]
         assertEquals(Name.AND, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
