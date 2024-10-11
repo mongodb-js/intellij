@@ -417,3 +417,14 @@ fun PsiMethodCallExpression.fuzzyResolveMethod(): PsiMethod? {
 
     return allResolutions.first().element as? PsiMethod
 }
+
+/**
+ * Returns the first parent matching a condition.
+ */
+fun PsiElement?.findFirstParentOrNull(filter: (PsiElement) -> Boolean): PsiElement? {
+    if (this != null && filter(this)) {
+        return this
+    } else {
+        return this?.parent?.findFirstParentOrNull(filter)
+    }
+}

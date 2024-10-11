@@ -1,7 +1,6 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.*
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.findParentOfType
 import com.intellij.psi.util.parentOfType
@@ -23,7 +22,9 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         inferCommandFromMethod((source as? PsiMethodCallExpression)?.fuzzyResolveMethod()).type !=
             IsCommand.CommandType.UNKNOWN
 
-    override fun attachment(source: PsiElement): PsiElement = source
+    override fun attachment(source: PsiElement): PsiElement = source.findFirstParentOrNull {
+        isCandidateForQuery(it)
+    }!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
         if (source !is PsiMethodCallExpression) {
@@ -477,22 +478,6 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
 fun PsiMethodCallExpression.isCriteriaExpression(): Boolean {
     val method = fuzzyResolveMethod() ?: return false
     return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
-}
-
-private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
-    val parentStatement = PsiTreeUtil.getParentOfType(this, PsiStatement::class.java) ?: return null
-    val methodCalls = parentStatement.findAllChildrenOfType(PsiMethodCallExpression::class.java)
-    var bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
-        val method = methodCall.fuzzyResolveMethod() ?: return@find false
-        method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN &&
-            method.name == "where"
-    } ?: return null
-
-    while (bottomLevel.text.startsWith("where")) {
-        bottomLevel = (bottomLevel.parent as? PsiMethodCallExpression) ?: return bottomLevel
-    }
-
-    return bottomLevel
 }
 
 private fun PsiMethodCallExpression.findSpringMongoDbExpression(): PsiMethodCallExpression? {

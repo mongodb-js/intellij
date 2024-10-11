@@ -17,8 +17,6 @@ import com.intellij.patterns.InitialPatternCondition
 import com.intellij.patterns.PsiJavaPatterns.psiElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
@@ -30,6 +28,7 @@ import com.mongodb.jbplugin.autocomplete.MongoDbElementPatterns.isDatabaseRefere
 import com.mongodb.jbplugin.autocomplete.MongoDbElementPatterns.toLookupElement
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
+import com.mongodb.jbplugin.editor.CachedQueryService
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import com.mongodb.jbplugin.editor.dataSource
 import com.mongodb.jbplugin.editor.database
@@ -301,11 +300,10 @@ private object MongoDbElementPatterns {
 
     fun guessDatabaseAndCollection(source: PsiElement): Pair<String?, String?> {
         val dialect = source.containingFile?.originalFile?.dialect ?: return null to null
-        val queryRoot = runCatching { dialect.parser.attachment(source) }.getOrElse {
-            source.parentOfType<PsiMethod>()?.let { dialect.parser.attachment(it) }
-        }
+        val querySource = dialect.parser.attachment(source)
 
-        val parsedQuery = queryRoot?.let { dialect.parser.parse(it) }
+        val queryService = source.project.getService(CachedQueryService::class.java)
+        val parsedQuery = queryService.queryAt(querySource)
         val collectionReference = parsedQuery?.component<HasCollectionReference<PsiElement>>()
         val queryCollection = collectionReference?.let { extractCollection(it) }
 
