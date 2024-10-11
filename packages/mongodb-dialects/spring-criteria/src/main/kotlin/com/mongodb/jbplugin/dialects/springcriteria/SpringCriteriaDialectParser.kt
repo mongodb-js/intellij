@@ -75,6 +75,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                     targetCollection,
                     HasFilter(
                         parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                            .reversed()
                     )
                 )
             )
@@ -87,6 +88,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 listOf(
                     command,
                     targetCollection,
+                    HasFilter(
+                        parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                            .reversed()
+                    )
                 )
             )
             "findById" -> Node(
@@ -101,6 +106,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 listOf(
                     command,
                     targetCollection,
+                    HasFilter(
+                        parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                            .reversed()
+                    )
                 )
             )
             "insert" -> Node(
@@ -122,6 +131,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 listOf(
                     command,
                     targetCollection,
+                    HasFilter(
+                        parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                            .reversed()
+                    )
                 )
             )
             "replace" -> Node(
@@ -129,6 +142,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 listOf(
                     command,
                     targetCollection,
+                    HasFilter(
+                        parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                            .reversed()
+                    )
                 )
             )
             else -> Node(
