@@ -20,9 +20,10 @@ private const val DOCUMENT_FQN = "org.springframework.data.mongodb.core.mapping.
 
 object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     override fun isCandidateForQuery(source: PsiElement) =
-        source.findCriteriaWhereExpression() != null
+        inferCommandFromMethod((source as? PsiMethodCallExpression)?.fuzzyResolveMethod()).type !=
+            IsCommand.CommandType.UNKNOWN
 
-    override fun attachment(source: PsiElement): PsiElement = source.findCriteriaWhereExpression()!!
+    override fun attachment(source: PsiElement): PsiElement = source
 
     override fun parse(source: PsiElement): Node<PsiElement> {
         if (source !is PsiMethodCallExpression) {
@@ -64,7 +65,6 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                     )
                 )
             }
-
             "count",
             "exactCount",
             "exists",
@@ -75,7 +75,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "findOne",
             "scroll",
             "stream" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
@@ -91,15 +91,20 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             )
             "findAndModify",
             "findAndReplace",
+            "update",
             "updateFirst",
             "updateMulti",
             "upsert" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
                             mongoOpCall.argumentList.expressions.getOrNull(1)
+                        )
+                    ).or(
+                        extractCollectionFromParameter(
+                            mongoOpCall.argumentList.expressions.getOrNull(2)
                         )
                     ),
                     HasFilter(
@@ -109,7 +114,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
             "findById" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
@@ -121,7 +126,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
             "findDistinct" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
@@ -136,7 +141,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
             "insert" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
@@ -147,7 +152,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
             "insertAll" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
@@ -158,7 +163,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
             "remove" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
@@ -173,7 +178,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
             "replace" -> Node(
-                mongoOpMethod,
+                mongoOpCall,
                 listOf(
                     command,
                     inferredFromChain.or(
@@ -272,6 +277,11 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
 
         val valueFilterMethod = valueMethodCall.fuzzyResolveMethod() ?: return emptyList()
 
+        // clean up, we might be in a query() call
+        if (valueFilterMethod.name == "query") {
+            return parseFilterRecursively(valueMethodCall.argumentList.expressions.getOrNull(0))
+        }
+
         // 1st scenario: vararg operations
         // for example, andOperator/orOperator...
         if (valueFilterMethod.isVarArgs) {
@@ -339,12 +349,43 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         return thisQueryNode
     }
 
-    private fun inferValueReference(valueMethodCall: PsiMethodCallExpression): HasValueReference<out Any?> {
+    private fun parseUpdateRecursively(updateExpression: PsiElement?): List<Node<PsiElement>> {
+        if (updateExpression == null) {
+            return emptyList()
+        }
+
+        val updateMethodCall =
+            updateExpression.meaningfulExpression() as? PsiMethodCallExpression
+                ?: return emptyList()
+        val updateMethod = updateMethodCall.fuzzyResolveMethod() ?: return emptyList()
+
+        // 1st scenario, some updates have only 1 argument and are atomic, like
+        // currentDate, where we only specify the current field name
+        if (updateMethod.name == "currentDate" || updateMethod.name == "currentTimestamp") {
+            return parseUpdateRecursively(updateMethodCall.firstChild?.firstChild)
+        }
+
+        // 2nd scenario, binary operators like $set
+        if (updateMethodCall.argumentList.expressionCount == 2) {
+            val arguments = updateMethodCall.argumentList.expressions
+            val opName = Named(Name.from(updateMethod.name))
+
+            val field = psiExpressionToFieldReference(arguments.getOrNull(0))
+            val value = psiExpressionToValueReference(arguments.getOrNull(1))
+
+            val thisNode = listOf(Node<PsiElement>(updateMethodCall, listOf(opName, field, value)))
+            return thisNode + parseUpdateRecursively(updateMethodCall.firstChild?.firstChild)
+        }
+
+        return emptyList()
+    }
+
+    private fun inferValueReference(valueMethodCall: PsiMethodCallExpression): HasValueReference<PsiElement> {
         val valuePsi = valueMethodCall.argumentList.expressions.getOrNull(0)
         return psiExpressionToValueReference(valuePsi)
     }
 
-    private fun psiExpressionToValueReference(valuePsi: PsiExpression?): HasValueReference<out Any?> {
+    private fun psiExpressionToValueReference(valuePsi: PsiExpression?): HasValueReference<PsiElement> {
         val (_, value) = valuePsi?.tryToResolveAsConstant() ?: (false to null)
         val valueReference = when (value) {
             null -> when (valuePsi?.type) {
@@ -361,17 +402,29 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 HasValueReference.Constant(valuePsi, value, value.javaClass.toBsonType(value))
             )
         }
-        return valueReference
+        return valueReference as HasValueReference<PsiElement>
     }
 
-    private fun inferFieldReference(fieldMethodCall: PsiMethodCallExpression): HasFieldReference<out Any> {
-        val fieldPsi = fieldMethodCall.argumentList.expressions.getOrNull(0)
+    private fun inferFieldReference(fieldMethodCall: PsiElement?): HasFieldReference<PsiElement> {
+        if (fieldMethodCall == null || fieldMethodCall !is PsiMethodCallExpression) {
+            return HasFieldReference(
+                HasFieldReference.Unknown as HasFieldReference.FieldReference<PsiElement>
+            )
+        }
 
+        val fieldPsi = fieldMethodCall.argumentList.expressions.getOrNull(0)
+        return psiExpressionToFieldReference(fieldPsi)
+    }
+
+    private fun psiExpressionToFieldReference(fieldPsi: PsiExpression?): HasFieldReference<PsiElement> {
         val field = fieldPsi?.tryToResolveAsConstantString()
         val fieldReference = when (field) {
-            null -> HasFieldReference(HasFieldReference.Unknown)
-            else -> HasFieldReference(HasFieldReference.Known(fieldPsi, field))
+            null -> HasFieldReference(
+                HasFieldReference.Unknown as HasFieldReference.FieldReference<PsiElement>
+            )
+            else -> HasFieldReference(HasFieldReference.Known<PsiElement>(fieldPsi, field))
         }
+
         return fieldReference
     }
 
@@ -440,11 +493,6 @@ private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
     }
 
     return bottomLevel
-}
-
-private fun PsiMethodCallExpression.isCriteriaQueryMethod(): Boolean {
-    val method = fuzzyResolveMethod() ?: return false
-    return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
 }
 
 private fun PsiMethodCallExpression.findSpringMongoDbExpression(): PsiMethodCallExpression? {

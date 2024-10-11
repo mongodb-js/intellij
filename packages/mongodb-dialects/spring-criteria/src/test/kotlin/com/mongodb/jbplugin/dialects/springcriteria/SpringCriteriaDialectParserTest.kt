@@ -162,6 +162,51 @@ class Repository {
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.query.Criteria;
+import static org.springframework.data.mongodb.core.query.Query.query;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public List<Book> allBooks(boolean released) {
+        return template.find(query(where("released").is(released)), Book.class);
+    }
+}
+        """
+    )
+    fun `supports inline query calls`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "allBooks")
+        val node = SpringCriteriaDialectParser.parse(query)
+
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
+        val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
+        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+
+        fieldNameReference as HasFieldReference.Known<PsiElement>
+        valueReference as HasValueReference.Runtime
+
+        assertEquals("released", fieldNameReference.fieldName)
+        assertEquals(BsonBoolean, valueReference.type)
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
 
 import java.util.List;
 
