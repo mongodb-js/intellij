@@ -39,7 +39,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         // each special case
         return when (mongoOpMethod?.name) {
             "all",
-            "one" -> {
+            "first",
+            "firstValue",
+            "one",
+            "oneValue" -> {
                 // these are terminal operators, so the query is just above us (below in the PSI)
                 val actualMethod = mongoOpCall.firstChild?.firstChild as? PsiMethodCallExpression
                     ?: return Node(mongoOpCall, listOf(command, inferredFromChain))
