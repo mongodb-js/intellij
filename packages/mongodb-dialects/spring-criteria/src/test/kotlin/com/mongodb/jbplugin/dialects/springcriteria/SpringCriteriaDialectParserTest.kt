@@ -7,7 +7,9 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonBoolean
+import com.mongodb.jbplugin.mql.BsonInt32
 import com.mongodb.jbplugin.mql.BsonNull
+import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import org.junit.jupiter.api.Assertions.*
@@ -47,22 +49,19 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val commandType = node.component<IsCommand>()!!.type
-        val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-        val collectionReference = node.component<HasCollectionReference<*>>()!!.reference
-
-        fieldNameReference as HasFieldReference.Known<PsiElement>
-        valueReference as HasValueReference.Constant
-        collectionReference as HasCollectionReference.OnlyCollection
-
-        assertEquals("released", fieldNameReference.fieldName)
-        assertEquals(true, valueReference.value)
-        assertEquals("book", collectionReference.collection)
-        assertEquals(IsCommand.CommandType.FIND_MANY, commandType)
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                    assertEquals(true, value)
+                }
+            }
+        }
     }
 
     @ParsingTest(
@@ -96,20 +95,19 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-        val collectionReference = node.component<HasCollectionReference<*>>()!!.reference
-
-        fieldNameReference as HasFieldReference.Known<PsiElement>
-        valueReference as HasValueReference.Constant
-        collectionReference as HasCollectionReference.OnlyCollection
-
-        assertEquals("released", fieldNameReference.fieldName)
-        assertEquals(true, valueReference.value)
-        assertEquals("book", collectionReference.collection)
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                    assertEquals(true, value)
+                }
+            }
+        }
     }
 
     @ParsingTest(
@@ -143,17 +141,18 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-
-        fieldNameReference as HasFieldReference.Known<PsiElement>
-        valueReference as HasValueReference.Runtime
-
-        assertEquals("released", fieldNameReference.fieldName)
-        assertEquals(BsonBoolean, valueReference.type)
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Runtime<PsiElement>> {
+                    assertEquals(BsonBoolean, type)
+                }
+            }
+        }
     }
 
     @ParsingTest(
@@ -188,17 +187,18 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-
-        fieldNameReference as HasFieldReference.Known<PsiElement>
-        valueReference as HasValueReference.Runtime
-
-        assertEquals("released", fieldNameReference.fieldName)
-        assertEquals(BsonBoolean, valueReference.type)
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Runtime<PsiElement>> {
+                    assertEquals(BsonBoolean, type)
+                }
+            }
+        }
     }
 
     @ParsingTest(
@@ -232,20 +232,19 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "randomBook")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_ONE) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val collectionReference = node.component<HasCollectionReference<PsiElement>>()!!.reference
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val idReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-
-        collectionReference as HasCollectionReference.OnlyCollection
-        idReference as HasFieldReference.Known<PsiElement>
-        valueReference as HasValueReference.Constant
-
-        assertEquals("book", collectionReference.collection)
-        assertEquals("_id", idReference.fieldName)
-        assertEquals("123456", valueReference.value)
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("_id", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonString), type)
+                    assertEquals("123456", value)
+                }
+            }
+        }
     }
 
     @ParsingTest(
@@ -281,29 +280,27 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                    assertEquals(true, value)
+                }
+            }
 
-        val whereHiddenIs0 = node.component<HasFilter<PsiElement>>()!!.children[1]
-        val referenceToHidden = whereHiddenIs0.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceTo0 = whereHiddenIs0.component<HasValueReference<PsiElement>>()!!.reference
-
-        referenceToReleased as HasFieldReference.Known<PsiElement>
-        referenceToTrue as HasValueReference.Constant
-
-        referenceToHidden as HasFieldReference.Known<PsiElement>
-        referenceTo0 as HasValueReference.Constant
-
-        assertEquals(Name.EQ, whereReleasedIsTrue.component<Named>()!!.name)
-        assertEquals("released", referenceToReleased.fieldName)
-        assertEquals(true, referenceToTrue.value)
-
-        assertEquals(Name.EQ, whereReleasedIsTrue.component<Named>()!!.name)
-        assertEquals("hidden", referenceToHidden.fieldName)
-        assertEquals(0, referenceTo0.value)
+            filterN(1, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonInt32), type)
+                    assertEquals(0, value)
+                }
+            }
+        }
     }
 
     @Suppress("TOO_LONG_FUNCTION")
@@ -343,40 +340,37 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                    assertEquals(true, value)
+                }
+            }
 
-        val andOperator = node.component<HasFilter<PsiElement>>()!!.children[1]
-        val hiddenIsFalse = andOperator.component<HasFilter<PsiElement>>()!!.children[0]
-        val validIsTrue = andOperator.component<HasFilter<PsiElement>>()!!.children[1]
+            filterN(1, Name.AND) {
+                filterN(0, Name.EQ) {
+                    field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                    value<HasValueReference.Constant<PsiElement>> {
+                        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                        assertEquals(false, value)
+                    }
+                }
 
-        val referenceToHidden = hiddenIsFalse.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToFalse = hiddenIsFalse.component<HasValueReference<PsiElement>>()!!.reference
-
-        val referenceToValid = validIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToValidTrue = validIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-
-        referenceToReleased as HasFieldReference.Known<PsiElement>
-        referenceToTrue as HasValueReference.Constant
-
-        referenceToHidden as HasFieldReference.Known<PsiElement>
-        referenceToFalse as HasValueReference.Constant
-
-        referenceToValid as HasFieldReference.Known<PsiElement>
-        referenceToValidTrue as HasValueReference.Constant
-
-        assertEquals(Name.AND, andOperator.component<Named>()!!.name)
-        assertEquals("released", referenceToReleased.fieldName)
-        assertEquals(true, referenceToTrue.value)
-
-        assertEquals("hidden", referenceToHidden.fieldName)
-        assertEquals(false, referenceToFalse.value)
-
-        assertEquals("valid", referenceToValid.fieldName)
-        assertEquals(true, referenceToValidTrue.value)
+                filterN(1, Name.EQ) {
+                    field<HasFieldReference.Known<PsiElement>> { assertEquals("valid", fieldName) }
+                    value<HasValueReference.Constant<PsiElement>> {
+                        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                        assertEquals(true, value)
+                    }
+                }
+            }
+        }
     }
 
     @Suppress("TOO_LONG_FUNCTION")
@@ -415,40 +409,37 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                    assertEquals(true, value)
+                }
+            }
 
-        val orOperator = node.component<HasFilter<PsiElement>>()!!.children[1]
-        val hiddenIsFalse = orOperator.component<HasFilter<PsiElement>>()!!.children[0]
-        val validIsTrue = orOperator.component<HasFilter<PsiElement>>()!!.children[1]
+            filterN(1, Name.OR) {
+                filterN(0, Name.EQ) {
+                    field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                    value<HasValueReference.Constant<PsiElement>> {
+                        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                        assertEquals(false, value)
+                    }
+                }
 
-        val referenceToHidden = hiddenIsFalse.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToFalse = hiddenIsFalse.component<HasValueReference<PsiElement>>()!!.reference
-
-        val referenceToValid = validIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToValidTrue = validIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-
-        referenceToReleased as HasFieldReference.Known<PsiElement>
-        referenceToTrue as HasValueReference.Constant
-
-        referenceToHidden as HasFieldReference.Known<PsiElement>
-        referenceToFalse as HasValueReference.Constant
-
-        referenceToValid as HasFieldReference.Known<PsiElement>
-        referenceToValidTrue as HasValueReference.Constant
-
-        assertEquals(Name.OR, orOperator.component<Named>()!!.name)
-        assertEquals("released", referenceToReleased.fieldName)
-        assertEquals(true, referenceToTrue.value)
-
-        assertEquals("hidden", referenceToHidden.fieldName)
-        assertEquals(false, referenceToFalse.value)
-
-        assertEquals("valid", referenceToValid.fieldName)
-        assertEquals(true, referenceToValidTrue.value)
+                filterN(1, Name.EQ) {
+                    field<HasFieldReference.Known<PsiElement>> { assertEquals("valid", fieldName) }
+                    value<HasValueReference.Constant<PsiElement>> {
+                        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                        assertEquals(true, value)
+                    }
+                }
+            }
+        }
     }
 
     @Suppress("TOO_LONG_FUNCTION")
@@ -488,40 +479,37 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val referenceToReleased = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToTrue = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                    assertEquals(true, value)
+                }
+            }
 
-        val norOperator = node.component<HasFilter<PsiElement>>()!!.children[1]
-        val hiddenIsFalse = norOperator.component<HasFilter<PsiElement>>()!!.children[0]
-        val validIsTrue = norOperator.component<HasFilter<PsiElement>>()!!.children[1]
+            filterN(1, Name.NOR) {
+                filterN(0, Name.EQ) {
+                    field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                    value<HasValueReference.Constant<PsiElement>> {
+                        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                        assertEquals(false, value)
+                    }
+                }
 
-        val referenceToHidden = hiddenIsFalse.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToFalse = hiddenIsFalse.component<HasValueReference<PsiElement>>()!!.reference
-
-        val referenceToValid = validIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val referenceToValidTrue = validIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-
-        referenceToReleased as HasFieldReference.Known<PsiElement>
-        referenceToTrue as HasValueReference.Constant
-
-        referenceToHidden as HasFieldReference.Known<PsiElement>
-        referenceToFalse as HasValueReference.Constant
-
-        referenceToValid as HasFieldReference.Known<PsiElement>
-        referenceToValidTrue as HasValueReference.Constant
-
-        assertEquals(Name.NOR, norOperator.component<Named>()!!.name)
-        assertEquals("released", referenceToReleased.fieldName)
-        assertEquals(true, referenceToTrue.value)
-
-        assertEquals("hidden", referenceToHidden.fieldName)
-        assertEquals(false, referenceToFalse.value)
-
-        assertEquals("valid", referenceToValid.fieldName)
-        assertEquals(true, referenceToValidTrue.value)
+                filterN(1, Name.EQ) {
+                    field<HasFieldReference.Known<PsiElement>> { assertEquals("valid", fieldName) }
+                    value<HasValueReference.Constant<PsiElement>> {
+                        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                        assertEquals(true, value)
+                    }
+                }
+            }
+        }
     }
 
     @ParsingTest(
@@ -607,20 +595,16 @@ class Repository {
     )
     fun `can parse count queries scenario`(psiFile: PsiFile) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
-        val node = SpringCriteriaDialectParser.parse(query)
-
-        val command = node.component<IsCommand>()!!
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
-
-        fieldNameReference as HasFieldReference.Known<PsiElement>
-        valueReference as HasValueReference.Constant
-
-        assertEquals(IsCommand.CommandType.COUNT_DOCUMENTS, command.type)
-        assertEquals("released", fieldNameReference.fieldName)
-        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), valueReference.type)
-        assertEquals(true, valueReference.value)
+        // ---- with the DSL ----
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.COUNT_DOCUMENTS) {
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
+                    assertEquals(true, value)
+                }
+            }
+        }
     }
 
     @AdditionalFile(
@@ -696,10 +680,7 @@ class Repository {
 
         ApplicationManager.getApplication().runReadAction {
             val query = psiFile.getQueryAtMethod("Repository", "randomQuery")
-            val parsedQuery = SpringCriteriaDialectParser.parse(query)
-
-            val command = parsedQuery.component<IsCommand>()
-            assertEquals(expected, command?.type)
+            SpringCriteriaDialectParser.parse(query).assert(expected)
         }
     }
 
@@ -728,7 +709,7 @@ class Repository {
     }
     
     public Book randomBook() {
-        return template.updateFirst(query(where("field").is("123456")), update("another", 1).set("third", 3), Book.class);
+        return template.updateFirst(query(where("field").is("123456")), update("another", 1).set("third", 3f), Book.class);
     }
 }
         """
@@ -737,40 +718,25 @@ class Repository {
         psiFile: PsiFile
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "randomBook")
-        val node = SpringCriteriaDialectParser.parse(query)
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.UPDATE_ONE) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
 
-        val collectionReference = node.component<HasCollectionReference<PsiElement>>()!!.reference
-        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
-        val filterFieldReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
-        val filterValueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+            filterN(0, Name.EQ) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("field", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> { assertEquals("123456", value) }
+            }
 
-        val updateFieldTo1 = node.component<HasUpdates<PsiElement>>()!!.children[0]
-        val updateFieldReference = updateFieldTo1.component<HasFieldReference<PsiElement>>()!!.reference
-        val updateValueReference = updateFieldTo1.component<HasValueReference<PsiElement>>()!!.reference
+            updateN(0, Name.SET) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("another", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> { assertEquals(1, value) }
+            }
 
-        val setThirdTo3 = node.component<HasUpdates<PsiElement>>()!!.children[1]
-        val updateFieldReference3 = setThirdTo3.component<HasFieldReference<PsiElement>>()!!.reference
-        val updateValueReference3 = setThirdTo3.component<HasValueReference<PsiElement>>()!!.reference
-
-        collectionReference as HasCollectionReference.OnlyCollection
-        filterFieldReference as HasFieldReference.Known<PsiElement>
-        filterValueReference as HasValueReference.Constant
-
-        updateFieldReference as HasFieldReference.Known<PsiElement>
-        updateValueReference as HasValueReference.Constant
-
-        updateFieldReference3 as HasFieldReference.Known<PsiElement>
-        updateValueReference3 as HasValueReference.Constant
-
-        assertEquals("book", collectionReference.collection)
-
-        assertEquals("field", filterFieldReference.fieldName)
-        assertEquals("123456", filterValueReference.value)
-
-        assertEquals("another", updateFieldReference.fieldName)
-        assertEquals(1, updateValueReference.value)
-
-        assertEquals("third", updateFieldReference3.fieldName)
-        assertEquals(3, updateValueReference3.value)
+            updateN(1, Name.SET) {
+                field<HasFieldReference.Known<PsiElement>> { assertEquals("third", fieldName) }
+                value<HasValueReference.Constant<PsiElement>> { assertEquals(3f, value) }
+            }
+        }
     }
 }

@@ -373,7 +373,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         // 2nd scenario, binary operators like $set
         if (updateMethodCall.argumentList.expressionCount == 2) {
             val arguments = updateMethodCall.argumentList.expressions
-            val opName = Named(Name.from(updateMethod.name))
+            val opName = operatorName(updateMethod)
 
             val field = psiExpressionToFieldReference(arguments.getOrNull(0))
             val value = psiExpressionToValueReference(arguments.getOrNull(1))
@@ -434,6 +434,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     }
 
     private fun operatorName(currentCriteriaMethod: PsiMethod): Named {
+        if (currentCriteriaMethod.name == "update") {
+            return Named(Name.SET)
+        }
+
         val name = currentCriteriaMethod.name.replace("Operator", "")
         val named = Named(name.toName())
         return named

@@ -31,11 +31,24 @@ import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
 import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor.addJetBrainsAnnotations
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
+import com.mongodb.assertions.Assertions.assertNotNull
+import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
+import com.mongodb.jbplugin.mql.components.HasUpdates
+import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.IsCommand
+import com.mongodb.jbplugin.mql.components.Name
+import com.mongodb.jbplugin.mql.components.Named
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.intellij.lang.annotations.Language
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
+import org.junit.jupiter.api.fail
 import java.lang.reflect.Method
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -255,5 +268,110 @@ private class MongoDbProjectDescriptor(
 
         addJetBrainsAnnotations(model)
         super.configureModule(module, model, contentEntry)
+    }
+}
+
+fun Node<PsiElement>.assert(
+    command: IsCommand.CommandType,
+    assertions: Node<PsiElement>.() -> Unit = {
+    }
+) {
+    val cmd = component<IsCommand>()
+    assertNotNull(cmd)
+
+    assertEquals(command, cmd!!.type)
+    this.assertions()
+}
+
+fun Node<PsiElement>.filterN(
+    n: Int,
+    name: Name? = null,
+    assertions: Node<PsiElement>.() -> Unit = {
+    }
+) {
+    val filters = component<HasFilter<PsiElement>>()
+    assertNotNull(filters)
+
+    val filter = filters!!.children[n]
+
+    if (name != null) {
+        val qname = filter.component<Named>()
+        assertNotEquals(null, qname) {
+            "Expected a named operation with name $name but null found."
+        }
+        assertEquals(name, qname?.name) {
+            "Expected a named operation with name $name but $qname found."
+        }
+    }
+
+    filter.assertions()
+}
+
+fun Node<PsiElement>.updateN(
+    n: Int,
+    name: Name? = null,
+    assertions: Node<PsiElement>.() -> Unit = {
+    }
+) {
+    val updates = component<HasUpdates<PsiElement>>()
+    assertNotNull(updates)
+
+    val update = updates!!.children[n]
+
+    if (name != null) {
+        val qname = update.component<Named>()
+        assertNotEquals(null, qname) {
+            "Expected a named operation with name $name but null found."
+        }
+        assertEquals(name, qname?.name) {
+            "Expected a named operation with name $name but $qname found."
+        }
+    }
+
+    update.assertions()
+}
+
+inline fun <reified T : HasCollectionReference.CollectionReference<PsiElement>> Node<PsiElement>.collection(
+    assertions: T.() -> Unit
+) {
+    val ref = component<HasCollectionReference<PsiElement>>()
+    assertNotNull(ref)
+
+    if (ref!!.reference is T) {
+        (ref.reference as T).assertions()
+    } else {
+        fail(
+            "Collection reference was not of type ${T::class.java.canonicalName} but ${ref::class.java.canonicalName}"
+        )
+    }
+}
+
+inline fun <reified T : HasFieldReference.FieldReference<PsiElement>> Node<PsiElement>.field(
+    assertions: T.() -> Unit
+) {
+    val ref = component<HasFieldReference<PsiElement>>()
+    assertNotNull(ref)
+
+    if (ref!!.reference is T) {
+        (ref.reference as T).assertions()
+    } else {
+        fail(
+            "Field reference was not of type ${T::class.java.canonicalName} but ${ref::class.java.canonicalName}"
+        )
+    }
+}
+
+inline fun <reified T : HasValueReference.ValueReference<PsiElement>> Node<PsiElement>.value(
+    assertions: T.() -> Unit
+) {
+    val ref = component<HasValueReference<PsiElement>>()
+    assertNotNull(ref)
+
+    if (ref!!.reference is T) {
+        (ref.reference as T).assertions()
+    } else {
+        fail(
+            "Value reference was not of type ${T::class.java.canonicalName} but ${ref::class.java.canonicalName}"
+        )
     }
 }
