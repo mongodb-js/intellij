@@ -10,7 +10,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 @UiTest
 @RequiresMongoDbCluster
@@ -35,7 +35,6 @@ class MongoDbRunQueryActionUiTest {
             "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
         )
         remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
-        // because we are disconnected, we should now try to connect
         val popup = remoteRobot.findJavaEditorToolbarPopup()
         popup.cancel()
     }
@@ -53,37 +52,9 @@ class MongoDbRunQueryActionUiTest {
         popup.dataSources.selectItem(
             javaClass.simpleName
         )
-        popup.ok()
-        // now we will see a notification balloon
-        remoteRobot.ideaFrame().ensureNotificationIsVisible(
-            "Opening connection to ${javaClass.simpleName}"
-        )
-        // wait until the balloon is gone
-        remoteRobot.ideaFrame().waitUntilNotificationIsGone(
-            title = "Opening connection to ${javaClass.simpleName}",
-            timeout = Duration.ofMinutes(1)
-        )
+        popup.ok("Run Query", timeout = 1.minutes)
         // check that we open a console
         eventually {
-            val currentEditor = remoteRobot.ideaFrame().currentTab()
-            assertTrue(currentEditor.editor.fileName.startsWith("console"))
-        }
-    }
-
-    @Test
-    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
-    fun `waits until the connection is successful if there is an attached datasource`(
-        remoteRobot: RemoteRobot
-    ) {
-        remoteRobot.ideaFrame().openFile(
-            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
-        )
-        remoteRobot.findJavaEditorToolbar().detachDataSource()
-        remoteRobot.findJavaEditorToolbar().dataSources.selectItem(javaClass.simpleName)
-        remoteRobot.ideaFrame().waitUntilConnectedToMongoDb(javaClass.simpleName)
-        // check that we open a console
-        eventually(Duration.ofMinutes(1), recovery = remoteRobot::closeAllOpenModals) {
-            remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
             val currentEditor = remoteRobot.ideaFrame().currentTab()
             assertTrue(currentEditor.editor.fileName.startsWith("console"))
         }

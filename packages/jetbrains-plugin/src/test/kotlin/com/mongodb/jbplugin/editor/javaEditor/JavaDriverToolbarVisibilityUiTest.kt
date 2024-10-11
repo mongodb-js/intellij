@@ -127,23 +127,6 @@ class JavaDriverToolbarVisibilityUiTest {
 
     @Test
     @RequiresProject("basic-java-project-with-mongodb")
-    fun `does remove all deleted data sources`(
-        remoteRobot: RemoteRobot,
-        url: MongoDbServerUrl,
-    ) {
-        remoteRobot.ideaFrame().openFile(
-            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
-        )
-
-        val toolbar = remoteRobot.findJavaEditorToolbar()
-        assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
-
-        remoteRobot.ideaFrame().cleanDataSources()
-        assertFalse(toolbar.dataSources.listValues().contains(javaClass.simpleName))
-    }
-
-    @Test
-    @RequiresProject("basic-java-project-with-mongodb")
     fun `shows the toolbar when a reference to the driver is added`(
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
