@@ -47,12 +47,6 @@ class MdbDataSourceService(
                     databases.databases.map { it.name }
                 )
             } catch (exception: Exception) {
-                println(
-                    useLogMessage(
-                        "Error while listing databases for DataSource(${dataSource.uniqueId})"
-                    ).build()
-                )
-                println(exception)
                 log.error(
                     useLogMessage(
                         "Error while listing databases for DataSource(${dataSource.uniqueId})"
@@ -92,12 +86,6 @@ class MdbDataSourceService(
                 }
                 toolbarModel.dataSourceConnectionSuccessful(dataSource)
             } catch (exception: ConnectionNotConnectedException) {
-                println(
-                    useLogMessage(
-                        "Could not connect to DataSource(${dataSource.uniqueId})"
-                    ).build()
-                )
-                println(exception)
                 log.warn(
                     useLogMessage(
                         "Could not connect to DataSource(${dataSource.uniqueId})"
@@ -106,12 +94,6 @@ class MdbDataSourceService(
                 )
                 toolbarModel.dataSourceConnectionUnsuccessful(dataSource)
             } catch (exception: Exception) {
-                println(
-                    useLogMessage(
-                        "Error while connecting to DataSource(${dataSource.uniqueId})"
-                    ).build()
-                )
-                println(exception)
                 log.error(
                     useLogMessage(
                         "Error while connecting to DataSource(${dataSource.uniqueId})"
