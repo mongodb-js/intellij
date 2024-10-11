@@ -5,29 +5,38 @@
 
 package com.mongodb.jbplugin.dialects.springcriteria
 
-import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.roots.ContentEntry
+import com.intellij.openapi.roots.LanguageLevelModuleExtension
+import com.intellij.openapi.roots.LanguageLevelProjectExtension
+import com.intellij.openapi.roots.ModifiableRootModel
+import com.intellij.pom.java.AcceptedLanguageLevelsSettings
+import com.intellij.pom.java.LanguageLevel
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
+import com.intellij.testFramework.IdeaTestUtil
+import com.intellij.testFramework.IndexingTestUtil
+import com.intellij.testFramework.LightProjectDescriptor.SetupHandler
 import com.intellij.testFramework.PsiTestUtil
+import com.intellij.testFramework.TestApplicationManager
+import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor.addJetBrainsAnnotations
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
-import org.springframework.data.mongodb.core.MongoTemplate
-import org.springframework.data.mongodb.core.mapping.Document
 import java.lang.reflect.Method
-import java.net.URI
-import java.net.URL
-import java.nio.file.Paths
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
@@ -41,7 +50,6 @@ annotation class ParsingTest(
 )
 
 @Retention(AnnotationRetention.RUNTIME)
-@Test
 annotation class AdditionalFile(
     val fileName: String,
     val value: String,
@@ -53,6 +61,7 @@ annotation class AdditionalFile(
  * @see com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriverTest
  */
 @ExtendWith(IntegrationTestExtension::class)
+@TestDataPath("${'$'}CONTENT_ROOT/testData")
 annotation class IntegrationTest
 
 /**
@@ -69,10 +78,13 @@ internal class IntegrationTestExtension :
     private val testPathKey = "TESTPATH"
 
     override fun beforeAll(context: ExtensionContext) {
+        TestApplicationManager.getInstance()
+        val projectDescriptor = MongoDbProjectDescriptor(LanguageLevel.JDK_21)
+
         val projectFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
-                .createLightFixtureBuilder(context.requiredTestClass.simpleName)
+                .createLightFixtureBuilder(projectDescriptor, context.requiredTestClass.simpleName)
                 .fixture
 
         val testFixture =
@@ -85,33 +97,10 @@ internal class IntegrationTestExtension :
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
 
-        // Add the Spring libraries to the project, the real jars, that are
-        // defined in Gradle as test dependencies.
-        ApplicationManager.getApplication().invokeAndWait {
-            val module = testFixture.module
+        val projectExt = LanguageLevelProjectExtension.getInstance(projectFixture.project)
+        projectExt.languageLevel = LanguageLevel.JDK_21
+        IndexingTestUtil.waitUntilIndexesAreReady(projectFixture.project)
 
-            if (!JavaLibraryUtil.hasLibraryJar(
-                    module,
-                    "org.springframework.data:spring-data-mongodb:4.3.2"
-                )
-            ) {
-                runCatching {
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.springframework.data:spring-data-mongodb:4.3.2",
-                        listOf(pathToClassJarFile(MongoTemplate::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.springframework.data:spring-data-mongodb-mapping:4.3.2",
-                        listOf(pathToClassJarFile(Document::class.java)),
-                    )
-                }
-            }
-        }
-
-        // Add source folders to the project
         PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
         PsiTestUtil.addSourceRoot(testFixture.module, tmpRootDir)
@@ -128,21 +117,27 @@ internal class IntegrationTestExtension :
                 fixture.addFileToProject(it.fileName, it.value)
             }
 
-            val parsingTest =
-                context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
-                    ?: return@invokeAndWait
+            val parsingTest: ParsingTest? = context.requiredTestMethod.getAnnotation(
+                ParsingTest::class.java
+            )
+            val withFile: AdditionalFile? = context.requiredTestMethod.getAnnotation(
+                AdditionalFile::class.java
+            )
+
+            val cfgFileName = parsingTest?.fileName ?: withFile?.fileName ?: return@invokeAndWait
+            val cfgContents = parsingTest?.value ?: withFile?.value ?: return@invokeAndWait
 
             val fileName = Path(
                 modulePath,
                 "src",
                 "main",
                 "java",
-                parsingTest.fileName
+                cfgFileName
             ).absolutePathString()
 
             fixture.configureByText(
                 fileName,
-                parsingTest.value,
+                cfgContents
             )
         }
     }
@@ -206,23 +201,6 @@ internal class IntegrationTestExtension :
             )
         }
     }
-
-    private fun pathToClassJarFile(javaClass: Class<*>): String {
-        val classResource: URL =
-            javaClass.getResource(javaClass.getSimpleName() + ".class")
-                ?: throw RuntimeException("class resource is null")
-        val url: String = classResource.toString()
-        if (url.startsWith("jar:file:")) {
-            // extract 'file:......jarName.jar' part from the url string
-            val path = url.replace("^jar:(file:.*[.]jar)!/.*".toRegex(), "$1")
-            try {
-                return Paths.get(URI(path)).toString()
-            } catch (e: Exception) {
-                throw RuntimeException("Invalid Jar File URL String")
-            }
-        }
-        throw RuntimeException("Invalid Jar File URL String")
-    }
 }
 
 fun PsiFile.getClassByName(name: String): PsiClass =
@@ -247,3 +225,35 @@ fun PsiFile.caret(): PsiElement = PsiTreeUtil.findChildrenOfType(
     .first {
         it.textMatches(""""|"""")
     }
+
+private class MongoDbProjectDescriptor(
+    val languageLevel: LanguageLevel
+) : DefaultLightProjectDescriptor() {
+    override fun setUpProject(
+        project: Project,
+        handler: SetupHandler
+    ) {
+        if (languageLevel.isPreview || languageLevel == LanguageLevel.JDK_X) {
+            AcceptedLanguageLevelsSettings.allowLevel(project, languageLevel)
+        }
+
+        withRepositoryLibrary("org.springframework.data:spring-data-mongodb:4.3.2")
+        super.setUpProject(project, handler)
+    }
+
+    override fun getSdk(): Sdk {
+        return IdeaTestUtil.getMockJdk(languageLevel.toJavaVersion())
+    }
+
+    override fun configureModule(
+        module: Module,
+        model: ModifiableRootModel,
+        contentEntry: ContentEntry
+    ) {
+        model.getModuleExtension(LanguageLevelModuleExtension::class.java).languageLevel =
+            languageLevel
+
+        addJetBrainsAnnotations(model)
+        super.configureModule(module, model, contentEntry)
+    }
+}

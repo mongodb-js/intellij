@@ -20,6 +20,7 @@ class IsCommand(val type: CommandType) : Component {
         REPLACE_ONE,
         UPDATE_MANY,
         UPDATE_ONE,
+        UPSERT, // this is update with upsert
         UNKNOWN
     }
 }

@@ -1,10 +1,16 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.mongodb.jbplugin.mql.BsonBoolean
 import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 
 @IntegrationTest
 class SpringCriteriaDialectParserTest {
@@ -42,6 +48,7 @@ class Repository {
         val node = SpringCriteriaDialectParser.parse(query)
 
         val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
+        val commandType = node.component<IsCommand>()!!.type
         val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
         val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
         val collectionReference = node.component<HasCollectionReference<*>>()!!.reference
@@ -53,6 +60,7 @@ class Repository {
         assertEquals("released", fieldNameReference.fieldName)
         assertEquals(true, valueReference.value)
         assertEquals("book", collectionReference.collection)
+        assertEquals(IsCommand.CommandType.FIND_MANY, commandType)
     }
 
     @ParsingTest(
@@ -472,5 +480,85 @@ class Repository {
     )
     fun `can refer to a field in a criteria chain`(psiFile: PsiFile) {
         assertTrue(SpringCriteriaDialectParser.isReferenceToField(psiFile.caret()))
+    }
+
+    @AdditionalFile(
+        fileName = "Repository.java",
+        value = """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public List<Book> randomQuery() {
+        return template."|"(where("released"));
+    }
+}
+        """,
+    )
+    @ParameterizedTest
+    @CsvSource(
+        value = [
+            "method;;expected",
+            "count;;COUNT_DOCUMENTS",
+            "exactCount;;COUNT_DOCUMENTS",
+            "exists;;FIND_ONE",
+            "estimatedCount;;ESTIMATED_DOCUMENT_COUNT",
+            "findDistinct;;DISTINCT",
+            "findById;;FIND_ONE",
+            "find;;FIND_MANY",
+            "findAll;;FIND_MANY",
+            "scroll;;FIND_MANY",
+            "stream;;FIND_MANY",
+            "aggregate;;AGGREGATE",
+            "aggregateStream;;AGGREGATE",
+            "insert;;INSERT_ONE",
+            "insertAll;;INSERT_MANY",
+            "remove;;DELETE_MANY",
+            "findAllAndRemove;;DELETE_MANY",
+            "replace;;REPLACE_ONE",
+            "save;;UPSERT",
+            "updateFirst;;UPDATE_ONE",
+            "updateMulti;;UPDATE_MANY",
+            "findAndRemove;;FIND_ONE_AND_DELETE",
+            "findAndModify;;FIND_ONE_AND_UPDATE",
+            "findAndReplace;;FIND_ONE_AND_REPLACE",
+            "mapReduce;;UNKNOWN",
+        ],
+        delimiterString = ";;",
+        useHeadersInDisplayName = true
+    )
+    fun `supports all relevant commands from the driver`(
+        method: String,
+        expected: IsCommand.CommandType,
+        psiFile: PsiFile
+    ) {
+        WriteCommandAction.runWriteCommandAction(psiFile.project) {
+            val elementAtCaret = psiFile.caret()
+            val javaFacade = JavaPsiFacade.getInstance(psiFile.project)
+            val methodToTest = javaFacade.parserFacade.createReferenceFromText(method, null)
+            elementAtCaret.replace(methodToTest)
+        }
+
+        ApplicationManager.getApplication().runReadAction {
+            val query = psiFile.getQueryAtMethod("Repository", "randomQuery")
+            val parsedQuery = SpringCriteriaDialectParser.parse(query)
+
+            val command = parsedQuery.component<IsCommand>()
+            assertEquals(expected, command?.type)
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.mongodb.jbplugin.dialects.springcriteria
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import com.intellij.psi.util.findParentOfType
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.*
@@ -28,9 +29,13 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val criteriaChain = source.findCriteriaWhereExpression() ?: return Node(source, emptyList())
         val targetCollection = QueryTargetCollectionExtractor.extractCollection(source)
 
+        val mongoOpCall = criteriaChain.parentMongoDbOperation()
+        val mongoOpMethod = mongoOpCall?.fuzzyResolveMethod() ?: return Node(source, emptyList())
+
         return Node(
             source,
             listOf(
+                operationName(mongoOpMethod),
                 targetCollection,
                 HasFilter(parseQueryRecursively(criteriaChain))
             )
@@ -52,7 +57,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val methodCall = source.parentOfType<PsiMethodCallExpression>() ?: return false
 
         /*
-         * IntelliJ might detect that we are not in a string, but in a whitespace or a dot  due to, probably,
+         * IntelliJ might detect that we are not in a string, but in a whitespace or a dot due to, probably,
          * some internal race conditions. In this case, we will check the parent, which will be an ExpressionList, that
          * will contain all tokens and the string we actually want. In case it's a dot, we are here:
          * where(). <--
@@ -73,10 +78,6 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         return isString && methodCall.isCriteriaExpression()
     }
 
-    /**
-     * This function is easier to read inline because it calls itself recursively.
-     */
-    @Suppress("TOO_LONG_FUNCTION")
     private fun parseQueryRecursively(
         fieldNameCall: PsiMethodCallExpression,
         until: PsiElement? = null
@@ -90,7 +91,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             return emptyList()
         }
 
-        val currentCriteriaMethod = fieldNameCall.resolveMethod() ?: return emptyList()
+        val currentCriteriaMethod = fieldNameCall.fuzzyResolveMethod() ?: return emptyList()
         if (currentCriteriaMethod.isVarArgs) {
             val allSubQueries = fieldNameCall.argumentList.expressions
                 .filterIsInstance<PsiMethodCallExpression>()
@@ -113,7 +114,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
 
         val fieldName = fieldNameCall.argumentList.expressions[0].tryToResolveAsConstantString()!!
         val (isResolved, value) = valueCall.argumentList.expressions[0].tryToResolveAsConstant()
-        val name = valueCall.resolveMethod()?.name!!
+        val name = valueCall.fuzzyResolveMethod()?.name!!
 
         val fieldReference = HasFieldReference(
             HasFieldReference.Known(fieldNameCall.argumentList.expressions[0], fieldName)
@@ -151,6 +152,40 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val named = Named(name.toName())
         return named
     }
+
+    /**
+     * List of methods from here:
+     * https://docs.spring.io/spring-data/mongodb/docs/current/api/org/springframework/data/mongodb/core/MongoOperations.html
+     */
+    private fun operationName(mongoOpMethod: PsiMethod): IsCommand {
+        return IsCommand(
+            when (mongoOpMethod.name) {
+                "aggregate", "aggregateStream" -> IsCommand.CommandType.AGGREGATE
+                "count", "exactCount" -> IsCommand.CommandType.COUNT_DOCUMENTS
+                "estimatedCount" -> IsCommand.CommandType.ESTIMATED_DOCUMENT_COUNT
+                "exists" -> IsCommand.CommandType.FIND_ONE
+                "find", "findAll" -> IsCommand.CommandType.FIND_MANY
+                "findDistinct" -> IsCommand.CommandType.DISTINCT
+                "findAllAndRemove" -> IsCommand.CommandType.DELETE_MANY
+                "findAndModify" -> IsCommand.CommandType.FIND_ONE_AND_UPDATE
+                "findAndRemove" -> IsCommand.CommandType.FIND_ONE_AND_DELETE
+                "findAndReplace" -> IsCommand.CommandType.FIND_ONE_AND_REPLACE
+                "findById" -> IsCommand.CommandType.FIND_ONE
+                "insert" -> IsCommand.CommandType.INSERT_ONE
+                "insertAll" -> IsCommand.CommandType.INSERT_MANY
+                "remove" -> IsCommand.CommandType.DELETE_MANY
+                "replace" -> IsCommand.CommandType.REPLACE_ONE
+                "save" -> IsCommand.CommandType.UPSERT
+                "scroll", "stream" -> IsCommand.CommandType.FIND_MANY
+                "updateFirst" -> IsCommand.CommandType.UPDATE_ONE
+                "updateMulti" -> IsCommand.CommandType.UPDATE_MANY
+                "upsert" -> IsCommand.CommandType.UPSERT
+                "one", "oneValue", "first", "firstValue" -> IsCommand.CommandType.FIND_ONE
+                "all" -> IsCommand.CommandType.FIND_MANY
+                else -> IsCommand.CommandType.UNKNOWN
+            }
+        )
+    }
 }
 
 /**
@@ -159,7 +194,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
  * @return
  */
 fun PsiMethodCallExpression.isCriteriaExpression(): Boolean {
-    val method = resolveMethod() ?: return false
+    val method = fuzzyResolveMethod() ?: return false
     return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
 }
 
@@ -167,7 +202,7 @@ private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
     val parentStatement = PsiTreeUtil.getParentOfType(this, PsiStatement::class.java) ?: return null
     val methodCalls = parentStatement.findAllChildrenOfType(PsiMethodCallExpression::class.java)
     var bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
-        val method = methodCall.resolveMethod() ?: return@find false
+        val method = methodCall.fuzzyResolveMethod() ?: return@find false
         method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN &&
             method.name == "where"
     } ?: return null
@@ -180,7 +215,7 @@ private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
 }
 
 private fun PsiMethodCallExpression.isCriteriaQueryMethod(): Boolean {
-    val method = resolveMethod() ?: return false
+    val method = fuzzyResolveMethod() ?: return false
     return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
 }
 
@@ -210,7 +245,47 @@ private fun PsiMethodCallExpression.innerMethodCallExpression(): PsiMethodCallEx
     return ref
 }
 
+private fun PsiMethodCallExpression.parentMongoDbOperation(): PsiMethodCallExpression? {
+    var parentMethodCall = findParentOfType<PsiMethodCallExpression>() ?: return null
+    val method = parentMethodCall.fuzzyResolveMethod() ?: return null
+
+    if (INTERFACES_WITH_QUERY_METHODS.any {
+            method.containingClass?.qualifiedName?.contains(it) ==
+                true
+        }
+    ) {
+        return parentMethodCall.parentMongoDbOperation() ?: parentMethodCall
+    }
+
+    return parentMethodCall.parentMongoDbOperation()
+}
+
 private fun String.toName(): Name = when (this) {
     "is" -> Name.EQ
     else -> Name.from(this)
 }
+
+/**
+ * As MongoOperations <b>implement a ton</b> of interfaces, we need to check in which one
+ * we've found the method:
+ *
+ * https://docs.spring.io/spring-data/mongodb/docs/current/api/org/springframework/data/mongodb/core/MongoOperations.html
+ *
+ * We are not going to support mapReduce as they are deprecated in MongoDB.
+ */
+private val INTERFACES_WITH_QUERY_METHODS = arrayOf(
+    "MongoTemplate",
+    "MongoOperations",
+    "ExecutableAggregationOperation",
+    "ExecutableFindOperation",
+    "ExecutableInsertOperation",
+    "ExecutableMapReduceOperation",
+    "ExecutableRemoveOperation",
+    "ExecutableUpdateOperation",
+    "FluentMongoOperations",
+    "ExecutableAggregationOperation",
+    "ExecutableFindOperation",
+    "ExecutableInsertOperation",
+    "ExecutableRemoveOperation",
+    "ExecutableUpdateOperation",
+)
