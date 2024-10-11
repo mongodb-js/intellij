@@ -283,7 +283,10 @@ fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
     val meaningfulThis = meaningfulExpression()
 
     if (meaningfulThis is PsiReferenceExpression) {
-        val varRef = meaningfulThis.resolve()!!
+        val varRef = meaningfulThis.resolve()
+        if (varRef == null) {
+            return false to null
+        }
         return varRef.tryToResolveAsConstant()
     } else if (meaningfulThis is PsiLocalVariable && meaningfulThis.initializer != null) {
         return meaningfulThis.initializer!!.tryToResolveAsConstant()
