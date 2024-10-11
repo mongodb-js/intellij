@@ -9,6 +9,7 @@ import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.i18n.Icons.scaledToText
 import com.mongodb.jbplugin.i18n.MdbToolbarMessages
+import com.mongodb.jbplugin.observability.useLogMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.awt.Component
@@ -77,6 +78,7 @@ class DatabaseComboBox(
 
         coroutineScope.launch {
             project.getToolbarModel().toolbarState.collect { state ->
+                println(useLogMessage("DatabaseComboBox.Collected toolbar state: $state"))
                 withoutSelectionChangedListener {
                     loadingDatabases = state.databasesLoadingForSelectedDataSource
                     if (state.databases != databases) {

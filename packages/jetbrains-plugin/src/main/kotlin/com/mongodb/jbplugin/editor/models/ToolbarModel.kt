@@ -22,6 +22,7 @@ import com.mongodb.jbplugin.editor.services.ToolbarSettings.Companion.UNINITIALI
 import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
 import com.mongodb.jbplugin.editor.services.implementations.getToolbarSettings
+import com.mongodb.jbplugin.observability.useLogMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,6 +108,7 @@ class ToolbarModel(
         if (isInitialised.compareAndSet(false, true)) {
             coroutineScope.launchChildBackground {
                 toolbarEvents.collect { toolbarEvent ->
+                    println(useLogMessage("Received toolbar event: $toolbarEvent"))
                     when (toolbarEvent) {
                         DataSourcesChanged -> handleDataSourcesChanged()
                         is DataSourceRemoved ->

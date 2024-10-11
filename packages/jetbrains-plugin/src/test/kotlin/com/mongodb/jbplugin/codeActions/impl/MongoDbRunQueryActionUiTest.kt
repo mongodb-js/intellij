@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.time.Duration.Companion.minutes
 
 @UiTest
 @RequiresMongoDbCluster
@@ -54,7 +55,7 @@ class MongoDbRunQueryActionUiTest {
         popup.dataSources.selectItem(
             javaClass.simpleName
         )
-        popup.ok("Run Query")
+        popup.ok("Run Query", timeout = 1.minutes)
         // check that we open a console
         eventually {
             val currentEditor = remoteRobot.ideaFrame().currentTab()
