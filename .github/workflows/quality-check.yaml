@@ -204,9 +204,8 @@ jobs:
       - name: Run UI Tests
         run: |
           export DISPLAY=:99.0
-#          ./gradlew --quiet --console=plain :packages:jetbrains-plugin:uiTest
-            ./gradlew --info --console=verbose :packages:jetbrains-plugin:uiTest
-            echo "Gradlew exit with exit code $?"
+          ./gradlew --info --console=verbose :packages:jetbrains-plugin:uiTest
+          echo "Gradlew exit with exit code $?"
       - uses: actions/upload-artifact@v4
         name: Upload UI Test Failures
         if: success() || failure() # always run even if the previous step fails
