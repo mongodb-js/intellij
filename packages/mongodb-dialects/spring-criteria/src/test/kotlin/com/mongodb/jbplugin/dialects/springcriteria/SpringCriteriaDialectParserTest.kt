@@ -5,7 +5,9 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonBoolean
+import com.mongodb.jbplugin.mql.BsonNull
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import org.junit.jupiter.api.Assertions.*
@@ -203,9 +205,11 @@ class Repository {
         referenceToHidden as HasFieldReference.Known<PsiElement>
         referenceTo0 as HasValueReference.Constant
 
+        assertEquals(Name.EQ, whereReleasedIsTrue.component<Named>()!!.name)
         assertEquals("released", referenceToReleased.fieldName)
         assertEquals(true, referenceToTrue.value)
 
+        assertEquals(Name.EQ, whereReleasedIsTrue.component<Named>()!!.name)
         assertEquals("hidden", referenceToHidden.fieldName)
         assertEquals(0, referenceTo0.value)
     }
@@ -480,6 +484,51 @@ class Repository {
     )
     fun `can refer to a field in a criteria chain`(psiFile: PsiFile) {
         assertTrue(SpringCriteriaDialectParser.isReferenceToField(psiFile.caret()))
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public long allReleasedBooks() {
+        return template.count(where("released").is(true), Book.class);
+    }
+}
+        """
+    )
+    fun `can parse count queries scenario`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
+        val node = SpringCriteriaDialectParser.parse(query)
+
+        val command = node.component<IsCommand>()!!
+        val whereReleasedIsTrue = node.component<HasFilter<PsiElement>>()!!.children[0]
+        val fieldNameReference = whereReleasedIsTrue.component<HasFieldReference<PsiElement>>()!!.reference
+        val valueReference = whereReleasedIsTrue.component<HasValueReference<PsiElement>>()!!.reference
+
+        fieldNameReference as HasFieldReference.Known<PsiElement>
+        valueReference as HasValueReference.Constant
+
+        assertEquals(IsCommand.CommandType.COUNT_DOCUMENTS, command.type)
+        assertEquals("released", fieldNameReference.fieldName)
+        assertEquals(BsonAnyOf(BsonNull, BsonBoolean), valueReference.type)
+        assertEquals(true, valueReference.value)
     }
 
     @AdditionalFile(

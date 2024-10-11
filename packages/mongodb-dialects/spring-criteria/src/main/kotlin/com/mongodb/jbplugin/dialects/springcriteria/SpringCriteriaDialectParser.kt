@@ -38,6 +38,27 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         // not all methods work the same way (sigh) so we will need a big `when` to handle
         // each special case
         return when (mongoOpMethod.name) {
+            "all",
+            "one" -> {
+                // these are terminal operators, so the query is just above us (below in the PSI)
+                val actualMethod = mongoOpCall.firstChild?.firstChild as? PsiMethodCallExpression
+                    ?: return Node(mongoOpCall, listOf(command, targetCollection))
+
+                return Node(
+                    actualMethod,
+                    listOf(
+                        command,
+                        targetCollection,
+                        HasFilter(
+                            parseFilterRecursively(
+                                actualMethod.argumentList.expressions.getOrNull(0)
+                            )
+                                .reversed()
+                        )
+                    )
+                )
+            }
+
             "count",
             "exactCount",
             "exists",
@@ -53,7 +74,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                     command,
                     targetCollection,
                     HasFilter(
-                        parseQueryRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                        parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
                     )
                 )
             )
@@ -115,18 +136,12 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 listOf(
                     command,
                     targetCollection,
-                    HasFilter(parseQueryRecursively(criteriaChain))
+                    HasFilter(
+                        parseFilterRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                    )
                 )
             )
         }
-        return Node(
-            mongoOpCall,
-            listOf(
-                command,
-                targetCollection,
-                HasFilter(parseQueryRecursively(criteriaChain))
-            )
-        )
     }
 
     override fun isReferenceToDatabase(source: PsiElement): Boolean {
@@ -165,79 +180,104 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         return isString && methodCall.isCriteriaExpression()
     }
 
-    private fun parseQueryRecursively(
-        fieldNameCall: PsiElement?,
-        until: PsiElement? = null
+    private fun parseFilterRecursively(
+        valueFilterExpression: PsiElement?
     ): List<Node<PsiElement>> {
-        if (fieldNameCall == null) {
+        if (valueFilterExpression == null) {
             return emptyList()
         }
 
-        fieldNameCall as PsiMethodCallExpression
+        val valueMethodCall =
+            valueFilterExpression.meaningfulExpression() as? PsiMethodCallExpression
+                ?: return emptyList()
 
-        val valueCall = fieldNameCall.parentMethodCallExpression() ?: return emptyList()
+        val valueFilterMethod = valueMethodCall.fuzzyResolveMethod() ?: return emptyList()
 
-        if (!fieldNameCall.isCriteriaQueryMethod() ||
-            fieldNameCall == until ||
-            valueCall == until
-        ) {
-            return emptyList()
-        }
-
-        val currentCriteriaMethod = fieldNameCall.fuzzyResolveMethod() ?: return emptyList()
-        if (currentCriteriaMethod.isVarArgs) {
-            val allSubQueries = fieldNameCall.argumentList.expressions
-                .filterIsInstance<PsiMethodCallExpression>()
-                .map { it.innerMethodCallExpression() }
-                .flatMap { parseQueryRecursively(it, fieldNameCall) }
-
-            if (fieldNameCall.parent.parent is PsiMethodCallExpression) {
-                val named = operatorName(currentCriteriaMethod)
-                val nextField = fieldNameCall.parent.parent as PsiMethodCallExpression
-                return listOf(
-                    Node<PsiElement>(fieldNameCall, listOf(named, HasFilter(allSubQueries)))
-                ) +
-                    parseQueryRecursively(nextField, until)
+        // 1st scenario: vararg operations
+        // for example, andOperator/orOperator...
+        if (valueFilterMethod.isVarArgs) {
+            val childrenNodes = valueMethodCall.argumentList.expressions.flatMap {
+                parseFilterRecursively(it).reversed()
             }
+
+            val thisQueryNode = listOf(
+                Node(
+                    valueFilterExpression,
+                    listOf(
+                        operatorName(valueFilterMethod),
+                        HasFilter(childrenNodes)
+                    )
+                )
+            )
+
+            // we finished parsing the vararg operator, check the tail of the query to see if there are more
+            // filters.
+            //                     v------------------- we want to see if there is something here
+            //                                 v------- valueMethodCall is here
+            // $nextFieldRef$.$nextValueRef$.$varargOp$("abc")
+            val nextQueryExpression = valueMethodCall.firstChild?.firstChild
+            if (nextQueryExpression != null && nextQueryExpression is PsiMethodCallExpression) {
+                return thisQueryNode + parseFilterRecursively(nextQueryExpression)
+            }
+
+            return thisQueryNode
         }
 
-        if (fieldNameCall.argumentList.expressions.isEmpty()) {
-            return emptyList()
+        //                   v----------------------- field filter (it can be a where, an and...)
+        //                             v------------- valueMethodCall
+        //                                     v----- the value itself
+        // 2st scenario: $fieldRef$.$filter$("abc")
+        val fieldMethodCall =
+            valueMethodCall.firstChild.firstChild.meaningfulExpression() as? PsiMethodCallExpression
+                ?: return emptyList()
+        val valuePsi = valueMethodCall.argumentList.expressions.getOrNull(0)
+        val fieldPsi = fieldMethodCall.argumentList.expressions.getOrNull(0)
+
+        val field = fieldPsi?.tryToResolveAsConstantString()
+        val fieldReference = when (field) {
+            null -> HasFieldReference(HasFieldReference.Unknown)
+            else -> HasFieldReference(HasFieldReference.Known(fieldPsi, field))
         }
-
-        val fieldName = fieldNameCall.argumentList.expressions[0].tryToResolveAsConstantString()!!
-        val (isResolved, value) = valueCall.argumentList.expressions[0].tryToResolveAsConstant()
-        val name = valueCall.fuzzyResolveMethod()?.name!!
-
-        val fieldReference = HasFieldReference(
-            HasFieldReference.Known(fieldNameCall.argumentList.expressions[0], fieldName)
-        )
-
-        val valueReference = HasValueReference(
-            if (isResolved) {
-                HasValueReference.Constant(valueCall, value, value!!.javaClass.toBsonType(value))
-            } else {
-                HasValueReference.Runtime(
-                    valueCall,
-                    valueCall.argumentList.expressions[0].type?.toBsonType() ?: BsonAny
+        val (_, value) = valuePsi?.tryToResolveAsConstant() ?: (false to null)
+        val valueReference = when (value) {
+            null -> when (valuePsi?.type) {
+                null -> HasValueReference(HasValueReference.Unknown)
+                else -> HasValueReference(
+                    HasValueReference.Runtime(
+                        valuePsi,
+                        valuePsi.type?.toBsonType() ?: BsonAny
+                    )
                 )
             }
-        )
+            else -> HasValueReference(
+                HasValueReference.Constant(valuePsi, value, value.javaClass.toBsonType(value))
+            )
+        }
 
-        val predicate = Node<PsiElement>(
-            fieldNameCall,
-            listOf(
-                Named(name.toName()),
-                fieldReference,
-                valueReference
+        val operationName = operatorName(valueFilterMethod)
+
+        // we finished parsing the first filter, check the tail of the query to see if there are more
+        // filters.
+        //                     v------------------- we want to see if there is something here
+        //                                 v------- fieldMethodCall is here
+        // $nextFieldRef$.$nextValueRef$.$fieldRef$.$filter$("abc")
+        val nextQueryExpression = fieldMethodCall.firstChild?.firstChild
+        val thisQueryNode = listOf(
+            Node(
+                valueFilterExpression,
+                listOf(
+                    operationName,
+                    fieldReference,
+                    valueReference
+                )
             )
         )
 
-        valueCall.parentMethodCallExpression()?.let {
-            return listOf(predicate) + parseQueryRecursively(it, until)
+        if (nextQueryExpression != null && nextQueryExpression is PsiMethodCallExpression) {
+            return thisQueryNode + parseFilterRecursively(nextQueryExpression)
         }
 
-        return listOf(predicate)
+        return thisQueryNode
     }
 
     private fun operatorName(currentCriteriaMethod: PsiMethod): Named {
@@ -310,32 +350,6 @@ private fun PsiElement.findCriteriaWhereExpression(): PsiMethodCallExpression? {
 private fun PsiMethodCallExpression.isCriteriaQueryMethod(): Boolean {
     val method = fuzzyResolveMethod() ?: return false
     return method.containingClass?.qualifiedName == CRITERIA_CLASS_FQN
-}
-
-private fun PsiMethodCallExpression.parentMethodCallExpression(): PsiMethodCallExpression? {
-    // In this function, we have an expression similar to:
-    // a().b()
-    // ^  ^ ^ this is B, the current method call expression
-    // |  | this is one parent (a reference to the current method)
-    // | this is parent.parent (the previous call expression)
-    return parent.parent as? PsiMethodCallExpression
-}
-
-private fun PsiMethodCallExpression.innerMethodCallExpression(): PsiMethodCallExpression {
-    // Navigates downwards until the end of the query chain:
-    // a().b()
-    // ^   ^ ^
-    // |   | this is children[0].children[0]
-    // |   | this is children[0]
-    // | this is the current method call expression
-    // we do it recursively because there is an indeterminate amount of chains
-    var ref = this
-    while (isCriteriaQueryMethod()) {
-        val next = ref.children[0].children[0] as? PsiMethodCallExpression ?: return ref
-        ref = next
-    }
-
-    return ref
 }
 
 private fun PsiMethodCallExpression.parentMongoDbOperation(): PsiMethodCallExpression? {
