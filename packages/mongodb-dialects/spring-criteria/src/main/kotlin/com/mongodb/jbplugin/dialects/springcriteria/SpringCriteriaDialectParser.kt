@@ -29,13 +29,100 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         val criteriaChain = source.findCriteriaWhereExpression() ?: return Node(source, emptyList())
         val targetCollection = QueryTargetCollectionExtractor.extractCollection(source)
 
-        val mongoOpCall = criteriaChain.parentMongoDbOperation()
-        val mongoOpMethod = mongoOpCall?.fuzzyResolveMethod() ?: return Node(source, emptyList())
+        val mongoOpCall = criteriaChain.parentMongoDbOperation() ?: return Node(source, emptyList())
+        val mongoOpMethod =
+            mongoOpCall.fuzzyResolveMethod() ?: return Node(mongoOpCall, emptyList())
 
+        val command = inferCommandFromMethod(mongoOpMethod)
+
+        // not all methods work the same way (sigh) so we will need a big `when` to handle
+        // each special case
+        return when (mongoOpMethod.name) {
+            "count",
+            "exactCount",
+            "exists",
+            "find",
+            "findAll",
+            "findAllAndRemove",
+            "findAndRemove",
+            "findOne",
+            "scroll",
+            "stream" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                    HasFilter(
+                        parseQueryRecursively(mongoOpCall.argumentList.expressions.getOrNull(0))
+                    )
+                )
+            )
+            "findAndModify",
+            "findAndReplace",
+            "updateFirst",
+            "updateMulti",
+            "upsert" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                )
+            )
+            "findById" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                )
+            )
+            "findDistinct" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                )
+            )
+            "insert" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                )
+            )
+            "insertAll" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                )
+            )
+            "remove" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                )
+            )
+            "replace" -> Node(
+                mongoOpMethod,
+                listOf(
+                    command,
+                    targetCollection,
+                )
+            )
+            else -> Node(
+                mongoOpCall,
+                listOf(
+                    command,
+                    targetCollection,
+                    HasFilter(parseQueryRecursively(criteriaChain))
+                )
+            )
+        }
         return Node(
-            source,
+            mongoOpCall,
             listOf(
-                operationName(mongoOpMethod),
+                command,
                 targetCollection,
                 HasFilter(parseQueryRecursively(criteriaChain))
             )
@@ -79,9 +166,15 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     }
 
     private fun parseQueryRecursively(
-        fieldNameCall: PsiMethodCallExpression,
+        fieldNameCall: PsiElement?,
         until: PsiElement? = null
     ): List<Node<PsiElement>> {
+        if (fieldNameCall == null) {
+            return emptyList()
+        }
+
+        fieldNameCall as PsiMethodCallExpression
+
         val valueCall = fieldNameCall.parentMethodCallExpression() ?: return emptyList()
 
         if (!fieldNameCall.isCriteriaQueryMethod() ||
@@ -157,7 +250,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
      * List of methods from here:
      * https://docs.spring.io/spring-data/mongodb/docs/current/api/org/springframework/data/mongodb/core/MongoOperations.html
      */
-    private fun operationName(mongoOpMethod: PsiMethod): IsCommand {
+    private fun inferCommandFromMethod(mongoOpMethod: PsiMethod): IsCommand {
         return IsCommand(
             when (mongoOpMethod.name) {
                 "aggregate", "aggregateStream" -> IsCommand.CommandType.AGGREGATE
