@@ -21,12 +21,6 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 
-// Suppressing
-// - LONG_LINE because the complaint is about the templated error description which needs to be in the same line for the
-// match to happen correctly
-// - TOO_LONG_FUNCTION because it is better to keep test logic within the tests and not make them "too smart" otherwise
-// reading through them becomes a task in its own
-@Suppress("LONG_LINE", "TOO_LONG_FUNCTION")
 @CodeInsightTest
 class SpringCriteriaFieldCheckLinterInspectionTest {
     @ParsingTest(
@@ -49,14 +43,12 @@ class BookRepository {
     }
 
     public void allReleasedBooks() {
-        template.find(
+        <warning descr="No connection available to run this check.">template.find(
             query(
-            <warning descr="No connection available to run this check.">where("released")</warning>
-            // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
-            // an error in the .is block and hence expected.
-            .is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(boolean)'">(true)</error>),
+            where("released")
+            .is(true)),
             Book.class
-        );
+        )</warning>;
     }
 }
         """,
@@ -89,12 +81,10 @@ class BookRepository {
     }
 
     public void allReleasedBooks() {
-        template.find(
-                // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
-                // an error in the .is block and hence expected.
-                query(<warning descr="No database selected to run this check.">where("released")</warning>.is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(boolean)'">(true)</error>),
+        <warning descr="No database selected to run this check.">template.find(
+                query(where("released").is(true)),
                 Book.class
-        );
+        )</warning>;
     }
 }
         """,
@@ -166,9 +156,7 @@ class BookRepository {
 
     public void allReleasedBooks() {
         template.find(
-                // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
-                // an error in the .is block and hence expected.
-                query(where(<warning descr="Field \"released\" does not exist in collection \"bad_db.book\"">"released"</warning>).is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(boolean)'">(true)</error>),
+                query(where(<warning descr="Field \"released\" does not exist in collection \"bad_db.book\"">"released"</warning>).is(true)),
                 Book.class
         );
     }
@@ -247,9 +235,7 @@ class BookRepository {
 
     public void allReleasedBooks() {
         template.find(
-                // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
-                // an error in the .is block and hence expected.
-                query(<warning descr="A \"String\"(type of provided value) can not be assigned to \"boolean\"(type of \"released\")">where("released").is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(java.lang.String)'">("true")</error></warning>),
+                query(where("released").is(<warning descr="A \"String\"(type of provided value) can not be assigned to \"boolean\"(type of \"released\")">"true"</warning>)),
                 Book.class
         );
     }
@@ -333,9 +319,7 @@ class BookRepository {
 
     public void allReleasedBooks() {
         template.find(
-                // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
-                // an error in the .is block and hence expected.
-                query(where("released").is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(java.lang.String)'">("true")</error>),
+                query(where("released").is("true")),
                 Book.class
         );
     }
