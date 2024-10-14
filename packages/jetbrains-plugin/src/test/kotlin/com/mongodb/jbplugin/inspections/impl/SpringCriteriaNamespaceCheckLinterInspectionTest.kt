@@ -40,9 +40,7 @@ class BookRepository {
         template.find(
             query(
             where("released")
-            // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
-            // an error in the .is block and hence expected.
-            .is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(boolean)'">(true)</error>),
+            .is(true)),
             <warning descr="Cannot resolve \"book\" collection in \"myDb\" database in the connected data source.">Book.class</warning>
         );
     }

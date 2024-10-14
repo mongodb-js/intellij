@@ -40,14 +40,12 @@ class BookRepository {
     }
 
     public void allReleasedBooks() {
-        template.find(
+        <warning descr="This query will run without an index. If you plan on using this query heavily in your application, you should create an index that covers this query.">template.find(
             query(
-            <warning descr="This query will run without an index. If you plan on using this query heavily in your application, you should create an index that covers this query.">where("released")</warning>
-            // TODO: (INTELLIJ-62) The Java SDK is not available in the test class path which is why there is
-            // an error in the .is block and hence expected.
-            .is<error descr="'is(java.lang.Object)' in 'org.springframework.data.mongodb.core.query.Criteria' cannot be applied to '(boolean)'">(true)</error>),
+            where("released")
+            .is(true)),
             Book.class
-        );
+        )</warning>;
     }
 }
         
