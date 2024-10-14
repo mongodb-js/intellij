@@ -6,6 +6,7 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -84,6 +85,7 @@ internal class IntegrationTestExtension :
     BeforeAllCallback,
     AfterAllCallback,
     BeforeEachCallback,
+    AfterEachCallback,
     InvocationInterceptor,
     ParameterResolver {
     private val namespace = ExtensionContext.Namespace.create(IntegrationTestExtension::class.java)
@@ -176,6 +178,18 @@ internal class IntegrationTestExtension :
                     }
                 }
             }
+        }
+    }
+
+    override fun afterEach(context: ExtensionContext) {
+        val testFixture = context.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
+        val withFile: AdditionalFile = context.requiredTestMethod.getAnnotation(
+            AdditionalFile::class.java
+        ) ?: return
+
+        val file = testFixture.findFileInTempDir(withFile.fileName)
+        WriteCommandAction.runWriteCommandAction(testFixture.project) {
+            file.delete(this)
         }
     }
 
