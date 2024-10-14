@@ -300,11 +300,13 @@ private object MongoDbElementPatterns {
 
     fun guessDatabaseAndCollection(source: PsiElement): Pair<String?, String?> {
         val dialect = source.containingFile?.originalFile?.dialect ?: return null to null
-        val querySource = dialect.parser.attachment(source)
 
-        val queryService = source.project.getService(CachedQueryService::class.java)
-        val parsedQuery = queryService.queryAt(querySource)
-        val collectionReference = parsedQuery?.component<HasCollectionReference<PsiElement>>()
+        val collectionReference = runCatching {
+            val querySource = dialect.parser.attachment(source)
+            val queryService = source.project.getService(CachedQueryService::class.java)
+            val parsedQuery = queryService.queryAt(querySource)
+            parsedQuery?.component<HasCollectionReference<PsiElement>>()
+        }.getOrNull()
         val queryCollection = collectionReference?.let { extractCollection(it) }
 
         val database = extractDatabase(collectionReference)

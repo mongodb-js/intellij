@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.eq
 
-@Suppress("TOO_LONG_FUNCTION")
 @CodeInsightTest
 class SpringCriteriaCompletionContributorTest {
     @ParsingTest(

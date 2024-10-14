@@ -40,6 +40,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         // not all methods work the same way (sigh) so we will need a big `when` to handle
         // each special case
         return when (mongoOpMethod?.name) {
+            "matching",
             "all",
             "first",
             "firstValue",
@@ -471,7 +472,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 "updateMulti" -> IsCommand.CommandType.UPDATE_MANY
                 "upsert" -> IsCommand.CommandType.UPSERT
                 "one", "oneValue", "first", "firstValue" -> IsCommand.CommandType.FIND_ONE
-                "all" -> IsCommand.CommandType.FIND_MANY
+                "all", "matching" -> IsCommand.CommandType.FIND_MANY
                 else -> IsCommand.CommandType.UNKNOWN
             }
         )
