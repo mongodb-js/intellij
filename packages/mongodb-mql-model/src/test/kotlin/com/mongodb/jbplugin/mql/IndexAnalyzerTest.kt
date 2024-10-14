@@ -1,9 +1,9 @@
 package com.mongodb.jbplugin.mql
 
-import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasCollectionReference.Known
 import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -24,7 +24,7 @@ class IndexAnalyzerTest {
             Unit,
             listOf(
                 collectionReference,
-                HasChildren(
+                HasFilter(
                     listOf(
                         Node(
                             Unit,
@@ -55,7 +55,7 @@ class IndexAnalyzerTest {
             Unit,
             listOf(
                 collectionReference,
-                HasChildren(
+                HasFilter(
                     listOf(
                         Node(
                             Unit,

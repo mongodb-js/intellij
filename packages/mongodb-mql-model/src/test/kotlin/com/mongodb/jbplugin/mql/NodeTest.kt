@@ -170,7 +170,7 @@ class NodeTest {
         @JvmStatic
         fun validComponents(): Array<Array<Any>> =
             arrayOf(
-                arrayOf(HasChildren<Unit?>(emptyList()), HasChildren::class.java),
+                arrayOf(HasFilter<Unit?>(emptyList()), HasFilter::class.java),
                 arrayOf(
                     HasCollectionReference(HasCollectionReference.Unknown),
                     HasCollectionReference::class.java
@@ -193,7 +193,6 @@ class NodeTest {
                     HasFieldReference(HasFieldReference.Known(null, "abc")),
                     HasFieldReference::class.java
                 ),
-                arrayOf(HasFilter<Unit?>(Node(null, emptyList())), HasFilter::class.java),
                 arrayOf(
                     HasValueReference(HasValueReference.Unknown),
                     HasValueReference::class.java

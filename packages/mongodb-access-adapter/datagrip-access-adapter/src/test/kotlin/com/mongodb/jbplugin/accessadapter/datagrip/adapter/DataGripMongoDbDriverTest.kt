@@ -9,9 +9,9 @@ import com.mongodb.jbplugin.accessadapter.toNs
 import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.HasChildren
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.components.HasValueReference
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
@@ -69,7 +69,6 @@ class DataGripMongoDbDriverTest {
 
     @Test
     fun `is able to find a document and deserialize it properly`(
-        version: MongoDbVersion,
         driver: MongoDbDriver,
     ) = runBlocking {
         driver as DataGripMongoDbDriver
@@ -113,7 +112,6 @@ class DataGripMongoDbDriverTest {
 
     @Test
     fun `is able to find a list of documents and deserialize it properly`(
-        version: MongoDbVersion,
         driver: MongoDbDriver,
     ) = runBlocking {
         data class ExampleDocument(
@@ -190,7 +188,7 @@ class DataGripMongoDbDriverTest {
             Unit,
             listOf(
                 HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
-                HasChildren(
+                HasFilter(
                     listOf(
                         Node(
                             Unit,
@@ -252,7 +250,7 @@ class DataGripMongoDbDriverTest {
             Unit,
             listOf(
                 HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
-                HasChildren(
+                HasFilter(
                     listOf(
                         Node(
                             Unit,

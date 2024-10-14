@@ -44,6 +44,7 @@ import kotlin.io.path.Path
  * @see com.mongodb.jbplugin.observability.LogMessageTest
  */
 @ExtendWith(IntegrationTestExtension::class)
+@kotlinx.coroutines.ExperimentalCoroutinesApi
 annotation class IntegrationTest
 
 /**

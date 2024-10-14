@@ -7,6 +7,6 @@ import com.mongodb.jbplugin.mql.Node
  * @param S
  * @property children
  */
-data class HasChildren<S>(
+data class HasUpdates<S>(
     val children: List<Node<S>>,
 ) : Component

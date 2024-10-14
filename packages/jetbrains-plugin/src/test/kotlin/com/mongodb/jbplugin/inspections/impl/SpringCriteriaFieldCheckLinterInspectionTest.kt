@@ -7,7 +7,6 @@ import com.intellij.database.psi.DbDataSource
 import com.intellij.database.psi.DbPsiFacade
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
@@ -63,7 +62,6 @@ class BookRepository {
         """,
     )
     fun `shows an inspection when there is no connection attached to the current editor`(
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(SpringCriteriaDialect)
@@ -103,7 +101,6 @@ class BookRepository {
     )
     fun `shows an inspection when there is a connection but no database attached to the current editor`(
         project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val dbPsiFacade = mock<DbPsiFacade>()
@@ -180,7 +177,6 @@ class BookRepository {
     )
     fun `shows an inspection when the field does not exist in the current namespace`(
         project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val dbPsiFacade = mock<DbPsiFacade>()
@@ -262,7 +258,6 @@ class BookRepository {
     )
     fun `shows an inspection when a provided value cannot be assigned to a field because of detected type mismatch`(
         project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val dbPsiFacade = mock<DbPsiFacade>()
@@ -349,7 +344,6 @@ class BookRepository {
     )
     fun `shows no inspection when a provided value can be assigned to a field`(
         project: Project,
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         val dbPsiFacade = mock<DbPsiFacade>()

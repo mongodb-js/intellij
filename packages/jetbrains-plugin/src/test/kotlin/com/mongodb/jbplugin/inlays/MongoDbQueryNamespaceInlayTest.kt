@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.inlays
 
-import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.mongodb.jbplugin.fixtures.CodeInsightTest
 import com.mongodb.jbplugin.fixtures.ParsingTest
@@ -34,7 +33,6 @@ public class Repository {
         """,
     )
     fun `shows a inlay hint when the namespace is resolved`(
-        psiFile: PsiFile,
         fixture: CodeInsightTestFixture,
     ) {
         fixture.testInlays()

@@ -1,11 +1,16 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.util.PsiTreeUtil
 import com.mongodb.jbplugin.dialects.javadriver.IntegrationTest
 import com.mongodb.jbplugin.dialects.javadriver.ParsingTest
+import com.mongodb.jbplugin.dialects.javadriver.WithFile
+import com.mongodb.jbplugin.dialects.javadriver.caret
 import com.mongodb.jbplugin.dialects.javadriver.getQueryAtMethod
 import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
@@ -16,6 +21,8 @@ import com.mongodb.jbplugin.mql.BsonObjectId
 import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.components.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 
 @IntegrationTest
 class JavaDriverDialectParserTest {
@@ -128,12 +135,13 @@ public final class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val knownReference =
-            parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
+        val knownReference = parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
+        val command = parsedQuery.component<IsCommand>()
         val namespace = knownReference.namespace
 
         assertEquals("simple", namespace.database)
         assertEquals("books", namespace.collection)
+        assertEquals(IsCommand.CommandType.FIND_ONE, command?.type)
     }
 
     @ParsingTest(
@@ -241,10 +249,9 @@ public final class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
@@ -282,10 +289,9 @@ public final class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
@@ -326,10 +332,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "myField",
@@ -372,10 +377,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "myField",
@@ -418,12 +422,11 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val and = hasChildren.children[0]
+        val and = hasFilter.children[0]
         assertEquals(Name.AND, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
@@ -486,11 +489,11 @@ public class Repository {
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
         val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+            parsedQuery.component<HasFilter<Unit?>>()!!
 
         val and = hasChildren.children[0]
         assertEquals(Name.AND, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
@@ -548,12 +551,11 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val and = hasChildren.children[0]
+        val and = hasFilter.children[0]
         assertEquals(Name.NOT, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
@@ -598,10 +600,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
@@ -648,10 +649,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
@@ -698,10 +698,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
@@ -747,12 +746,12 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter =
+            parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val and = hasChildren.children[0]
+        val and = hasFilter.children[0]
         assertEquals(Name.AND, and.component<Named>()!!.name)
-        val andChildren = and.component<HasChildren<Unit?>>()!!
+        val andChildren = and.component<HasFilter<Unit?>>()!!
 
         val firstEq = andChildren.children[0]
         assertEquals(
@@ -815,10 +814,12 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter =
+            parsedQuery.component<HasFilter<Unit?>>()!!
+        val hasUpdates =
+            parsedQuery.component<HasUpdates<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
@@ -829,7 +830,7 @@ public class Repository {
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
 
-        val unset = hasChildren.children[1]
+        val unset = hasUpdates.children[0]
         assertEquals(Name.UNSET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
@@ -871,10 +872,10 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+        val hasUpdate = parsedQuery.component<HasUpdates<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
@@ -885,7 +886,7 @@ public class Repository {
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
 
-        val unset = hasChildren.children[1]
+        val unset = hasUpdate.children[0]
         assertEquals(Name.UNSET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
@@ -927,10 +928,10 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "updateReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+        val hasUpdates = parsedQuery.component<HasUpdates<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
@@ -941,7 +942,7 @@ public class Repository {
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
 
-        val unset = hasChildren.children[1]
+        val unset = hasUpdates.children[0]
         assertEquals(Name.SET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
@@ -985,10 +986,10 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "updateReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+        val hasUpdate = parsedQuery.component<HasUpdates<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
@@ -999,13 +1000,13 @@ public class Repository {
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
         )
 
-        val combine = hasChildren.children[1]
+        val combine = hasUpdate.children[0]
         assertEquals(Name.COMBINE, combine.component<Named>()!!.name)
-        assertEquals(2, combine.component<HasChildren<Unit?>>()!!.children.size)
+        assertEquals(2, combine.component<HasFilter<Unit?>>()!!.children.size)
 
-        val children = combine.component<HasChildren<Unit?>>()!!.children
-        assertEquals(Name.SET, children[0].component<Named>()!!.name)
-        assertEquals(Name.UNSET, children[1].component<Named>()!!.name)
+        val updates = combine.component<HasFilter<Unit?>>()!!.children
+        assertEquals(Name.SET, updates[0].component<Named>()!!.name)
+        assertEquals(Name.UNSET, updates[1].component<Named>()!!.name)
     }
 
     @ParsingTest(
@@ -1036,10 +1037,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBooksByGenre")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
@@ -1079,10 +1079,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBooksByGenre")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
@@ -1123,10 +1122,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findBooksByGenre")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
@@ -1167,10 +1165,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findFantasyBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
@@ -1217,10 +1214,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findFantasyBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
@@ -1267,10 +1263,9 @@ public class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "findFantasyBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
-        val hasChildren =
-            parsedQuery.component<HasChildren<Unit?>>()!!
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
-        val eq = hasChildren.children[0]
+        val eq = hasFilter.children[0]
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
@@ -1284,5 +1279,75 @@ public class Repository {
             listOf("Fantasy", 50),
             (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value,
         )
+    }
+
+    @WithFile(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public final class Repository {
+    private final MongoCollection<Document> collection;
+    
+    public Repository(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+    
+    public Object randomQuery() {
+        return this.collection."|"();
+    }
+}
+        """,
+    )
+    @ParameterizedTest
+    @CsvSource(
+        value = [
+            "method;;expected",
+            "countDocuments;;COUNT_DOCUMENTS",
+            "estimatedDocumentCount;;ESTIMATED_DOCUMENT_COUNT",
+            "distinct;;DISTINCT",
+            "find;;FIND_MANY",
+            "aggregate;;AGGREGATE",
+            "insertOne;;INSERT_ONE",
+            "insertMany;;INSERT_MANY",
+            "deleteOne;;DELETE_ONE",
+            "deleteMany;;DELETE_MANY",
+            "replaceOne;;REPLACE_ONE",
+            "updateOne;;UPDATE_ONE",
+            "updateMany;;UPDATE_MANY",
+            "findOneAndDelete;;FIND_ONE_AND_DELETE",
+            "findOneAndUpdate;;FIND_ONE_AND_UPDATE",
+            "createIndex;;UNKNOWN",
+        ],
+        delimiterString = ";;",
+        useHeadersInDisplayName = true
+    )
+    fun `supports all relevant commands from the driver`(
+        method: String,
+        expected: IsCommand.CommandType,
+        psiFile: PsiFile
+    ) {
+        WriteCommandAction.runWriteCommandAction(psiFile.project) {
+            val elementAtCaret = psiFile.caret()
+            val javaFacade = JavaPsiFacade.getInstance(psiFile.project)
+            val methodToTest = javaFacade.parserFacade.createReferenceFromText(method, null)
+            elementAtCaret.replace(methodToTest)
+        }
+
+        ApplicationManager.getApplication().runReadAction {
+            val query = psiFile.getQueryAtMethod("Repository", "randomQuery")
+            val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+            val knownReference = parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
+            val command = parsedQuery.component<IsCommand>()
+            val namespace = knownReference.namespace
+
+            assertEquals("simple", namespace.database)
+            assertEquals("books", namespace.collection)
+            assertEquals(expected, command?.type)
+        }
     }
 }

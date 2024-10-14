@@ -32,7 +32,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             source,
             listOf(
                 targetCollection,
-                HasChildren(parseQueryRecursively(criteriaChain))
+                HasFilter(parseQueryRecursively(criteriaChain))
             )
         )
     }
@@ -101,7 +101,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 val named = operatorName(currentCriteriaMethod)
                 val nextField = fieldNameCall.parent.parent as PsiMethodCallExpression
                 return listOf(
-                    Node<PsiElement>(fieldNameCall, listOf(named, HasChildren(allSubQueries)))
+                    Node<PsiElement>(fieldNameCall, listOf(named, HasFilter(allSubQueries)))
                 ) +
                     parseQueryRecursively(nextField, until)
             }
