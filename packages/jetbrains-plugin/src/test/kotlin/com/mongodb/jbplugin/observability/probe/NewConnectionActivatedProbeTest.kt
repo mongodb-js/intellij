@@ -97,5 +97,5 @@ internal class NewConnectionActivatedProbeTestForAtlasCliEnvironment :
         isLocalhost = true,
         isEnterprise = true,
         isGenuine = true,
-        version = "7.0.12",
+        version = "7.0.14",
     )
