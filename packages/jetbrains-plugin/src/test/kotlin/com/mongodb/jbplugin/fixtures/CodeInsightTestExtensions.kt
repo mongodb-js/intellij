@@ -11,35 +11,40 @@ import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.localDataSource
 import com.intellij.database.psi.DbDataSource
 import com.intellij.database.psi.DbPsiFacade
-import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.roots.ContentEntry
+import com.intellij.openapi.roots.LanguageLevelModuleExtension
+import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.util.Disposer
+import com.intellij.pom.java.AcceptedLanguageLevelsSettings
+import com.intellij.pom.java.LanguageLevel
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.testFramework.IdeaTestUtil
+import com.intellij.testFramework.LightProjectDescriptor.SetupHandler
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor.addJetBrainsAnnotations
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.mongodb.client.MongoClient
-import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.datagrip.DataGripBasedReadModelProvider
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
-import org.springframework.data.mongodb.core.MongoTemplate
-import org.springframework.data.mongodb.core.mapping.Document
 import java.lang.reflect.Method
 import java.net.URI
 import java.net.URL
@@ -82,10 +87,12 @@ internal class CodeInsightTestExtension :
     // lint warning here
     @Suppress("TOO_LONG_FUNCTION")
     override fun beforeEach(context: ExtensionContext) {
+        val projectDescriptor = MongoDbProjectDescriptor(LanguageLevel.JDK_21)
+
         val projectFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
-                .createLightFixtureBuilder(context.requiredTestClass.simpleName)
+                .createLightFixtureBuilder(projectDescriptor, context.requiredTestClass.simpleName)
                 .fixture
 
         val testFixture =
@@ -97,48 +104,6 @@ internal class CodeInsightTestExtension :
 
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
-
-        ApplicationManager.getApplication().invokeAndWait {
-            if (!JavaLibraryUtil.hasLibraryJar(
-                    testFixture.module,
-                    "org.mongodb:mongodb-driver-sync:5.1.1"
-                )
-            ) {
-                val module = testFixture.module
-
-                runCatching {
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:mongodb-driver-sync:5.1.0",
-                        listOf(pathToClassJarFile(MongoClient::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:mongodb-driver-core:5.1.0",
-                        listOf(pathToClassJarFile(Filters::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.mongodb:bson:5.1.0",
-                        listOf(pathToClassJarFile(ObjectId::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.springframework.data:spring-data-mongodb:4.3.2",
-                        listOf(pathToClassJarFile(MongoTemplate::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.springframework.data:spring-data-mongodb-mapping:4.3.2",
-                        listOf(pathToClassJarFile(Document::class.java)),
-                    )
-                }
-            }
-        }
 
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
 
@@ -313,4 +278,38 @@ fun CodeInsightTestFixture.specifyDialect(dialect: Dialect<PsiElement, Project>)
         MongoDbVirtualFileDataSourceProvider.Keys.attachedDialect,
         dialect
     )
+}
+
+private class MongoDbProjectDescriptor(
+    val languageLevel: LanguageLevel
+) : DefaultLightProjectDescriptor() {
+    override fun setUpProject(
+        project: Project,
+        handler: SetupHandler
+    ) {
+        if (languageLevel.isPreview || languageLevel == LanguageLevel.JDK_X) {
+            AcceptedLanguageLevelsSettings.allowLevel(project, languageLevel)
+        }
+
+        withRepositoryLibrary("org.mongodb:mongodb-driver-sync:5.1.0")
+        withRepositoryLibrary("org.springframework.data:spring-data-mongodb:4.3.2")
+
+        super.setUpProject(project, handler)
+    }
+
+    override fun getSdk(): Sdk {
+        return IdeaTestUtil.getMockJdk(languageLevel.toJavaVersion())
+    }
+
+    override fun configureModule(
+        module: Module,
+        model: ModifiableRootModel,
+        contentEntry: ContentEntry
+    ) {
+        model.getModuleExtension(LanguageLevelModuleExtension::class.java).languageLevel =
+            languageLevel
+
+        addJetBrainsAnnotations(model)
+        super.configureModule(module, model, contentEntry)
+    }
 }

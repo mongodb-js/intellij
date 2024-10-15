@@ -19,11 +19,13 @@ private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
-    override fun isCandidateForQuery(source: PsiElement) = runCatching {
-        findStartOfQuery(source)
-    }.getOrNull() != null
+    override fun isCandidateForQuery(source: PsiElement) =
+        methodToCommand((source as? PsiMethodCallExpression)?.fuzzyResolveMethod()).type !=
+            IsCommand.CommandType.UNKNOWN
 
-    override fun attachment(source: PsiElement): PsiElement = findStartOfQuery(source)!!
+    override fun attachment(source: PsiElement): PsiElement = source.findTopParentBy {
+        isCandidateForQuery(it)
+    }!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
         val collectionReference = NamespaceExtractor.extractNamespace(source)
@@ -423,19 +425,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return valueReference as HasValueReference.ValueReference<PsiElement>
     }
 
-    private fun findStartOfQuery(element: PsiElement): PsiMethodCallExpression? {
-        val methodCalls = element.findAllChildrenOfType(PsiMethodCallExpression::class.java)
-        val bottomLevel: PsiMethodCallExpression = methodCalls.find { methodCall ->
-            val method = methodCall.resolveMethod() ?: return@find false
-            method.containingClass?.isMongoDbCollectionClass(method.project) == true
-        } ?: return null
-
-        return bottomLevel
-    }
-
-    private fun methodToCommand(method: PsiMethod): IsCommand {
+    private fun methodToCommand(method: PsiMethod?): IsCommand {
         return IsCommand(
-            when (method.name) {
+            when (method?.name) {
                 "countDocuments" -> IsCommand.CommandType.COUNT_DOCUMENTS
                 "estimatedDocumentCount" -> IsCommand.CommandType.ESTIMATED_DOCUMENT_COUNT
                 "distinct" -> IsCommand.CommandType.DISTINCT

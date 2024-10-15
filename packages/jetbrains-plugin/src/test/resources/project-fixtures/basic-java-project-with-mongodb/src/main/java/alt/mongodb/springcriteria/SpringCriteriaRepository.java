@@ -7,6 +7,7 @@ import java.util.List;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
+import static org.springframework.data.mongodb.core.query.Update.update;
 
 @Document("movies")
 record Movie() {
@@ -25,5 +26,9 @@ public class SpringCriteriaRepository {
                 query(where( "tomatoes.viewer.rating").gte(rating)),
                 Movie.class
         );
+    }
+
+    private void updateLanguageOfAllMoviesWithRatingAtLeast(int rating, String newLanguage) {
+        template.updateMulti(query(where("tomatoes.viewer.rating").gte(rating)), update("key", "value"), Movie.class);
     }
 }

@@ -24,7 +24,7 @@ public class JavaDriverRepository {
         return client.getDatabase("sample_mflix")
                 .getCollection("movies")
                 .find(
-                        Filters.ne("genres", "Comedy")
+                        Filters.ne("awards.text", "Comedy")
                 )
                 .into(new ArrayList<>());
     }

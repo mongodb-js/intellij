@@ -5,30 +5,52 @@
 
 package com.mongodb.jbplugin.dialects.springcriteria
 
-import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.roots.ContentEntry
+import com.intellij.openapi.roots.LanguageLevelModuleExtension
+import com.intellij.openapi.roots.LanguageLevelProjectExtension
+import com.intellij.openapi.roots.ModifiableRootModel
+import com.intellij.pom.java.AcceptedLanguageLevelsSettings
+import com.intellij.pom.java.LanguageLevel
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.childrenOfType
+import com.intellij.testFramework.IdeaTestUtil
+import com.intellij.testFramework.IndexingTestUtil
+import com.intellij.testFramework.LightProjectDescriptor.SetupHandler
 import com.intellij.testFramework.PsiTestUtil
+import com.intellij.testFramework.TestApplicationManager
+import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
+import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor.addJetBrainsAnnotations
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
+import com.mongodb.assertions.Assertions.assertNotNull
+import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
+import com.mongodb.jbplugin.mql.components.HasUpdates
+import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.IsCommand
+import com.mongodb.jbplugin.mql.components.Name
+import com.mongodb.jbplugin.mql.components.Named
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.intellij.lang.annotations.Language
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.*
-import org.springframework.data.mongodb.core.MongoTemplate
-import org.springframework.data.mongodb.core.mapping.Document
+import org.junit.jupiter.api.fail
 import java.lang.reflect.Method
-import java.net.URI
-import java.net.URL
-import java.nio.file.Paths
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.io.path.Path
@@ -42,7 +64,6 @@ annotation class ParsingTest(
 )
 
 @Retention(AnnotationRetention.RUNTIME)
-@Test
 annotation class AdditionalFile(
     val fileName: String,
     val value: String,
@@ -54,6 +75,7 @@ annotation class AdditionalFile(
  * @see com.mongodb.jbplugin.accessadapter.datagrip.adapter.DataGripMongoDbDriverTest
  */
 @ExtendWith(IntegrationTestExtension::class)
+@TestDataPath("${'$'}CONTENT_ROOT/testData")
 annotation class IntegrationTest
 
 /**
@@ -71,10 +93,13 @@ internal class IntegrationTestExtension :
     private val testPathKey = "TESTPATH"
 
     override fun beforeAll(context: ExtensionContext) {
+        TestApplicationManager.getInstance()
+        val projectDescriptor = MongoDbProjectDescriptor(LanguageLevel.JDK_21)
+
         val projectFixture =
             IdeaTestFixtureFactory
                 .getFixtureFactory()
-                .createLightFixtureBuilder(context.requiredTestClass.simpleName)
+                .createLightFixtureBuilder(projectDescriptor, context.requiredTestClass.simpleName)
                 .fixture
 
         val testFixture =
@@ -87,33 +112,10 @@ internal class IntegrationTestExtension :
         context.getStore(namespace).put(testFixtureKey, testFixture)
         testFixture.setUp()
 
-        // Add the Spring libraries to the project, the real jars, that are
-        // defined in Gradle as test dependencies.
-        ApplicationManager.getApplication().invokeAndWait {
-            val module = testFixture.module
+        val projectExt = LanguageLevelProjectExtension.getInstance(projectFixture.project)
+        projectExt.languageLevel = LanguageLevel.JDK_21
+        IndexingTestUtil.waitUntilIndexesAreReady(projectFixture.project)
 
-            if (!JavaLibraryUtil.hasLibraryJar(
-                    module,
-                    "org.springframework.data:spring-data-mongodb:4.3.2"
-                )
-            ) {
-                runCatching {
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.springframework.data:spring-data-mongodb:4.3.2",
-                        listOf(pathToClassJarFile(MongoTemplate::class.java)),
-                    )
-
-                    PsiTestUtil.addProjectLibrary(
-                        module,
-                        "org.springframework.data:spring-data-mongodb-mapping:4.3.2",
-                        listOf(pathToClassJarFile(Document::class.java)),
-                    )
-                }
-            }
-        }
-
-        // Add source folders to the project
         PsiTestUtil.addSourceRoot(testFixture.module, testFixture.project.guessProjectDir()!!)
         val tmpRootDir = testFixture.tempDirFixture.getFile(".")!!
         PsiTestUtil.addSourceRoot(testFixture.module, tmpRootDir)
@@ -130,21 +132,27 @@ internal class IntegrationTestExtension :
                 fixture.addFileToProject(it.fileName, it.value)
             }
 
-            val parsingTest =
-                context.requiredTestMethod.getAnnotation(ParsingTest::class.java)
-                    ?: return@invokeAndWait
+            val parsingTest: ParsingTest? = context.requiredTestMethod.getAnnotation(
+                ParsingTest::class.java
+            )
+            val withFile: AdditionalFile? = context.requiredTestMethod.getAnnotation(
+                AdditionalFile::class.java
+            )
+
+            val cfgFileName = parsingTest?.fileName ?: withFile?.fileName ?: return@invokeAndWait
+            val cfgContents = parsingTest?.value ?: withFile?.value ?: return@invokeAndWait
 
             val fileName = Path(
                 modulePath,
                 "src",
                 "main",
                 "java",
-                parsingTest.fileName
+                cfgFileName
             ).absolutePathString()
 
             fixture.configureByText(
                 fileName,
-                parsingTest.value,
+                cfgContents
             )
         }
     }
@@ -174,14 +182,14 @@ internal class IntegrationTestExtension :
     }
 
     override fun afterEach(context: ExtensionContext) {
-        val fixture = context.getStore(
-            namespace
-        ).get(testFixtureKey) as CodeInsightTestFixture
+        val testFixture = context.getStore(namespace).get(testFixtureKey) as CodeInsightTestFixture
+        val withFile: AdditionalFile = context.requiredTestMethod.getAnnotation(
+            AdditionalFile::class.java
+        ) ?: return
 
-        context.requiredTestMethod.getAnnotationsByType(AdditionalFile::class.java).forEach {
-            WriteCommandAction.runWriteCommandAction(fixture.project) {
-                fixture.findFileInTempDir(it.fileName).delete(this)
-            }
+        val file = testFixture.findFileInTempDir(withFile.fileName)
+        WriteCommandAction.runWriteCommandAction(testFixture.project) {
+            file.delete(this)
         }
     }
 
@@ -220,23 +228,6 @@ internal class IntegrationTestExtension :
             )
         }
     }
-
-    private fun pathToClassJarFile(javaClass: Class<*>): String {
-        val classResource: URL =
-            javaClass.getResource(javaClass.getSimpleName() + ".class")
-                ?: throw RuntimeException("class resource is null")
-        val url: String = classResource.toString()
-        if (url.startsWith("jar:file:")) {
-            // extract 'file:......jarName.jar' part from the url string
-            val path = url.replace("^jar:(file:.*[.]jar)!/.*".toRegex(), "$1")
-            try {
-                return Paths.get(URI(path)).toString()
-            } catch (e: Exception) {
-                throw RuntimeException("Invalid Jar File URL String")
-            }
-        }
-        throw RuntimeException("Invalid Jar File URL String")
-    }
 }
 
 fun PsiFile.getClassByName(name: String): PsiClass =
@@ -261,3 +252,140 @@ fun PsiFile.caret(): PsiElement = PsiTreeUtil.findChildrenOfType(
     .first {
         it.textMatches(""""|"""")
     }
+
+private class MongoDbProjectDescriptor(
+    val languageLevel: LanguageLevel
+) : DefaultLightProjectDescriptor() {
+    override fun setUpProject(
+        project: Project,
+        handler: SetupHandler
+    ) {
+        if (languageLevel.isPreview || languageLevel == LanguageLevel.JDK_X) {
+            AcceptedLanguageLevelsSettings.allowLevel(project, languageLevel)
+        }
+
+        withRepositoryLibrary("org.springframework.data:spring-data-mongodb:4.3.2")
+        super.setUpProject(project, handler)
+    }
+
+    override fun getSdk(): Sdk {
+        return IdeaTestUtil.getMockJdk(languageLevel.toJavaVersion())
+    }
+
+    override fun configureModule(
+        module: Module,
+        model: ModifiableRootModel,
+        contentEntry: ContentEntry
+    ) {
+        model.getModuleExtension(LanguageLevelModuleExtension::class.java).languageLevel =
+            languageLevel
+
+        addJetBrainsAnnotations(model)
+        super.configureModule(module, model, contentEntry)
+    }
+}
+
+fun Node<PsiElement>.assert(
+    command: IsCommand.CommandType,
+    assertions: Node<PsiElement>.() -> Unit = {
+    }
+) {
+    val cmd = component<IsCommand>()
+    assertNotNull(cmd)
+
+    assertEquals(command, cmd!!.type)
+    this.assertions()
+}
+
+fun Node<PsiElement>.filterN(
+    n: Int,
+    name: Name? = null,
+    assertions: Node<PsiElement>.() -> Unit = {
+    }
+) {
+    val filters = component<HasFilter<PsiElement>>()
+    assertNotNull(filters)
+
+    val filter = filters!!.children[n]
+
+    if (name != null) {
+        val qname = filter.component<Named>()
+        assertNotEquals(null, qname) {
+            "Expected a named operation with name $name but null found."
+        }
+        assertEquals(name, qname?.name) {
+            "Expected a named operation with name $name but $qname found."
+        }
+    }
+
+    filter.assertions()
+}
+
+fun Node<PsiElement>.updateN(
+    n: Int,
+    name: Name? = null,
+    assertions: Node<PsiElement>.() -> Unit = {
+    }
+) {
+    val updates = component<HasUpdates<PsiElement>>()
+    assertNotNull(updates)
+
+    val update = updates!!.children[n]
+
+    if (name != null) {
+        val qname = update.component<Named>()
+        assertNotEquals(null, qname) {
+            "Expected a named operation with name $name but null found."
+        }
+        assertEquals(name, qname?.name) {
+            "Expected a named operation with name $name but $qname found."
+        }
+    }
+
+    update.assertions()
+}
+
+inline fun <reified T : HasCollectionReference.CollectionReference<PsiElement>> Node<PsiElement>.collection(
+    assertions: T.() -> Unit
+) {
+    val ref = component<HasCollectionReference<PsiElement>>()
+    assertNotNull(ref)
+
+    if (ref!!.reference is T) {
+        (ref.reference as T).assertions()
+    } else {
+        fail(
+            "Collection reference was not of type ${T::class.java.canonicalName} but ${ref::class.java.canonicalName}"
+        )
+    }
+}
+
+inline fun <reified T : HasFieldReference.FieldReference<PsiElement>> Node<PsiElement>.field(
+    assertions: T.() -> Unit
+) {
+    val ref = component<HasFieldReference<PsiElement>>()
+    assertNotNull(ref)
+
+    if (ref!!.reference is T) {
+        (ref.reference as T).assertions()
+    } else {
+        fail(
+            "Field reference was not of type ${T::class.java.canonicalName} but ${ref::class.java.canonicalName}"
+        )
+    }
+}
+
+inline fun <reified T : HasValueReference.ValueReference<PsiElement>> Node<PsiElement>.value(
+    assertions: T.() -> Unit
+) {
+    val ref = component<HasValueReference<PsiElement>>()
+    assertNotNull(ref)
+
+    if (ref!!.reference is T) {
+        (ref.reference as T).assertions()
+    } else {
+        fail(
+            "Value reference was not of type ${T::class.java.canonicalName} but ${ref::class.java.canonicalName}"
+        )
+    }
+}

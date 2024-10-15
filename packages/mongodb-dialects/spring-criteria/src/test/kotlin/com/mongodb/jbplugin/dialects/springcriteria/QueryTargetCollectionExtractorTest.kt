@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiMethodCallExpression
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import org.junit.jupiter.api.Assertions.assertEquals
 
@@ -39,8 +40,8 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val collection =
             (
-                QueryTargetCollectionExtractor.extractCollection(
-                    query
+                QueryTargetCollectionExtractor.extractCollectionFromQueryChain(
+                    query as? PsiMethodCallExpression
                 ).reference as HasCollectionReference.OnlyCollection
                 ).collection
 
@@ -80,8 +81,8 @@ class Repository {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         val collection =
             (
-                QueryTargetCollectionExtractor.extractCollection(
-                    query
+                QueryTargetCollectionExtractor.extractCollectionFromParameter(
+                    (query as? PsiMethodCallExpression)?.argumentList?.expressions?.getOrNull(1)
                 ).reference as HasCollectionReference.OnlyCollection
                 ).collection
 
