@@ -83,7 +83,7 @@ internal class NewConnectionActivatedProbeTestForLocalEnvironment :
         isLocalhost = true,
         isEnterprise = false,
         isGenuine = true,
-        version = "7.0.12",
+        version = "7.0.14",
     )
 
 @RequiresMongoDbCluster(
