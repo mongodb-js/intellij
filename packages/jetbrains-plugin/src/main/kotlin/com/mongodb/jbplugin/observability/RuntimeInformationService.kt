@@ -40,15 +40,34 @@ data class RuntimeInformation(
  */
 @Service
 class RuntimeInformationService {
-    private val userId = getOrDefault("<userId>") { PermanentInstallationID.get() }
-    private val osName = getOrDefault("<osName>") { SystemInfo.getOsNameAndVersion() }
-    private val arch = getOrDefault("<arch>") { SystemInfo.OS_ARCH }
-    private val jvmVendor = getOrDefault("<jvmVendor>") { SystemInfo.JAVA_VENDOR }
-    private val jvmVersion = getOrDefault("<jvmVersion>") { SystemInfo.JAVA_VERSION }
-    private val buildVersion =
+    private val userId by lazy {
+        getOrDefault("<userId>") { PermanentInstallationID.get() }
+    }
+
+    private val osName by lazy {
+        getOrDefault("<osName>") { SystemInfo.getOsNameAndVersion() }
+    }
+
+    private val arch by lazy {
+        getOrDefault("<arch>") { SystemInfo.OS_ARCH }
+    }
+
+    private val jvmVendor by lazy {
+        getOrDefault("<jvmVendor>") { SystemInfo.JAVA_VENDOR }
+    }
+
+    private val jvmVersion by lazy {
+        getOrDefault("<jvmVersion>") { SystemInfo.JAVA_VERSION }
+    }
+
+    private val buildVersion by lazy {
         getOrDefault("<fullVersion>") { ApplicationInfo.getInstance().fullVersion }
-    private val applicationName = getOrDefault("<fullApplicationName>") {
-        ApplicationInfo.getInstance().fullApplicationName
+    }
+
+    private val applicationName by lazy {
+        getOrDefault("<fullApplicationName>") {
+            ApplicationInfo.getInstance().fullApplicationName
+        }
     }
 
     fun get(): RuntimeInformation = RuntimeInformation(
