@@ -256,7 +256,7 @@ private fun <S> MongoshBackend.resolveValueReference(
 ) = when (val ref = valueRef.reference) {
     is HasValueReference.Constant -> registerConstant(ref.value)
     is HasValueReference.Runtime -> registerVariable(
-        (fieldRef?.reference as? HasFieldReference.Known)?.fieldName ?: "<value>",
+        (fieldRef?.reference as? HasFieldReference.Known)?.fieldName ?: "value",
         ref.type
     )
 

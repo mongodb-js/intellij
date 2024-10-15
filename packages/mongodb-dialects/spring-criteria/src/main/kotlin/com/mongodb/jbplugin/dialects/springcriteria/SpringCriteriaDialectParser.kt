@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
+import com.intellij.database.dialects.base.introspector.listOf
 import com.intellij.psi.*
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.findParentOfType
@@ -319,12 +320,21 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         }
 
         //                   v----------------------- field filter (it can be a where, an and...)
-        //                             v------------- valueMethodCall
-        //                                     v----- the value itself
-        // 2st scenario: $fieldRef$.$filter$("abc")
-        val fieldMethodCall =
+        //                            v--------------------- optional negation
+        //                                    v------------- valueMethodCall
+        //                                            v----- the value itself
+        // 2st scenario: $fieldRef$.$not$?.$filter$("abc")
+        var negate = false
+        var fieldMethodCall =
             valueMethodCall.firstChild.firstChild.meaningfulExpression() as? PsiMethodCallExpression
                 ?: return emptyList()
+
+        val fieldMethod = fieldMethodCall.fuzzyResolveMethod() ?: return emptyList()
+        if (fieldMethod.name == "not") {
+            negate = true
+            fieldMethodCall = fieldMethodCall.firstChild?.firstChild?.meaningfulExpression()
+                as? PsiMethodCallExpression ?: return emptyList()
+        }
 
         val fieldReference = inferFieldReference(fieldMethodCall)
         val valueReference = inferValueReference(valueMethodCall)
@@ -337,7 +347,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         //                                 v------- fieldMethodCall is here
         // $nextFieldRef$.$nextValueRef$.$fieldRef$.$filter$("abc")
         val nextQueryExpression = fieldMethodCall.firstChild?.firstChild
-        val thisQueryNode = listOf(
+        var thisQueryNode = listOf(
             Node(
                 valueFilterExpression,
                 listOf(
@@ -347,6 +357,17 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 )
             )
         )
+        if (negate) {
+            thisQueryNode = listOf(
+                Node(
+                    valueFilterExpression,
+                    listOf(
+                        Named(Name.NOT),
+                        HasFilter(thisQueryNode)
+                    )
+                )
+            )
+        }
 
         if (nextQueryExpression != null && nextQueryExpression is PsiMethodCallExpression) {
             return thisQueryNode + parseFilterRecursively(nextQueryExpression)
