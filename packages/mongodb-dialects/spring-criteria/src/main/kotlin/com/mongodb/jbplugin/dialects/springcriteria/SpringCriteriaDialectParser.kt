@@ -11,6 +11,7 @@ import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtract
 import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.extractCollectionFromQueryChain
 import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.or
 import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.toBsonType
@@ -291,7 +292,10 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
 
         // 1st scenario: vararg operations
         // for example, andOperator/orOperator...
-        if (valueFilterMethod.isVarArgs) {
+        if (valueFilterMethod.isVarArgs &&
+            valueFilterMethod.name != "in" &&
+            valueFilterMethod.name != "nin"
+        ) {
             val childrenNodes = valueMethodCall.argumentList.expressions.flatMap {
                 parseFilterRecursively(it).reversed()
             }
@@ -323,7 +327,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
         //                            v--------------------- optional negation
         //                                    v------------- valueMethodCall
         //                                            v----- the value itself
-        // 2st scenario: $fieldRef$.$not$?.$filter$("abc")
+        // 2nd scenario: $fieldRef$.$not$?.$filter$("abc")
         var negate = false
         var fieldMethodCall =
             valueMethodCall.firstChild.firstChild.meaningfulExpression() as? PsiMethodCallExpression
@@ -408,8 +412,39 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
     }
 
     private fun inferValueReference(valueMethodCall: PsiMethodCallExpression): HasValueReference<PsiElement> {
+        val method = valueMethodCall.fuzzyResolveMethod() ?: return HasValueReference(
+            HasValueReference.Unknown as HasValueReference.ValueReference<PsiElement>
+        )
+
+        if (method.name == "in" || method.name == "nin") {
+            return varargExpressionListToValueReference(valueMethodCall.argumentList)
+        }
+
         val valuePsi = valueMethodCall.argumentList.expressions.getOrNull(0)
         return psiExpressionToValueReference(valuePsi)
+    }
+
+    private fun varargExpressionListToValueReference(argumentList: PsiExpressionList, start: Int = 0): HasValueReference<PsiElement> {
+        val valueReference: HasValueReference.ValueReference<PsiElement> =
+            if (argumentList.expressionCount == (start + 1)) {
+                var secondArg = argumentList.expressions[start].meaningfulExpression() as PsiExpression
+                if (secondArg.type?.isJavaIterable() == true) { // case 3
+                    argumentList.inferFromSingleVarArgElement(start)
+                } else if (secondArg.type?.isArray() == false) { // case 1
+                    argumentList.inferFromSingleArrayArgument(start)
+                } else { // case 2
+                    HasValueReference.Runtime(
+                        secondArg,
+                        secondArg.type?.toBsonType() ?: BsonArray(BsonAny)
+                    )
+                }
+            } else if (argumentList.expressionCount > (start + 1)) {
+                argumentList.inferValueReferenceFromVarArg(start)
+            } else {
+                HasValueReference.Runtime(argumentList, BsonArray(BsonAny))
+            }
+
+        return HasValueReference<PsiElement>(valueReference)
     }
 
     private fun psiExpressionToValueReference(valuePsi: PsiExpression?): HasValueReference<PsiElement> {
