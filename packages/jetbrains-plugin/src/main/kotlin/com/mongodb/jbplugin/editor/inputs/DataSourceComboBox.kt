@@ -150,7 +150,6 @@ class DataSourceComboBox(
     }
 
     private fun renderComboBoxItem(item: LocalDataSource?, index: Int): Component {
-        println("index=$index, item=$item")
         return if (item == null && index == -1) {
             JBLabel(
                 MdbToolbarMessages.message("attach.datasource.to.editor"),
