@@ -9,15 +9,15 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import com.mongodb.jbplugin.i18n.TelemetryMessages
+import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.observability.probe.PluginActivatedProbe
 import com.mongodb.jbplugin.settings.PluginSettingsConfigurable
-import com.mongodb.jbplugin.settings.useSettings
+import com.mongodb.jbplugin.settings.pluginSetting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -54,13 +54,14 @@ class ActivatePluginPostStartupActivity(
 ) : StartupActivity, DumbAware {
     override fun runActivity(project: Project) {
         cs.launch {
-            val pluginActivated = ApplicationManager.getApplication().getService(
-                PluginActivatedProbe::class.java
-            )
+            val pluginActivated by service<PluginActivatedProbe>()
             pluginActivated.pluginActivated()
 
-            val settings = useSettings()
-            if (!settings.hasTelemetryOptOutputNotificationBeenShown) {
+            var firstTimeTelemetry by pluginSetting<Boolean> {
+                ::hasTelemetryOptOutputNotificationBeenShown
+            }
+
+            if (!firstTimeTelemetry) {
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("com.mongodb.jbplugin.notifications.Telemetry")
                     .createNotification(
@@ -73,7 +74,7 @@ class ActivatePluginPostStartupActivity(
                     .addAction(OpenMongoDbPluginSettingsAction())
                     .notify(project)
 
-                settings.hasTelemetryOptOutputNotificationBeenShown = true
+                firstTimeTelemetry = true
             }
         }
     }
