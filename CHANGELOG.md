@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-61](https://jira.mongodb.org/browse/INTELLIJ-61) Add support for Spring Criteria
+  not operator, like in `where(field).not().is(value)`
 * [INTELLIJ-49](https://jira.mongodb.org/browse/INTELLIJ-49) Add support for Spring Criteria
 update operators.
 * [INTELLIJ-44](https://jira.mongodb.org/browse/INTELLIJ-44) Ability to load the Spring configuration from
