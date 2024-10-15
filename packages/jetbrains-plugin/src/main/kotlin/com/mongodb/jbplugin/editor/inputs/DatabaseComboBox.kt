@@ -75,11 +75,13 @@ class DatabaseComboBox(
         comboBoxComponent.addPopupMenuListener(popupMenuListener)
         comboBoxComponent.setRenderer { _, value, index, _, _ -> renderComboBoxItem(value, index) }
 
+        var isFirstInit = true
         coroutineScope.launch {
             project.getToolbarModel().toolbarState.collect { state ->
                 withoutSelectionChangedListener {
                     loadingDatabases = state.databasesLoadingForSelectedDataSource
-                    if (state.databases != databases) {
+                    if (isFirstInit || state.databases != databases) {
+                        isFirstInit = false
                         populateComboBoxWithDatabases(state.databases)
                     }
                     selectDatabaseAndNotify(state.selectedDatabase)

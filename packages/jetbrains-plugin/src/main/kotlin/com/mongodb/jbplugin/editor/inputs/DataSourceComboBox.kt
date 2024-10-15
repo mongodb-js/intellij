@@ -85,17 +85,24 @@ class DataSourceComboBox(
     }
 
     init {
+        val prototypeDataSource = object : LocalDataSource() {
+            override fun getName(): String = "Attach MongoDB data source"
+            override fun getUniqueId(): String = "attach_mongo_db_data_source"
+        }
+        comboBoxComponent.prototypeDisplayValue = prototypeDataSource
         comboBoxComponent.putClientProperty(ANIMATION_IN_RENDERER_ALLOWED, true)
         comboBoxComponent.addItemListener(selectionChangedListener)
         comboBoxComponent.addPopupMenuListener(popupMenuListener)
         comboBoxComponent.setRenderer { _, value, index, _, _ -> renderComboBoxItem(value, index) }
 
+        var isFirstInit = true
         coroutineScope.launch {
             project.getToolbarModel().toolbarState.collect { state ->
                 withoutSelectionChangedListener {
                     selectedDataSourceConnecting = state.selectedDataSourceConnecting
                     selectedDataSourceFailedConnecting = state.selectedDataSourceConnectionFailed
-                    if (state.dataSources != dataSources) {
+                    if (isFirstInit || state.dataSources != dataSources) {
+                        isFirstInit = false
                         populateComboBoxWithDataSources(state.dataSources)
                     }
                     selectDataSourceByUniqueId(state.selectedDataSource?.uniqueId)
@@ -142,33 +149,32 @@ class DataSourceComboBox(
         }
     }
 
-    private fun renderComboBoxItem(item: LocalDataSource?, index: Int): Component = if (item ==
-        null &&
-        index == -1
-    ) {
-        JBLabel(
-            MdbToolbarMessages.message("attach.datasource.to.editor"),
-            Icons.logo.scaledToText(),
-            SwingConstants.LEFT,
-        )
-    } else {
-        item?.let {
-            val icon =
-                if (item.isConnected()) {
-                    Icons.logoConnected.scaledToText()
-                } else if (selectedDataSourceConnecting) {
-                    Icons.loading.scaledToText()
-                } else if (selectedDataSourceFailedConnecting) {
-                    Icons.connectionFailed.scaledToText()
-                } else {
-                    Icons.logo.scaledToText()
-                }
-            JBLabel(item.name, icon, SwingConstants.LEFT)
-        } ?: JBLabel(
-            MdbToolbarMessages.message("detach.datasource.from.editor"),
-            Icons.remove.scaledToText(),
-            SwingConstants.LEFT,
-        )
+    private fun renderComboBoxItem(item: LocalDataSource?, index: Int): Component {
+        return if (item == null && index == -1) {
+            JBLabel(
+                MdbToolbarMessages.message("attach.datasource.to.editor"),
+                Icons.logo.scaledToText(),
+                SwingConstants.LEFT,
+            )
+        } else {
+            item?.let {
+                val icon =
+                    if (item.isConnected()) {
+                        Icons.logoConnected.scaledToText()
+                    } else if (selectedDataSourceConnecting) {
+                        Icons.loading.scaledToText()
+                    } else if (selectedDataSourceFailedConnecting) {
+                        Icons.connectionFailed.scaledToText()
+                    } else {
+                        Icons.logo.scaledToText()
+                    }
+                JBLabel(item.name, icon, SwingConstants.LEFT)
+            } ?: JBLabel(
+                MdbToolbarMessages.message("detach.datasource.from.editor"),
+                Icons.remove.scaledToText(),
+                SwingConstants.LEFT,
+            )
+        }
     }
 
     fun attachToParent() {

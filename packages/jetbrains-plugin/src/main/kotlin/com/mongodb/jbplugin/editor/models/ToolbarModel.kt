@@ -110,9 +110,9 @@ class ToolbarModel(
                     when (toolbarEvent) {
                         DataSourcesChanged -> handleDataSourcesChanged()
                         is DataSourceRemoved ->
-                            handleDataSourceSelectionReverted(toolbarEvent.dataSource)
+                            handleDataSourceRemovedOrTerminated(toolbarEvent.dataSource)
                         is DataSourceTerminated ->
-                            handleDataSourceSelectionReverted(toolbarEvent.dataSource)
+                            handleDataSourceRemovedOrTerminated(toolbarEvent.dataSource)
                         is DataSourceSelected -> handleDataSourceSelected(
                             toolbarEvent.dataSource,
                             toolbarEvent.isInitialSelection
@@ -217,7 +217,7 @@ class ToolbarModel(
         _toolbarState.update { it.copy(stateId = UUID.randomUUID().toString()) }
     }
 
-    // Reverted in case of Termination, Removal, Un selection, Unsuccessful connection
+    // Reverted in case of Un selection, Unsuccessful connection
     private fun handleDataSourceSelectionReverted(removedDataSource: LocalDataSource) {
         val oldState = _toolbarState.value
         val newState = _toolbarState.updateAndGet { previousState ->
@@ -237,15 +237,42 @@ class ToolbarModel(
         }
 
         if (newState.selectedDataSource == null) {
-            val toolbarSettings = project.getToolbarSettings()
-            toolbarSettings.dataSourceId = null
-            toolbarSettings.database = null
-
-            val editorService = project.getEditorService()
-            editorService.detachDataSourceFromSelectedEditor(removedDataSource)
-            oldState.selectedDatabase?.let { editorService.detachDatabaseFromSelectedEditor(it) }
-            editorService.reAnalyzeSelectedEditor(applyReadAction = true)
+            afterDataSourceUnselected(removedDataSource, oldState.selectedDatabase)
         }
+    }
+
+    private fun handleDataSourceRemovedOrTerminated(removedDataSource: LocalDataSource) {
+        val oldState = _toolbarState.value
+        val newState = _toolbarState.updateAndGet { previousState ->
+            if (previousState.selectedDataSource?.uniqueId == removedDataSource.uniqueId) {
+                previousState.copy(
+                    selectedDataSource = null,
+                    selectedDataSourceConnecting = false,
+                    selectedDataSourceConnectionFailed = false,
+                    databasesLoadingForSelectedDataSource = false,
+                    databasesLoadingFailedForSelectedDataSource = false,
+                    selectedDatabase = null,
+                    databases = emptyList(),
+                )
+            } else {
+                previousState.copy(stateId = UUID.randomUUID().toString())
+            }
+        }
+
+        if (newState.selectedDataSource == null) {
+            afterDataSourceUnselected(removedDataSource, oldState.selectedDatabase)
+        }
+    }
+
+    private fun afterDataSourceUnselected(oldDataSource: LocalDataSource, oldDatabase: String?) {
+        val toolbarSettings = project.getToolbarSettings()
+        toolbarSettings.dataSourceId = null
+        toolbarSettings.database = null
+
+        val editorService = project.getEditorService()
+        editorService.detachDataSourceFromSelectedEditor(oldDataSource)
+        oldDatabase?.let { editorService.detachDatabaseFromSelectedEditor(it) }
+        editorService.reAnalyzeSelectedEditor(applyReadAction = true)
     }
 
     private fun handleDataSourceSelected(
