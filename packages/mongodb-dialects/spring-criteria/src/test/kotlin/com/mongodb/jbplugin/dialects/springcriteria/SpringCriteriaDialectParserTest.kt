@@ -916,7 +916,7 @@ class Repository {
     }
     
     public Book randomBook(List<String> myFieldValues) {
-        return template.find(query(where("field").in(myFieldValues)), Book.class);
+        return template.find(query(where("field").nin(myFieldValues)), Book.class);
     }
 }
         """
@@ -930,7 +930,7 @@ class Repository {
                 assertEquals("book", collection)
             }
 
-            filterN(0, Name.IN) {
+            filterN(0, Name.NIN) {
                 field<HasFieldReference.Known<PsiElement>> {
                     assertEquals("field", fieldName)
                 }
