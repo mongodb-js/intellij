@@ -292,7 +292,7 @@ private object MongoDbElementPatterns {
 
         val collectionReference = runCatching {
             val querySource = dialect.parser.attachment(source)
-            val queryService = source.project.getService(CachedQueryService::class.java)
+            val queryService by source.project.service<CachedQueryService>()
             val parsedQuery = queryService.queryAt(querySource)
             parsedQuery?.component<HasCollectionReference<PsiElement>>()
         }.getOrNull()
