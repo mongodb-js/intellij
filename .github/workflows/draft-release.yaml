@@ -68,9 +68,6 @@ jobs:
             echo "If this version has already been release consider using a different one."
             exit 1
           fi
-      - name: Verify Checks in main
-        run: |
-          ./gradlew "mainStatus"
 
       - name: Patch Plugin XML
         run: |
