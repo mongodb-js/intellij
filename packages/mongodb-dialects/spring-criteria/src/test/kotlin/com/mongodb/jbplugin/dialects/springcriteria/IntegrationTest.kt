@@ -349,13 +349,15 @@ inline fun <reified T : HasCollectionReference.CollectionReference<PsiElement>> 
     assertions: T.() -> Unit
 ) {
     val ref = component<HasCollectionReference<PsiElement>>()
-    assertNotNull(ref)
+    assertNotEquals(null, ref) {
+        "Could not find a HasCollectionReference component in the query."
+    }
 
     if (ref!!.reference is T) {
         (ref.reference as T).assertions()
     } else {
         fail(
-            "Collection reference was not of type ${T::class.java.canonicalName} but ${ref::class.java.canonicalName}"
+            "Collection reference was not of type ${T::class.java.canonicalName} but ${ref.reference.javaClass.canonicalName}"
         )
     }
 }
@@ -364,7 +366,9 @@ inline fun <reified T : HasFieldReference.FieldReference<PsiElement>> Node<PsiEl
     assertions: T.() -> Unit
 ) {
     val ref = component<HasFieldReference<PsiElement>>()
-    assertNotNull(ref)
+    assertNotEquals(null, ref) {
+        "Could not find a HasFieldReference component in the query."
+    }
 
     if (ref!!.reference is T) {
         (ref.reference as T).assertions()
@@ -379,7 +383,9 @@ inline fun <reified T : HasValueReference.ValueReference<PsiElement>> Node<PsiEl
     assertions: T.() -> Unit
 ) {
     val ref = component<HasValueReference<PsiElement>>()
-    assertNotNull(ref)
+    assertNotEquals(null, ref) {
+        "Could not find a HasValueReference component in the query."
+    }
 
     if (ref!!.reference is T) {
         (ref.reference as T).assertions()

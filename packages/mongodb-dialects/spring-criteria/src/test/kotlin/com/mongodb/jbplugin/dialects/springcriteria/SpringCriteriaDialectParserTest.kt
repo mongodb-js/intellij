@@ -5,7 +5,9 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonAnyOf
+import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonBoolean
 import com.mongodb.jbplugin.mql.BsonInt32
 import com.mongodb.jbplugin.mql.BsonNull
@@ -783,6 +785,157 @@ class Repository {
                 filterN(0, Name.EQ) {
                     field<HasFieldReference.Known<PsiElement>> { assertEquals("field", fieldName) }
                     value<HasValueReference.Constant<PsiElement>> { assertEquals("123456", value) }
+                }
+            }
+        }
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
+import static org.springframework.data.mongodb.core.query.Update.update;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public Book randomBook() {
+        return template.find(query(where("field").in(1, 2, 3)), Book.class);
+    }
+}
+        """
+    )
+    fun `supports the in operator with varargs`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "randomBook")
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
+
+            filterN(0, Name.IN) {
+                field<HasFieldReference.Known<PsiElement>> {
+                    assertEquals("field", fieldName)
+                }
+                value<HasValueReference.Constant<PsiElement>> {
+                    assertEquals(listOf(1, 2, 3), value)
+                    assertEquals(BsonArray(BsonAnyOf(BsonInt32, BsonNull)), type)
+                }
+            }
+        }
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
+import static org.springframework.data.mongodb.core.query.Update.update;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public Book randomBook() {
+        return template.find(query(where("field").in(new Int[] { 1, 2, 3 })), Book.class);
+    }
+}
+        """
+    )
+    fun `supports the in operator with an array of values`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "randomBook")
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
+
+            filterN(0, Name.IN) {
+                field<HasFieldReference.Known<PsiElement>> {
+                    assertEquals("field", fieldName)
+                }
+                value<HasValueReference.Runtime<PsiElement>> {
+                    assertEquals(BsonArray(BsonAny), type)
+                }
+            }
+        }
+    }
+
+    @ParsingTest(
+        fileName = "Book.java",
+        """
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
+import static org.springframework.data.mongodb.core.query.Update.update;
+
+import java.util.List;
+
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+@Document
+record Book() {}
+
+class Repository {
+    private final MongoTemplate template;
+    
+    public Repository(MongoTemplate template) {
+        this.template = template;
+    }
+    
+    public Book randomBook(List<String> myFieldValues) {
+        return template.find(query(where("field").nin(myFieldValues)), Book.class);
+    }
+}
+        """
+    )
+    fun `supports the in operator with a runtime list of parameters`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "randomBook")
+        SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            collection<HasCollectionReference.OnlyCollection<PsiElement>> {
+                assertEquals("book", collection)
+            }
+
+            filterN(0, Name.NIN) {
+                field<HasFieldReference.Known<PsiElement>> {
+                    assertEquals("field", fieldName)
+                }
+                value<HasValueReference.Runtime<PsiElement>> {
+                    assertEquals(BsonArray(BsonAnyOf(BsonString, BsonNull)), type)
                 }
             }
         }

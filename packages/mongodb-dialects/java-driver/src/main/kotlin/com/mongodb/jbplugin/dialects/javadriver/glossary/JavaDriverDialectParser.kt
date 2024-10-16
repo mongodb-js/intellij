@@ -165,28 +165,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             val valueReference = if (filter.argumentList.expressionCount == 2) {
                 var secondArg = filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
                 if (secondArg.type?.isJavaIterable() == true) { // case 3
-                    HasValueReference.Runtime(
-                        secondArg,
-                        BsonArray(
-                            secondArg.type?.guessIterableContentType(secondArg.project) ?: BsonAny
-                        )
-                    )
+                    filter.argumentList.inferFromSingleVarArgElement(start = 1)
                 } else if (secondArg.type?.isArray() == false) { // case 1
-                    val (constant, value) = secondArg.tryToResolveAsConstant()
-                    if (constant) {
-                        HasValueReference.Constant(
-                            secondArg,
-                            listOf(value),
-                            BsonArray(value?.javaClass.toBsonType(value))
-                        )
-                    } else {
-                        HasValueReference.Runtime(
-                            secondArg,
-                            BsonArray(
-                                secondArg.type?.toBsonType() ?: BsonAny
-                            )
-                        )
-                    }
+                    filter.argumentList.inferFromSingleArrayArgument(start = 1)
                 } else { // case 2
                     HasValueReference.Runtime(
                         secondArg,
@@ -194,48 +175,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     )
                 }
             } else if (filter.argumentList.expressionCount > 2) {
-                val allConstants: List<Pair<Boolean, Any?>> = filter.argumentList.expressions.slice(
-                    1..<filter.argumentList.expressionCount
-                )
-                    .map { it.tryToResolveAsConstant() }
-
-                if (allConstants.isEmpty()) {
-                    HasValueReference.Runtime(filter, BsonArray(BsonAny))
-                } else if (allConstants.all { it.first }) {
-                    val eachType = allConstants.mapNotNull {
-                        it.second?.javaClass?.toBsonType(it.second)
-                    }.map {
-                        flattenAnyOfReferences(it)
-                    }.toSet()
-
-                    if (eachType.size == 1) {
-                        val type = eachType.first()
-                        HasValueReference.Constant(
-                            filter,
-                            allConstants.map { it.second },
-                            BsonArray(type)
-                        )
-                    } else {
-                        val eachType = allConstants.mapNotNull {
-                            it.second?.javaClass?.toBsonType(it.second)
-                        }.toSet()
-                        val schema = flattenAnyOfReferences(BsonAnyOf(eachType))
-                        HasValueReference.Constant(
-                            filter,
-                            allConstants.map { it.second },
-                            BsonArray(schema)
-                        )
-                    }
-                } else {
-                    val eachType = allConstants.mapNotNull {
-                        it.second?.javaClass?.toBsonType(it.second)
-                    }.toSet()
-                    val schema = BsonAnyOf(eachType)
-                    HasValueReference.Runtime(
-                        filter,
-                        BsonArray(schema)
-                    )
-                }
+                filter.argumentList.inferValueReferenceFromVarArg(start = 1)
             } else {
                 HasValueReference.Runtime(filter, BsonArray(BsonAny))
             }
@@ -450,11 +390,31 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 }
 
-private fun PsiType.isArray(): Boolean {
+fun PsiExpressionList.inferFromSingleArrayArgument(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
+    val arrayArg = expressions[start]
+    val (constant, value) = arrayArg.tryToResolveAsConstant()
+
+    return if (constant) {
+        HasValueReference.Constant(
+            arrayArg,
+            listOf(value),
+            BsonArray(value?.javaClass.toBsonType(value))
+        )
+    } else {
+        HasValueReference.Runtime(
+            arrayArg,
+            BsonArray(
+                arrayArg.type?.toBsonType() ?: BsonAny
+            )
+        )
+    }
+}
+
+fun PsiType.isArray(): Boolean {
     return this is PsiArrayType
 }
 
-private fun PsiType.isJavaIterable(): Boolean {
+fun PsiType.isJavaIterable(): Boolean {
     if (this !is PsiClassType) {
         return false
     }
@@ -474,7 +434,7 @@ private fun PsiType.isJavaIterable(): Boolean {
     return return recursivelyCheckIsIterable(this)
 }
 
-private fun PsiType.guessIterableContentType(project: Project): BsonType {
+fun PsiType.guessIterableContentType(project: Project): BsonType {
     val text = canonicalText
     val start = text.indexOf('<')
     if (start == -1) {
@@ -491,4 +451,55 @@ private fun PsiType.guessIterableContentType(project: Project): BsonType {
         project,
         GlobalSearchScope.everythingScope(project)
     ).toBsonType()
+}
+
+fun PsiExpressionList.inferValueReferenceFromVarArg(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
+    val allConstants: List<Pair<Boolean, Any?>> = expressions.slice(
+        start..<expressionCount
+    ).map { it.tryToResolveAsConstant() }
+
+    if (allConstants.isEmpty()) {
+        return HasValueReference.Runtime(parent, BsonArray(BsonAny))
+    } else if (allConstants.all { it.first }) {
+        val eachType = allConstants.mapNotNull {
+            it.second?.javaClass?.toBsonType(it.second)
+        }.map {
+            flattenAnyOfReferences(it)
+        }.toSet()
+
+        if (eachType.size == 1) {
+            val type = eachType.first()
+            return HasValueReference.Constant(
+                parent,
+                allConstants.map { it.second },
+                BsonArray(type)
+            )
+        } else {
+            val eachType = allConstants.mapNotNull {
+                it.second?.javaClass?.toBsonType(it.second)
+            }.toSet()
+            val schema = flattenAnyOfReferences(BsonAnyOf(eachType))
+            return HasValueReference.Constant(
+                parent,
+                allConstants.map { it.second },
+                BsonArray(schema)
+            )
+        }
+    } else {
+        return HasValueReference.Runtime(parent, BsonArray(BsonAny))
+    }
+}
+
+fun PsiExpressionList.inferFromSingleVarArgElement(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
+    var secondArg = expressions[start].meaningfulExpression() as PsiExpression
+    return if (secondArg.type?.isJavaIterable() == true) { // case 3
+        HasValueReference.Runtime(
+            secondArg,
+            BsonArray(
+                secondArg.type?.guessIterableContentType(secondArg.project) ?: BsonAny
+            )
+        )
+    } else {
+        HasValueReference.Runtime(parent, BsonArray(BsonAny))
+    }
 }
