@@ -4,6 +4,7 @@ import com.intellij.remoterobot.RemoteRobot
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.mongodb.jbplugin.fixtures.components.isJavaEditorToolbarHidden
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -35,54 +36,54 @@ class JavaDriverToolbarVisibilityUiTest {
         assertTrue(toolbar.isShowing)
     }
 
-    // @Test
-    // @RequiresProject("basic-java-project-with-mongodb")
-    // fun `shows the toolbar in all the java files with references to the driver`(
-    //     remoteRobot: RemoteRobot
-    // ) {
-    //     remoteRobot.ideaFrame().openFile(
-    //         path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
-    //     )
-    //     assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
-    //
-    //     remoteRobot.ideaFrame().openFile(
-    //         path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepositoryClone.java",
-    //         closeOpenedFiles = false
-    //     )
-    //     assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
-    //
-    //     remoteRobot.ideaFrame().openFile(
-    //         path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java",
-    //         closeOpenedFiles = false
-    //     )
-    //     assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
-    // }
-    //
-    // @Test
-    // @RequiresProject("basic-java-project-with-mongodb")
-    // fun `does not show the toolbar in a java file without references to the driver`(
-    //     remoteRobot: RemoteRobot
-    // ) {
-    //     remoteRobot.ideaFrame().openFile(
-    //         "/src/main/java/alt/mongodb/javadriver/NoDriverReference.java"
-    //     )
-    //     assertTrue(remoteRobot.isJavaEditorToolbarHidden())
-    // }
-    //
-    // @Test
-    // @RequiresProject("basic-java-project-with-mongodb")
-    // fun `does show existing data sources in the combo box`(
-    //     remoteRobot: RemoteRobot,
-    //     url: MongoDbServerUrl,
-    // ) {
-    //     remoteRobot.ideaFrame().openFile(
-    //         "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
-    //     )
-    //
-    //     val toolbar = remoteRobot.findJavaEditorToolbar()
-    //     assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
-    // }
-    //
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `shows the toolbar in all the java files with references to the driver`(
+        remoteRobot: RemoteRobot
+    ) {
+        remoteRobot.ideaFrame().openFile(
+            path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+
+        remoteRobot.ideaFrame().openFile(
+            path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepositoryClone.java",
+            closeOpenedFiles = false
+        )
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+
+        remoteRobot.ideaFrame().openFile(
+            path = "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java",
+            closeOpenedFiles = false
+        )
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+    }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `does not show the toolbar in a java file without references to the driver`(
+        remoteRobot: RemoteRobot
+    ) {
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/NoDriverReference.java"
+        )
+        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
+    }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `does show existing data sources in the combo box`(
+        remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
+    ) {
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
+
+        val toolbar = remoteRobot.findJavaEditorToolbar()
+        assertTrue(toolbar.dataSources.listValues().contains(javaClass.simpleName))
+    }
+
     // @Test
     // @RequiresProject("basic-java-project-with-mongodb")
     // fun `does not show the database select on a java driver file`(
