@@ -8,6 +8,7 @@ import com.intellij.sql.indexOf
 import com.intellij.ui.AnimatedIcon.ANIMATION_IN_RENDERER_ALLOWED
 import com.intellij.ui.components.JBLabel
 import com.mongodb.jbplugin.accessadapter.datagrip.adapter.isConnected
+import com.mongodb.jbplugin.editor.models.ToolbarState
 import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.i18n.Icons.scaledToText
@@ -20,6 +21,7 @@ import java.awt.event.ItemListener
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
 import javax.swing.SwingConstants
+import javax.swing.SwingUtilities
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
 
@@ -98,14 +100,9 @@ class DataSourceComboBox(
         var isFirstInit = true
         coroutineScope.launch {
             project.getToolbarModel().toolbarState.collect { state ->
-                withoutSelectionChangedListener {
-                    selectedDataSourceConnecting = state.selectedDataSourceConnecting
-                    selectedDataSourceFailedConnecting = state.selectedDataSourceConnectionFailed
-                    if (isFirstInit || state.dataSources != dataSources) {
-                        isFirstInit = false
-                        populateComboBoxWithDataSources(state.dataSources)
-                    }
-                    selectDataSourceByUniqueId(state.selectedDataSource?.uniqueId)
+                SwingUtilities.invokeLater {
+                    updateComboBoxState(state, isFirstInit)
+                    isFirstInit = false
                 }
             }
         }
@@ -120,11 +117,28 @@ class DataSourceComboBox(
         }
     }
 
-    private fun populateComboBoxWithDataSources(dataSources: List<LocalDataSource>) {
-        comboBoxModel.removeAllElements()
-        // First item is purposely a null to render "Detach data source label"
-        comboBoxModel.addElement(null)
-        comboBoxModel.addAll(dataSources)
+    private fun updateComboBoxState(state: ToolbarState, isFirstInit: Boolean) = withoutSelectionChangedListener {
+        selectedDataSourceConnecting = state.selectedDataSourceConnecting
+        selectedDataSourceFailedConnecting = state.selectedDataSourceConnectionFailed
+        if (isFirstInit || state.dataSources != dataSources) {
+            populateComboBoxWithDataSources(state.dataSources.toSet())
+        }
+        selectDataSourceByUniqueId(state.selectedDataSource?.uniqueId)
+    }
+
+    private fun populateComboBoxWithDataSources(newDataSources: Set<LocalDataSource>) {
+        val oldDataSources = dataSources.toSet()
+
+        val dataSourcesToAdd = newDataSources - oldDataSources
+        val dataSourcesToRemove = oldDataSources - newDataSources
+
+        dataSourcesToAdd.forEach { comboBoxModel.addElement(it) }
+        dataSourcesToRemove.forEach { comboBoxModel.removeElement(it) }
+
+        if (comboBoxModel.getIndexOf(null) != 0) {
+            comboBoxModel.removeElement(null)
+            comboBoxModel.insertElementAt(null, 0)
+        }
     }
 
     private fun selectDataSourceByUniqueId(uniqueId: String?) {
