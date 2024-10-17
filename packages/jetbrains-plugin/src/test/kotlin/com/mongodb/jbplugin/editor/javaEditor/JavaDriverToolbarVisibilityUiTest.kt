@@ -128,11 +128,10 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
-
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/javadriver/NoDriverReference.java"
         )
+        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
         val editor = remoteRobot.ideaFrame().currentTab().editor
         val textBeforeChanges = editor.text
 
