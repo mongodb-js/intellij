@@ -8,6 +8,8 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.GutterIcon
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.eventually
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 /**
  * Function that returns the run query gutter at a specific line if provided. If no line provided,
@@ -34,7 +36,7 @@ fun RemoteRobot.openRunQueryPopup(atLine: Int? = null): MdbJavaEditorToolbarPopu
     // We always deselect the current data source because otherwise clicking on gutter icon will
     // do the action instead itself of opening the popup
     findJavaEditorToolbar().selectDetachDataSource()
-    return eventually<MdbJavaEditorToolbarPopupFixture> {
+    return eventually<MdbJavaEditorToolbarPopupFixture>(10.seconds.toJavaDuration()) {
         findRunQueryGutter(atLine)!!.click()
         return@eventually findJavaEditorToolbarPopup()
     }!!
