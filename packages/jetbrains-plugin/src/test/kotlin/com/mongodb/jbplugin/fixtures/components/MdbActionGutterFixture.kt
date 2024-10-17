@@ -20,12 +20,22 @@ fun RemoteRobot.findRunQueryGutter(atLine: Int? = null) = eventually<GutterIcon>
     ideaFrame().currentTab()
         .gutter.run {
             atLine?.let {
-// for some reason, gutter icons lines are always 2 minus the line in the editor :shrug:
-// hide this somehow in this implementation
+                // for some reason, gutter icons lines are always 2 minus the line in the editor :shrug:
+                // hide this somehow in this implementation
                 getIcons().find {
                     it.lineNumber == atLine - 2 &&
                         it.description.contains("path=/icons/ConsoleRun")
                 }
             } ?: getIcons().find { it.description.contains("path=/icons/ConsoleRun") }
         }!!
+}
+
+fun RemoteRobot.openRunQueryPopup(atLine: Int? = null): MdbJavaEditorToolbarPopupFixture {
+    // We always deselect the current data source because otherwise clicking on gutter icon will
+    // do the action instead itself of opening the popup
+    findJavaEditorToolbar().selectDetachDataSource()
+    return eventually<MdbJavaEditorToolbarPopupFixture> {
+        findRunQueryGutter(atLine)!!.click()
+        return@eventually findJavaEditorToolbarPopup()
+    }!!
 }

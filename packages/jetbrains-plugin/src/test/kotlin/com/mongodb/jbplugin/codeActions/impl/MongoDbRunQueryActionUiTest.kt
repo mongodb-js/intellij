@@ -2,15 +2,14 @@ package com.mongodb.jbplugin.codeActions.impl
 
 import com.intellij.remoterobot.RemoteRobot
 import com.mongodb.jbplugin.fixtures.*
-import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
-import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbarPopup
-import com.mongodb.jbplugin.fixtures.components.findRunQueryGutter
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.mongodb.jbplugin.fixtures.components.openRunQueryPopup
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toJavaDuration
 
 @UiTest
 @RequiresMongoDbCluster
@@ -34,8 +33,7 @@ class MongoDbRunQueryActionUiTest {
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
         )
-        remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
-        val popup = remoteRobot.findJavaEditorToolbarPopup()
+        val popup = remoteRobot.openRunQueryPopup(atLine = 24)
         popup.cancel()
     }
 
@@ -45,16 +43,11 @@ class MongoDbRunQueryActionUiTest {
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
         )
-        remoteRobot.findJavaEditorToolbar().detachDataSource()
-        remoteRobot.findRunQueryGutter(atLine = 24)!!.click()
-        // because we are disconnected, we should now try to connect
-        val popup = remoteRobot.findJavaEditorToolbarPopup()
-        popup.dataSources.selectItem(
-            javaClass.simpleName
-        )
+        val popup = remoteRobot.openRunQueryPopup(atLine = 24)
+        popup.selectDataSource(javaClass.simpleName)
         popup.ok("Run Query", timeout = 1.minutes)
         // check that we open a console
-        eventually {
+        eventually(1.minutes.toJavaDuration()) {
             val currentEditor = remoteRobot.ideaFrame().currentTab()
             assertTrue(currentEditor.editor.fileName.startsWith("console"))
         }

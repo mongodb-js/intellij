@@ -5,9 +5,11 @@ import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.utils.waitFor
+import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -50,7 +52,26 @@ class MdbJavaEditorToolbarPopupFixture(
         }
         button.click()
     }
+
     fun cancel() = find<JButtonFixture>(byXpath("//div[@text='Cancel']")).click()
+
+    fun selectDataSource(title: String) {
+        eventually(1.minutes.toJavaDuration()) {
+            dataSources.selectItemContains(title)
+            if (!dataSources.selectedText().contains(title)) {
+                throw Exception("Could not select data source - $title")
+            }
+        }
+    }
+
+    fun selectDetachDataSource() {
+        eventually(1.minutes.toJavaDuration()) {
+            dataSources.selectItem("Detach data source")
+            if (dataSources.selectedText() != "") {
+                throw Exception("Could not detach data source")
+            }
+        }
+    }
 }
 
 /**
