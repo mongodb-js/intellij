@@ -1,33 +1,40 @@
 package com.mongodb.jbplugin.editor.javaEditor
 
+import com.intellij.remoterobot.RemoteRobot
 import com.mongodb.jbplugin.fixtures.*
+import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
+import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 @UiTest
 @RequiresMongoDbCluster
 class JavaDriverToolbarVisibilityUiTest {
-    // @BeforeEach
-    // fun setUp(
-    //     remoteRobot: RemoteRobot,
-    //     url: MongoDbServerUrl,
-    // ) {
-    //     remoteRobot.ideaFrame().addDataSourceWithUrl(javaClass.simpleName, url)
-    // }
-    //
-    // @AfterEach
-    // fun tearDown(remoteRobot: RemoteRobot) {
-    //     remoteRobot.ideaFrame().cleanDataSources()
-    // }
-    //
-    // @Test
-    // @RequiresProject("basic-java-project-with-mongodb")
-    // fun `shows the toolbar in a java file with references to the driver`(remoteRobot: RemoteRobot) {
-    //     remoteRobot.ideaFrame().openFile(
-    //         "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
-    //     )
-    //     val toolbar = remoteRobot.findJavaEditorToolbar()
-    //     assertTrue(toolbar.isShowing)
-    // }
-    //
+    @BeforeEach
+    fun setUp(
+        remoteRobot: RemoteRobot,
+        url: MongoDbServerUrl,
+    ) {
+        remoteRobot.ideaFrame().addDataSourceWithUrl(javaClass.simpleName, url)
+    }
+
+    @AfterEach
+    fun tearDown(remoteRobot: RemoteRobot) {
+        remoteRobot.ideaFrame().cleanDataSources()
+    }
+
+    @Test
+    @RequiresProject("basic-java-project-with-mongodb")
+    fun `shows the toolbar in a java file with references to the driver`(remoteRobot: RemoteRobot) {
+        remoteRobot.ideaFrame().openFile(
+            "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
+        )
+        val toolbar = remoteRobot.findJavaEditorToolbar()
+        assertTrue(toolbar.isShowing)
+    }
+
     // @Test
     // @RequiresProject("basic-java-project-with-mongodb")
     // fun `shows the toolbar in all the java files with references to the driver`(

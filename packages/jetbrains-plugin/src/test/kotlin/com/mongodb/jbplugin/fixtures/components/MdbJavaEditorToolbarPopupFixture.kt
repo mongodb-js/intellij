@@ -55,7 +55,7 @@ class MdbJavaEditorToolbarPopupFixture(
     fun cancel() = find<JButtonFixture>(byXpath("//div[@text='Cancel']")).click()
 
     fun selectDataSource(title: String) {
-        eventually(30.seconds.toJavaDuration()) {
+        eventually(10.seconds.toJavaDuration()) {
             dataSources.selectItemContains(title)
             if (!dataSources.selectedText().contains(title)) {
                 throw Exception("Could not select data source - $title")
@@ -64,7 +64,7 @@ class MdbJavaEditorToolbarPopupFixture(
     }
 
     fun selectDetachDataSource() {
-        eventually(30.seconds.toJavaDuration()) {
+        eventually(10.seconds.toJavaDuration()) {
             dataSources.selectItem("Detach data source")
             if (dataSources.selectedText() != "") {
                 throw Exception("Could not detach data source")

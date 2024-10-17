@@ -71,6 +71,7 @@ class IdeaFrame(
         """,
             true,
         )
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun currentTab(): TextEditorFixture = remoteRobot.findVisible(
@@ -132,6 +133,7 @@ class IdeaFrame(
             """.trimIndent(),
             runInEdt = true,
         )
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun waitUntilConnectedToMongoDb(name: String, timeout: Duration = Duration.ofMinutes(1)) {
@@ -191,6 +193,7 @@ class IdeaFrame(
                 """.trimIndent()
             )
         }
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun waitUntilProjectIsInSync() {
@@ -264,6 +267,7 @@ class IdeaFrame(
             """.trimIndent(),
             runInEdt = true,
         )
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun closeAllFiles() {
@@ -290,6 +294,7 @@ class IdeaFrame(
         """,
             true,
         )
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun ensureNotificationIsVisible(title: String) {
