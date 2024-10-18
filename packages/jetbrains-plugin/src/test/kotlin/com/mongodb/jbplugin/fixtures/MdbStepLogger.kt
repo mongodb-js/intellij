@@ -6,6 +6,9 @@ import com.intellij.remoterobot.utils.Color
 import com.intellij.remoterobot.utils.color
 
 class MdbStepLogger(private val indentVal: String = "------ ") : StepProcessor {
+    private val ignorableStepTitlesForExceptionLogging = setOf(
+        "Wait until Gradle project is in sync",
+    )
     private var indent = ThreadLocal.withInitial { 0 }
 
     private fun indents() = buildString {
@@ -21,12 +24,20 @@ class MdbStepLogger(private val indentVal: String = "------ ") : StepProcessor {
     }
 
     override fun doOnFail(stepTitle: String, e: Throwable) {
-        log.warn(
-            "${indents()}Failed on step: $stepTitle (${getClassFileNameAndMethod()})".color(
-                Color.RED
-            ),
-            e
-        )
+        if (ignorableStepTitlesForExceptionLogging.any { stepTitle.contains(it) }) {
+            log.warn(
+                "${indents()}Failed on step: $stepTitle (${getClassFileNameAndMethod()})".color(
+                    Color.RED
+                )
+            )
+        } else {
+            log.warn(
+                "${indents()}Failed on step: $stepTitle (${getClassFileNameAndMethod()})".color(
+                    Color.RED
+                ),
+                e
+            )
+        }
     }
 
     override fun doAfterStep(stepTitle: String) {
