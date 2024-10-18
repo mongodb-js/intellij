@@ -5,7 +5,7 @@ import com.intellij.remoterobot.stepsProcessing.log
 import com.intellij.remoterobot.utils.Color
 import com.intellij.remoterobot.utils.color
 
-class MdbStepLogger(private val indentVal: String = "    ") : StepProcessor {
+class MdbStepLogger(private val indentVal: String = "------ ") : StepProcessor {
     private var indent = ThreadLocal.withInitial { 0 }
 
     private fun indents() = buildString {
@@ -24,7 +24,8 @@ class MdbStepLogger(private val indentVal: String = "    ") : StepProcessor {
         log.warn(
             "${indents()}Failed on step: $stepTitle (${getClassFileNameAndMethod()})".color(
                 Color.RED
-            )
+            ),
+            e
         )
     }
 

@@ -10,7 +10,6 @@ import com.intellij.database.util.common.containsElements
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.stepsProcessing.StepLogger
 import com.intellij.remoterobot.stepsProcessing.StepWorker
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import com.intellij.remoterobot.utils.keyboard
@@ -71,8 +70,8 @@ private class UiTestExtension :
     ): Any = remoteRobot
 
     override fun beforeAll(context: ExtensionContext?) {
-        if (!StepWorker.processors.containsElements { it is StepLogger }) {
-            StepWorker.registerProcessor(StepLogger())
+        if (!StepWorker.processors.containsElements { it is MdbStepLogger }) {
+            StepWorker.registerProcessor(MdbStepLogger())
         }
 
         remoteRobot = RemoteRobot(remoteRobotUrl)

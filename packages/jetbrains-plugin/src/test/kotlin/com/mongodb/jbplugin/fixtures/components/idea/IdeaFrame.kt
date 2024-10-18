@@ -12,7 +12,6 @@ import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
-import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
@@ -236,6 +235,13 @@ class IdeaFrame(
 
     fun hideIntellijAiAd() {
         step("Hide IntelliJ AI Ad (uses a lot of space in a small window)") {
+            tryHidingAiAdOnOldUI()
+            tryHidingAiAdOnNewUI()
+        }
+    }
+
+    private fun tryHidingAiAdOnNewUI() {
+        step("Attempting to hide AI ad on new UI") {
             runCatching {
                 val aiMenu = remoteRobot.find<JButtonFixture>(
                     byXpath("//div[@accessiblename='AI Assistant']")
@@ -243,6 +249,20 @@ class IdeaFrame(
                 aiMenu.rightClick()
                 val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
                 hideAiMenu.clickItem("Hide")
+            }
+        }
+    }
+
+    private fun tryHidingAiAdOnOldUI() {
+        step("Attempting to hide AI ad on old UI") {
+            runCatching {
+                val aiMenu = remoteRobot.find<JButtonFixture>(
+                    byXpath("//div[@tooltiptext='Install AI Assistant']")
+                )
+                aiMenu.rightClick()
+                remoteRobot.find<JButtonFixture>(
+                    byXpath("//div[@text='Remove from Sidebar']")
+                ).click()
             }
         }
     }
@@ -304,20 +324,6 @@ class IdeaFrame(
             )
         }
         CommonSteps(remoteRobot).wait(1)
-    }
-
-    fun ensureNotificationIsVisible(title: String) {
-        remoteRobot.findVisible<JLabelFixture>(byXpath("//div[@visible_text='$title']"))
-    }
-
-    fun waitUntilNotificationIsGone(title: String, timeout: Duration = Duration.ofSeconds(2)) {
-        waitFor(timeout, interval = Duration.ofMillis(50)) {
-            runCatching {
-                !remoteRobot.find<JLabelFixture>(
-                    byXpath("//div[@visible_text='$title']")
-                ).isVisible()
-            }.getOrDefault(true)
-        }
     }
 }
 
