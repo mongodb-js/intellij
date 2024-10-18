@@ -6,6 +6,7 @@ package com.mongodb.jbplugin.fixtures.components
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.GutterIcon
+import com.intellij.remoterobot.stepsProcessing.step
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.eventually
 import kotlin.time.Duration.Companion.seconds
@@ -19,25 +20,29 @@ import kotlin.time.toJavaDuration
  * @return the specific gutter than can be clicked
  */
 fun RemoteRobot.findRunQueryGutter(atLine: Int? = null) = eventually<GutterIcon> {
-    ideaFrame().currentTab()
-        .gutter.run {
-            atLine?.let {
-                // for some reason, gutter icons lines are always 2 minus the line in the editor :shrug:
-                // hide this somehow in this implementation
-                getIcons().find {
-                    it.lineNumber == atLine - 2 &&
-                        it.description.contains("path=/icons/ConsoleRun")
-                }
-            } ?: getIcons().find { it.description.contains("path=/icons/ConsoleRun") }
-        }!!
+    step("Finding run query gutter, atLine=$atLine") {
+        ideaFrame().currentTab()
+            .gutter.run {
+                atLine?.let {
+                    // for some reason, gutter icons lines are always 2 minus the line in the editor :shrug:
+                    // hide this somehow in this implementation
+                    getIcons().find {
+                        it.lineNumber == atLine - 2 &&
+                            it.description.contains("path=/icons/ConsoleRun")
+                    }
+                } ?: getIcons().find { it.description.contains("path=/icons/ConsoleRun") }
+            }!!
+    }
 }
 
 fun RemoteRobot.openRunQueryPopup(atLine: Int? = null): MdbJavaEditorToolbarPopupFixture {
     // We always deselect the current data source because otherwise clicking on gutter icon will
-    // do the action instead itself of opening the popup
-    findJavaEditorToolbar().selectDetachDataSource()
-    return eventually<MdbJavaEditorToolbarPopupFixture>(10.seconds.toJavaDuration()) {
-        findRunQueryGutter(atLine)!!.click()
-        return@eventually findJavaEditorToolbarPopup()
-    }!!
+    // do the action itself instead of opening the popup
+    return step("Opening run query popup, atLine=$atLine") {
+        findJavaEditorToolbar().selectDetachDataSource()
+        return@step eventually<MdbJavaEditorToolbarPopupFixture>(10.seconds.toJavaDuration()) {
+            findRunQueryGutter(atLine)!!.click()
+            return@eventually findJavaEditorToolbarPopup()
+        }!!
+    }
 }

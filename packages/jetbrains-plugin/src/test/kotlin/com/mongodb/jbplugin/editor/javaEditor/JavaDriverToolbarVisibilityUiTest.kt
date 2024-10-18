@@ -136,8 +136,8 @@ class JavaDriverToolbarVisibilityUiTest {
         val textBeforeChanges = editor.text
 
         editor.insertTextAtLine(1, 0, "import com.mongodb.client.MongoClient;")
-
-        remoteRobot.findJavaEditorToolbar()
-        editor.text = textBeforeChanges.replace("\n", "\\\n")
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+        editor.replaceText("import com.mongodb.client.MongoClient;", "")
+        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
     }
 }
