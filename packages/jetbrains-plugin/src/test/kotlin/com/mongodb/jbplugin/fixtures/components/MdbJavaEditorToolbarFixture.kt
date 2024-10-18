@@ -7,11 +7,13 @@ import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.fixtures.DefaultXpath
 import com.intellij.remoterobot.fixtures.FixtureName
 import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -43,11 +45,36 @@ class MdbJavaEditorToolbarFixture(
                 timeout = 50.milliseconds.toJavaDuration()
             )
         }.isSuccess
-    fun detachDataSource() {
-        eventually {
-            dataSources.selectItem("Detach data source")
-            if (!dataSources.selectedText().contains("Attach MongoDB")) {
-                throw Exception("Could not detach data source")
+
+    fun selectDataSource(title: String) {
+        eventually(1.minutes.toJavaDuration()) {
+            step("Selecting DataSource $title in toolbar") {
+                dataSources.selectItemContains(title)
+                if (!dataSources.selectedText().contains(title)) {
+                    throw Exception("Could not select data source - $title")
+                }
+            }
+        }
+    }
+
+    fun selectDetachDataSource() {
+        eventually(1.minutes.toJavaDuration()) {
+            step("Detaching DataSource from toolbar") {
+                dataSources.selectItem("Detach data source")
+                if (dataSources.selectedText() != "") {
+                    throw Exception("Could not detach data source")
+                }
+            }
+        }
+    }
+
+    fun selectDatabase(title: String) {
+        eventually(1.minutes.toJavaDuration()) {
+            step("Selecting Database $title in toolbar") {
+                databases.selectItemContains(title)
+                if (!databases.selectedText().contains(title)) {
+                    throw Exception("Could not select database - $title")
+                }
             }
         }
     }

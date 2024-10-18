@@ -6,8 +6,7 @@ import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.components.isJavaEditorToolbarHidden
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.minutes
@@ -114,14 +113,12 @@ class JavaDriverToolbarVisibilityUiTest {
         val toolbar = remoteRobot.findJavaEditorToolbar()
         assertTrue(toolbar.hasDatabasesComboBox)
 
-        eventually(1.minutes.toJavaDuration()) {
-            // when we select a cluster, it will connect asynchronously
-            toolbar.dataSources.selectItem(javaClass.simpleName)
-        }
+        toolbar.selectDataSource(javaClass.simpleName)
+
         eventually(1.minutes.toJavaDuration()) {
             // it can take a few seconds, we will retry every few milliseconds
             // but wait at least for a minute if we can't select a database
-            toolbar.databases.selectItem("admin")
+            toolbar.selectDatabase("admin")
         }
     }
 
@@ -131,17 +128,16 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
-
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/javadriver/NoDriverReference.java"
         )
+        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
         val editor = remoteRobot.ideaFrame().currentTab().editor
         val textBeforeChanges = editor.text
 
         editor.insertTextAtLine(1, 0, "import com.mongodb.client.MongoClient;")
-
-        remoteRobot.findJavaEditorToolbar()
-        editor.text = textBeforeChanges.replace("\n", "\\\n")
+        assertTrue(remoteRobot.findJavaEditorToolbar().isShowing)
+        editor.replaceText("import com.mongodb.client.MongoClient;", "")
+        assertTrue(remoteRobot.isJavaEditorToolbarHidden())
     }
 }

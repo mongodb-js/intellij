@@ -10,11 +10,8 @@ repositories {
 }
 
 dependencies {
-    implementation("org.mongodb:mongodb-driver-sync:5.1.1")
-    implementation("org.springframework.data:spring-data-mongodb:4.3.2")
-
-    testImplementation(platform("org.junit:junit-bom:5.9.1"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    implementation(libs.mongodb.driver)
+    implementation(libs.testing.spring.mongodb)
 }
 
 tasks.test {

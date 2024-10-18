@@ -6,8 +6,7 @@ import com.mongodb.jbplugin.fixtures.UiTest
 import com.mongodb.jbplugin.fixtures.components.openBrowserSettings
 import com.mongodb.jbplugin.fixtures.components.openSettings
 import com.mongodb.jbplugin.fixtures.components.useSetting
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 @UiTest

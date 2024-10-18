@@ -12,7 +12,6 @@ import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
-import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
@@ -36,14 +35,15 @@ class IdeaFrame(
     remoteComponent: RemoteComponent,
 ) : CommonContainerFixture(remoteRobot, remoteComponent) {
     fun openFile(path: String, closeOpenedFiles: Boolean = true) {
-        if (closeOpenedFiles) {
-            this.closeAllFiles()
-        }
+        step("Opening file at path $path with closeOpenedFiles=$closeOpenedFiles") {
+            if (closeOpenedFiles) {
+                this.closeAllFiles()
+            }
 
-        val escapedPath = Encode.forJavaScript(path)
+            val escapedPath = Encode.forJavaScript(path)
 
-        runJs(
-            """
+            runJs(
+                """
             importPackage(com.intellij.openapi.fileEditor)
             importPackage(com.intellij.openapi.vfs)
             importPackage(com.intellij.openapi.wm.impl)
@@ -69,8 +69,10 @@ class IdeaFrame(
                 ApplicationManager.getApplication().invokeAndWait(openFileFunction)
             }
         """,
-            true,
-        )
+                true,
+            )
+        }
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun currentTab(): TextEditorFixture = remoteRobot.findVisible(
@@ -82,63 +84,67 @@ class IdeaFrame(
         name: String,
         url: MongoDbServerUrl,
     ) {
-        runJs(
-            """
-            const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
-                'com.intellij.database.dataSource.LocalDataSourceManager'
+        step("Adding DataSource with name=$name, url=$url") {
+            runJs(
+                """
+                const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
+                    'com.intellij.database.dataSource.LocalDataSourceManager'
+                )
+    
+                const DatabaseDriverManager = global.get('loadDataGripPluginClass')(
+                    'com.intellij.database.dataSource.DatabaseDriverManager'
+                )
+    
+                const LocalDataSource = global.get('loadDataGripPluginClass')(
+                    'com.intellij.database.dataSource.LocalDataSource'
+                )
+    
+                const DatabaseDriverValidator = global.get('loadDataGripPluginClass')(
+                    'com.intellij.database.dataSource.validation.DatabaseDriverValidator'
+                )
+    
+                const DatabaseConfigEditor = global.get('loadDataGripPluginClass')(
+                    'com.intellij.database.view.ui.DatabaseConfigEditor'
+                )
+    
+                importClass(com.intellij.openapi.project.Project)
+                importPackage(com.intellij.openapi.progress)
+                importPackage(com.intellij.openapi.wm.impl)
+                importPackage(com.intellij.database.view.ui)
+    
+                const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+                if (frameHelper) {
+                    const project = frameHelper.getProject()
+                    
+                    const dataSourceManager = LocalDataSourceManager.getMethod("getInstance", Project).invoke(null, project)
+                    const driverManager = DatabaseDriverManager.getMethod("getInstance").invoke(null)
+                    const jdbcDriver = driverManager.getDriver("mongo")
+                    
+                    const dataSource = LocalDataSource.newInstance()
+                    dataSource.setName("$name")
+                    dataSource.setUrl("${url.value}")
+                    dataSource.setConfiguredByUrl(true)
+                    dataSource.setDatabaseDriver(jdbcDriver)
+                    dataSourceManager.addDataSource(dataSource)
+                    
+                    global.put("dataSource", dataSource);
+                    DatabaseDriverValidator.getMethod("createDownloaderTask", LocalDataSource, DatabaseConfigEditor)
+                        .invoke(null, dataSource, null)
+                        .run(new EmptyProgressIndicator())
+                }
+                """.trimIndent(),
+                runInEdt = true,
             )
-
-            const DatabaseDriverManager = global.get('loadDataGripPluginClass')(
-                'com.intellij.database.dataSource.DatabaseDriverManager'
-            )
-
-            const LocalDataSource = global.get('loadDataGripPluginClass')(
-                'com.intellij.database.dataSource.LocalDataSource'
-            )
-
-            const DatabaseDriverValidator = global.get('loadDataGripPluginClass')(
-                'com.intellij.database.dataSource.validation.DatabaseDriverValidator'
-            )
-
-            const DatabaseConfigEditor = global.get('loadDataGripPluginClass')(
-                'com.intellij.database.view.ui.DatabaseConfigEditor'
-            )
-
-            importClass(com.intellij.openapi.project.Project)
-            importPackage(com.intellij.openapi.progress)
-            importPackage(com.intellij.openapi.wm.impl)
-            importPackage(com.intellij.database.view.ui)
-
-            const frameHelper = ProjectFrameHelper.getFrameHelper(component)
-            if (frameHelper) {
-                const project = frameHelper.getProject()
-                
-                const dataSourceManager = LocalDataSourceManager.getMethod("getInstance", Project).invoke(null, project)
-                const driverManager = DatabaseDriverManager.getMethod("getInstance").invoke(null)
-                const jdbcDriver = driverManager.getDriver("mongo")
-                
-                const dataSource = LocalDataSource.newInstance()
-                dataSource.setName("$name")
-                dataSource.setUrl("${url.value}")
-                dataSource.setConfiguredByUrl(true)
-                dataSource.setDatabaseDriver(jdbcDriver)
-                dataSourceManager.addDataSource(dataSource)
-                
-                global.put("dataSource", dataSource);
-                DatabaseDriverValidator.getMethod("createDownloaderTask", LocalDataSource, DatabaseConfigEditor)
-                    .invoke(null, dataSource, null)
-                    .run(new EmptyProgressIndicator())
-            }
-            """.trimIndent(),
-            runInEdt = true,
-        )
+        }
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun waitUntilConnectedToMongoDb(name: String, timeout: Duration = Duration.ofMinutes(1)) {
         eventually(timeout) {
-            assertTrue(
-                callJs<Boolean>(
-                    """
+            step("Waiting for DataSource $name to connect, timeout=$timeout") {
+                assertTrue(
+                    callJs<Boolean>(
+                        """
                     importClass(java.lang.System)
 
                     const DatabaseConnectionManager = global.get('loadDataGripPluginClass')(
@@ -165,12 +171,12 @@ class IdeaFrame(
                     }
                     
                     connected
-                    """.trimIndent(),
-                    runInEdt = true
+                        """.trimIndent(),
+                        runInEdt = true
+                    )
                 )
-            )
+            }
         }
-
         CommonSteps(remoteRobot).wait(1)
     }
 
@@ -191,6 +197,7 @@ class IdeaFrame(
                 """.trimIndent()
             )
         }
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun waitUntilProjectIsInSync() {
@@ -228,20 +235,43 @@ class IdeaFrame(
 
     fun hideIntellijAiAd() {
         step("Hide IntelliJ AI Ad (uses a lot of space in a small window)") {
+            tryHidingAiAdOnOldUI()
+            tryHidingAiAdOnNewUI()
+        }
+    }
+
+    private fun tryHidingAiAdOnNewUI() {
+        step("Attempting to hide AI ad on new UI") {
             runCatching {
                 val aiMenu = remoteRobot.find<JButtonFixture>(
                     byXpath("//div[@accessiblename='AI Assistant']")
                 )
                 aiMenu.rightClick()
-                val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
-                hideAiMenu.clickItem("Hide")
+                remoteRobot.find<JButtonFixture>(
+                    byXpath("//div[@text='Hide']")
+                ).click()
+            }
+        }
+    }
+
+    private fun tryHidingAiAdOnOldUI() {
+        step("Attempting to hide AI ad on old UI") {
+            runCatching {
+                val aiMenu = remoteRobot.find<JButtonFixture>(
+                    byXpath("//div[@tooltiptext='Install AI Assistant']")
+                )
+                aiMenu.rightClick()
+                remoteRobot.find<JButtonFixture>(
+                    byXpath("//div[@text='Remove from Sidebar']")
+                ).click()
             }
         }
     }
 
     fun cleanDataSources() {
-        runJs(
-            """
+        step("Cleaning DataSources") {
+            runJs(
+                """
             const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
                 'com.intellij.database.dataSource.LocalDataSourceManager'
             )
@@ -261,14 +291,17 @@ class IdeaFrame(
             for (let i = 0; i < dataSources.size(); i++) {
                 dataSourceManager.removeDataSource(dataSources.get(i));
             }
-            """.trimIndent(),
-            runInEdt = true,
-        )
+                """.trimIndent(),
+                runInEdt = true,
+            )
+        }
+        CommonSteps(remoteRobot).wait(1)
     }
 
     fun closeAllFiles() {
-        runJs(
-            """
+        step("Closing all files") {
+            runJs(
+                """
             importPackage(com.intellij.openapi.fileEditor)
             importPackage(com.intellij.openapi.vfs)
             importPackage(com.intellij.openapi.wm.impl)
@@ -288,22 +321,10 @@ class IdeaFrame(
                 ApplicationManager.getApplication().invokeLater(closeEditorsFunction)
             }
         """,
-            true,
-        )
-    }
-
-    fun ensureNotificationIsVisible(title: String) {
-        remoteRobot.findVisible<JLabelFixture>(byXpath("//div[@visible_text='$title']"))
-    }
-
-    fun waitUntilNotificationIsGone(title: String, timeout: Duration = Duration.ofSeconds(2)) {
-        waitFor(timeout, interval = Duration.ofMillis(50)) {
-            runCatching {
-                !remoteRobot.find<JLabelFixture>(
-                    byXpath("//div[@visible_text='$title']")
-                ).isVisible()
-            }.getOrDefault(true)
+                true,
+            )
         }
+        CommonSteps(remoteRobot).wait(1)
     }
 }
 
