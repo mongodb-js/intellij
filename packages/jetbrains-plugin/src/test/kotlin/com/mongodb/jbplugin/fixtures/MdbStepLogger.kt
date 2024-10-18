@@ -8,8 +8,10 @@ import com.intellij.remoterobot.utils.color
 class MdbStepLogger(private val indentVal: String = "------ ") : StepProcessor {
     private val ignorableStepTitlesForExceptionLogging = setOf(
         "Wait until Gradle project is in sync",
-        "Search 'Idea frame'",
-        "AI Assistant"
+        "AI Assistant",
+        // combobox steps that won't need exception logging
+        "Select ",
+        "Search ",
     )
     private var indent = ThreadLocal.withInitial { 0 }
 

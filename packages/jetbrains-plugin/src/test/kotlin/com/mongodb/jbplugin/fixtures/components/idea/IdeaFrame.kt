@@ -247,8 +247,9 @@ class IdeaFrame(
                     byXpath("//div[@accessiblename='AI Assistant']")
                 )
                 aiMenu.rightClick()
-                val hideAiMenu = remoteRobot.find<JListFixture>(byXpath("//div[@class='MyList']"))
-                hideAiMenu.clickItem("Hide")
+                remoteRobot.find<JButtonFixture>(
+                    byXpath("//div[@text='Hide']")
+                ).click()
             }
         }
     }
