@@ -12,6 +12,8 @@ class MdbStepLogger(private val indentVal: String = "------ ") : StepProcessor {
         // combobox steps that won't need exception logging
         "Select ",
         "Search ",
+        "Selecting Database",
+        "Selecting DataSource",
     )
     private var indent = ThreadLocal.withInitial { 0 }
 
