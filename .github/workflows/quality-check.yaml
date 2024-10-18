@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - chore/INTELLIJ-107
   pull_request:
     branches:
       - main
