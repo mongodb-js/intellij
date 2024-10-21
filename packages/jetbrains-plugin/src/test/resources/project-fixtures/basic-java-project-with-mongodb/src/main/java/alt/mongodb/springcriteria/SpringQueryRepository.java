@@ -7,13 +7,13 @@ import org.springframework.data.repository.Repository;
 
 import java.util.Optional;
 
-@Document("comment")
+@Document("comments")
 record Comment(
     String name
 ) {}
 
 public interface SpringQueryRepository extends Repository<Comment, ObjectId> {
-    @Query("{ name:  ?0 }")
+    @Query("{ name: { $gt:  10, $lt:  200 } }")
     Optional<Comment> findBySomething(String something);
 }
 

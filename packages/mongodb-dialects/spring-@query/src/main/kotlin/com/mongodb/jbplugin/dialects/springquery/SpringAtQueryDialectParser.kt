@@ -16,13 +16,23 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.findTopParentBy
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
 import com.mongodb.jbplugin.dialects.springcriteria.ModelCollectionExtractor
+import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonDouble
+import com.mongodb.jbplugin.mql.BsonInt32
+import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.Name
+import com.mongodb.jbplugin.mql.components.Named
 
 object SpringAtQueryDialectParser : DialectParser<PsiElement> {
+    private val unknownCollectionReference = HasCollectionReference(
+        HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
+    )
+
     override fun isCandidateForQuery(source: PsiElement): Boolean {
         return findParentMethodWithQueryAnnotation(source) != null
     }
@@ -57,32 +67,70 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
 
     private fun recursivelyParseJsonFilter(source: PsiElement, parent: PsiMethod): List<Node<PsiElement>> {
         return when (source.elementType?.toString()) {
-            "OBJECT" -> {
+            "ARRAY", "OBJECT" -> {
                 return source.children.flatMap {
                     recursivelyParseJsonFilter(it, parent)
                 }
             }
             "PROPERTY" -> {
-                val fieldName = resolveToFieldNameReference(source.children[0])
-                val valueOrRef = resolveValueReference(source.children[1], parent)
-
-                return listOf(
-                    Node(
-                        source,
-                        listOf(
-                            fieldName,
-                            valueOrRef
+                val fieldText = source.children[0].text
+                if (fieldText.startsWith('$') &&
+                    source.children[1].elementType.toString() == "ARRAY"
+                ) { // it's an operator with children
+                    val opName = Named(Name.from(fieldText.substring(1)))
+                    return listOf(
+                        Node(
+                            source,
+                            listOf(
+                                opName,
+                                HasFilter(
+                                    recursivelyParseJsonFilter(source.children[1], parent)
+                                )
+                            )
                         )
                     )
-                )
+                } else if (fieldText.startsWith('$')) { // it's an operator with a single value
+                    val opName = Named(Name.from(fieldText.substring(1)))
+                    return listOf(
+                        Node(
+                            source,
+                            listOf(
+                                opName,
+                                resolveValueReference(source.children[1], parent)
+                            )
+                        )
+                    )
+                } else if (isImplicitAnd(source.children[1])) {
+                    val fieldName = resolveToFieldNameReference(source.children[0])
+                    val allFilters = recursivelyParseJsonFilter(source.children[1], parent).map {
+                        it.copy(components = it.components + fieldName)
+                    }
+                    return listOf(
+                        Node(
+                            source,
+                            listOf(
+                                Named(Name.AND),
+                                HasFilter(allFilters)
+                            )
+                        )
+                    )
+                } else {
+                    val fieldName = resolveToFieldNameReference(source.children[0])
+                    val valueOrRef = resolveValueReference(source.children[1], parent)
+
+                    return listOf(
+                        Node(
+                            source,
+                            listOf(
+                                fieldName,
+                                valueOrRef
+                            )
+                        )
+                    )
+                }
             }
             else -> emptyList()
         }
-        // MongoDBJsonObjectImpl(OBJECT)
-        // MongoDBJsonPropertyImpl(PROPERTY)
-        // MongoDBJsonReferenceExpressionImpl(REFERENCE_EXPRESSION)
-        // MongoDBJsonNumberLiteralImpl(NUMBER_LITERAL)
-        // MongoDBJsonParameterLiteralImpl(PARAMETER_LITERAL)
     }
 
     private fun resolveToFieldNameReference(fieldName: PsiElement): HasFieldReference<PsiElement> {
@@ -105,10 +153,32 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                 return HasValueReference(
                     HasValueReference.Runtime(methodArg, argType)
                 )
-            } else ->
+            }
+            "NUMBER_LITERAL" -> {
+                val valueRefText = valueRef.text
+                return if (valueRefText.contains('.')) {
+                    HasValueReference(
+                        HasValueReference.Constant(valueRef, valueRef.text.toDouble(), BsonDouble)
+                    )
+                } else {
+                    HasValueReference(
+                        HasValueReference.Constant(valueRef, valueRef.text.toInt(), BsonInt32)
+                    )
+                }
+            }
+            "STRING_LITERAL" -> return HasValueReference(
+                HasValueReference.Constant(valueRef, valueRef.text, BsonString)
+            )
+            "OBJECT" -> {
+                return HasValueReference(
+                    HasValueReference.Constant(valueRef, null, BsonAny)
+                )
+            }
+            else -> {
                 return HasValueReference(
                     HasValueReference.Unknown as HasValueReference.ValueReference<PsiElement>
                 )
+            }
         }
     }
 
@@ -118,13 +188,9 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                 "org.springframework.data.repository.Repository",
                 GlobalSearchScope.allScope(method.project)
             )
-            ?: return HasCollectionReference(
-                HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
-            )
+            ?: return unknownCollectionReference
 
-        val methodClass = method.containingClass ?: return HasCollectionReference(
-            HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
-        )
+        val methodClass = method.containingClass ?: return unknownCollectionReference
 
         val repositoryInterface = methodClass.extendsList?.referencedTypes?.find { child ->
             val psiClass = child.resolve() ?: return@find false
@@ -134,27 +200,30 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                     psiClass.isInheritorDeep(fqnSpringRepositoryInterface, null) ||
                         psiClass == fqnSpringRepositoryInterface
                     )
-        } ?: return HasCollectionReference(
-            HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
-        )
+        } ?: return unknownCollectionReference
 
         val typeClass =
-            repositoryInterface.parameters.getOrNull(0) ?: return HasCollectionReference(
-                HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
-            )
+            repositoryInterface.parameters.getOrNull(0) ?: return unknownCollectionReference
 
-        val typeClassPsi = PsiTypesUtil.getPsiClass(typeClass) ?: return HasCollectionReference(
-            HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
-        )
+        val typeClassPsi = PsiTypesUtil.getPsiClass(typeClass) ?: return unknownCollectionReference
 
         val extractedCollection =
-            ModelCollectionExtractor.fromPsiClass(typeClassPsi) ?: return HasCollectionReference(
-                HasCollectionReference.Unknown as HasCollectionReference.CollectionReference<PsiElement>
-            )
+            ModelCollectionExtractor.fromPsiClass(typeClassPsi) ?: return unknownCollectionReference
 
         return HasCollectionReference(
             HasCollectionReference.OnlyCollection(typeClassPsi, extractedCollection)
         )
+    }
+
+    private fun isImplicitAnd(valueRef: PsiElement): Boolean {
+        val hasProps = valueRef.children.all {
+            val propName = it.children[0].text
+            propName.startsWith('$')
+        }
+
+        val isObj = valueRef.elementType.toString() == "OBJECT"
+
+        return isObj && hasProps
     }
 
     override fun isReferenceToDatabase(source: PsiElement): Boolean {
