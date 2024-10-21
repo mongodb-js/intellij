@@ -42,3 +42,5 @@ packages/jetbrains-plugin/src/main/resources/build.properties
 
 FAKE_BROWSER_OUTPUT
 /.kotlin
+
+/.idea/dataSources

@@ -5,6 +5,7 @@ include(
     "packages:mongodb-dialects",
     "packages:mongodb-dialects:java-driver",
     "packages:mongodb-dialects:spring-criteria",
+    "packages:mongodb-dialects:spring-@query",
     "packages:mongodb-dialects:mongosh",
     "packages:mongodb-autocomplete-engine",
     "packages:mongodb-linting-engine",

@@ -18,6 +18,7 @@ import com.mongodb.jbplugin.dialects.ConnectionContextRequirement
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.dialects.springcriteria.SpringCriteriaDialect
+import com.mongodb.jbplugin.dialects.springquery.SpringAtQueryDialect
 import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.editor.MongoDbVirtualFileDataSourceProvider.Keys
 import com.mongodb.jbplugin.editor.models.getToolbarModel
@@ -26,6 +27,7 @@ import com.mongodb.jbplugin.observability.useLogMessage
 
 private val allDialects = listOf(
     JavaDriverDialect,
+    SpringAtQueryDialect,
     SpringCriteriaDialect
 )
 
