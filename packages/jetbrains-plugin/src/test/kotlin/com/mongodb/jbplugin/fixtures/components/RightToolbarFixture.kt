@@ -22,6 +22,10 @@ class RightToolbarFixture(
         find<JButtonFixture>(byXpath("//div[@tooltiptext='AI Assistant' or @text='AI Assistant']"))
     }
 
+    val databaseButton by lazy {
+        find<JButtonFixture>(byXpath("//div[@tooltiptext='Database' or @text='Database']"))
+    }
+
     val gradleButton by lazy {
         find<JButtonFixture>(byXpath("//div[@tooltiptext='Gradle' or @text='Gradle']"))
     }

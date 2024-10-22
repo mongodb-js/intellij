@@ -57,7 +57,6 @@ class GradleToolWindowFixture(
 
             step("Manually reload gradle projects") {
                 reloadGradleButton.click()
-                // remoteRobot.invokeAction("ExternalSystem.RefreshAllProjects")
                 waitFor(
                     duration = Duration.ofMinutes(2),
                     description = "Gradle projects to show up after manual reload",

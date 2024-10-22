@@ -3,6 +3,7 @@ package com.mongodb.jbplugin.codeActions.impl
 import com.intellij.remoterobot.RemoteRobot
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.mongodb.jbplugin.fixtures.components.openDatabaseToolWindow
 import com.mongodb.jbplugin.fixtures.components.openRunQueryPopup
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -25,7 +26,7 @@ class MongoDbRunQueryActionUiTest {
 
     @AfterEach
     fun tearDown(remoteRobot: RemoteRobot) {
-        remoteRobot.ideaFrame().cleanDataSources()
+        remoteRobot.openDatabaseToolWindow().removeAllDataSources()
     }
 
     @Test

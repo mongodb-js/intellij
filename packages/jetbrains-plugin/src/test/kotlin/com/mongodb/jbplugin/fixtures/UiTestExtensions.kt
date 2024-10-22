@@ -142,6 +142,8 @@ private class UiTestExtension :
                 remoteRobot.openGradleToolWindow().also {
                     it.ensureGradleProjectsAreSynced()
                 }
+                // This ideally should not be needed anymore, but we still perform this
+                // to wait for smart mode to kick-in before doing anything else.
                 remoteRobot.ideaFrame().waitUntilProjectIsInSync()
                 saveScreenshot("$testMethodName-after-gradle-sync")
             }

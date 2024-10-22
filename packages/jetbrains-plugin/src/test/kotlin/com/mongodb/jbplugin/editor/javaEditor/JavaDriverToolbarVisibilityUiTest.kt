@@ -5,6 +5,7 @@ import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.components.findJavaEditorToolbar
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.components.isJavaEditorToolbarHidden
+import com.mongodb.jbplugin.fixtures.components.openDatabaseToolWindow
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -25,7 +26,7 @@ class JavaDriverToolbarVisibilityUiTest {
 
     @AfterEach
     fun tearDown(remoteRobot: RemoteRobot) {
-        remoteRobot.ideaFrame().cleanDataSources()
+        remoteRobot.openDatabaseToolWindow().removeAllDataSources()
     }
 
     @Test
