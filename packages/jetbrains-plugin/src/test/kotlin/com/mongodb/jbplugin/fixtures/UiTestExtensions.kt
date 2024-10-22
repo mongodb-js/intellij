@@ -115,9 +115,12 @@ private class UiTestExtension :
     }
 
     override fun beforeEach(context: ExtensionContext?) {
+        val testMethod =
+            context?.requiredTestMethod ?: throw IllegalStateException("test method is null")
+        val testMethodName = testMethod.name
         val requiresProject =
             context
-                ?.requiredTestMethod
+                .requiredTestMethod
                 ?.annotations
                 ?.find { annotation ->
                     annotation.annotationClass == RequiresProject::class
@@ -136,10 +139,12 @@ private class UiTestExtension :
                 remoteRobot.ideaFrame().disablePowerSaveMode()
                 val gradleToolWindow = remoteRobot.ideaFrame().openGradleToolWindow()
                 gradleToolWindow.ensureGradleProjectsAreSynced()
+                saveScreenshot("$testMethodName-after-gradle-sync")
             }
 
             // Close any right tool window
             remoteRobot.ideaFrame().closeRightToolWindow()
+            saveScreenshot("$testMethodName-after-closing-right-tool-window")
         }
     }
 

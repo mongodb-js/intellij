@@ -6,6 +6,7 @@ import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.fixtures.DefaultXpath
 import com.intellij.remoterobot.fixtures.FixtureName
 import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.components.idea.IdeaFrame
 import java.time.Duration
@@ -31,12 +32,14 @@ class InfoAndProgressPanelFixture(
     }
 
     fun waitForInProgressTasksToFinish(timeout: Duration = Duration.ofMinutes(2)) {
-        waitFor(
-            duration = timeout,
-            description = "In-Progress tasks to finish",
-            errorMessage = "In-Progress tasks did not finish"
-        ) {
-            isInlineProgressPanelEmpty()
+        step("Ensure in-progress tasks are finished") {
+            waitFor(
+                duration = timeout,
+                description = "In-Progress tasks to finish",
+                errorMessage = "In-Progress tasks did not finish"
+            ) {
+                isInlineProgressPanelEmpty()
+            }
         }
     }
 }
