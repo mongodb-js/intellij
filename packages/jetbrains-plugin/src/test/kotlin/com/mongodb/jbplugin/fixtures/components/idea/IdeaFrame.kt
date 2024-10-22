@@ -12,6 +12,7 @@ import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
+import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
 import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
@@ -200,36 +201,51 @@ class IdeaFrame(
         CommonSteps(remoteRobot).wait(1)
     }
 
-    fun waitUntilProjectIsInSync() {
-        eventually(timeout = Duration.ofMinutes(10)) {
-            step("Wait until Gradle project is in sync") {
-                assertTrue(
-                    callJs<Boolean>(
-                        """
+    private fun waitUntilModulesAreLoaded(timeout: Duration = Duration.ofMinutes(1)) {
+        step("Wait until modules are loaded") {
+            waitFor(
+                duration = timeout,
+                description = "Modules to finish loading",
+                errorMessage = "Modules did not load"
+            ) {
+                callJs(
+                    """
                     importPackage(com.intellij.openapi.wm.impl)
                     importClass(com.intellij.openapi.module.ModuleManager)
-
                     const frameHelper = ProjectFrameHelper.getFrameHelper(component)
                     const project = frameHelper.getProject()
                     const modules = ModuleManager.getInstance(project).getModules()
-                    
+            
                     modules.length > 0
-                        """.trimIndent(),
-                        runInEdt = true
-                    )
+                    """.trimIndent(),
+                    runInEdt = true
                 )
             }
+        }
+    }
 
-            // exiting smart mode does not mean we are in smart mode!
-            // so try a few times and wish for luck, there is no better API it seems.
-            // Reasoning: you are in dumb mode, you load some project metadata, go to smart mode
-            // then realise that you have dependencies to download and index, so you go back to dumb
-            // mode until everything is done.
-            // happily enough, this won't take time if smart mode is already on, so it should
-            // be fast.
+    private fun waitForSmartMode(timeout: Int = 5) {
+        // exiting smart mode does not mean we are in smart mode!
+        // so try a few times and wish for luck, there is no better API it seems.
+        // Reasoning: you are in dumb mode, you load some project metadata, go to smart mode
+        // then realise that you have dependencies to download and index, so you go back to dumb
+        // mode until everything is done.
+        // happily enough, this won't take time if smart mode is already on, so it should
+        // be fast.
+        step("Optimistically waiting for smart mode") {
             for (i in 0..10) {
-                CommonSteps(remoteRobot).waitForSmartMode(5)
+                CommonSteps(remoteRobot).waitForSmartMode(timeout)
             }
+        }
+    }
+
+    fun waitUntilProjectIsInSync(
+        modulesTimeout: Duration = Duration.ofMinutes(10),
+        smartModeTimeout: Int = 5
+    ) {
+        step("For project to be in sync") {
+            waitUntilModulesAreLoaded(modulesTimeout)
+            waitForSmartMode(smartModeTimeout)
         }
     }
 

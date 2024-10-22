@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.*
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.time.Duration
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
 
@@ -137,6 +138,10 @@ private class UiTestExtension :
 
             if (it.smartMode) {
                 remoteRobot.ideaFrame().disablePowerSaveMode()
+                remoteRobot.ideaFrame().waitUntilProjectIsInSync(
+                    modulesTimeout = Duration.ofMinutes(1),
+                    smartModeTimeout = 1,
+                )
                 val gradleToolWindow = remoteRobot.ideaFrame().openGradleToolWindow()
                 gradleToolWindow.ensureGradleProjectsAreSynced()
                 remoteRobot.ideaFrame().waitUntilProjectIsInSync()
