@@ -14,6 +14,7 @@ import com.intellij.remoterobot.stepsProcessing.StepWorker
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import com.intellij.remoterobot.utils.keyboard
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.mongodb.jbplugin.fixtures.components.openGradleToolWindow
 import okhttp3.Request
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
@@ -133,10 +134,12 @@ private class UiTestExtension :
 
             if (it.smartMode) {
                 remoteRobot.ideaFrame().disablePowerSaveMode()
-                remoteRobot.ideaFrame().waitUntilProjectIsInSync()
+                val gradleToolWindow = remoteRobot.ideaFrame().openGradleToolWindow()
+                gradleToolWindow.ensureGradleProjectsAreSynced()
             }
 
-            remoteRobot.ideaFrame().hideIntellijAiAd()
+            // Close any right tool window
+            remoteRobot.ideaFrame().closeRightToolWindow()
         }
     }
 
