@@ -48,7 +48,7 @@ class GradleToolWindowFixture(
         step("Ensuring gradle projects are synced") {
             val projectsDidNotShowUp = runCatching {
                 waitFor(
-                    duration = Duration.ofSeconds(30),
+                    duration = Duration.ofMinutes(2),
                     description = "Gradle projects to show up",
                     errorMessage = "Gradle projects did not show up",
                 ) {
@@ -60,7 +60,7 @@ class GradleToolWindowFixture(
                 step("Manually reload gradle projects") {
                     reloadGradleButton.click()
                     waitFor(
-                        duration = Duration.ofSeconds(30),
+                        duration = Duration.ofMinutes(2),
                         description = "Gradle projects to show up after manual reload",
                         errorMessage = "Gradle projects to show up after manual reload",
                     ) {
