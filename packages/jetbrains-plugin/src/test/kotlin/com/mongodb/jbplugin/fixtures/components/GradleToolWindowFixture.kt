@@ -4,12 +4,12 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.components.idea.IdeaFrame
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.infoAndProgressPanel
-import com.mongodb.jbplugin.fixtures.invokeAction
 import java.time.Duration
 
 @DefaultXpath(
@@ -47,7 +47,32 @@ class GradleToolWindowFixture(
 
     fun ensureGradleProjectsAreSynced() {
         step("Ensuring gradle projects are synced") {
-            remoteRobot.invokeAction("ExternalSystem.RefreshAllProjects")
+            runCatching {
+                waitFor(
+                    duration = Duration.ofMinutes(2),
+                    description = "Gradle projects to show up",
+                    errorMessage = "Gradle projects did not show up",
+                ) {
+                    !projectTree.hasText("Nothing to show")
+                }
+            }.isFailure
+
+            runCatching {
+                CommonSteps(remoteRobot).waitForSmartMode(2)
+            }
+
+            step("Manually reload gradle projects") {
+                reloadGradleButton.click()
+                // remoteRobot.invokeAction("ExternalSystem.RefreshAllProjects")
+                waitFor(
+                    duration = Duration.ofMinutes(2),
+                    description = "Gradle projects to show up after manual reload",
+                    errorMessage = "Gradle projects to show up after manual reload",
+                ) {
+                    !projectTree.hasText("Nothing to show")
+                }
+            }
+
             remoteRobot.ideaFrame().infoAndProgressPanel().waitForInProgressTasksToFinish()
         }
     }
