@@ -4,11 +4,9 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
-import com.mongodb.jbplugin.fixtures.components.idea.IdeaFrame
-import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.intellij.remoterobot.utils.waitForIgnoringError
 import com.mongodb.jbplugin.fixtures.infoAndProgressPanel
 import java.time.Duration
 
@@ -48,7 +46,7 @@ class GradleToolWindowFixture(
     fun ensureGradleProjectsAreSynced() {
         step("Ensuring gradle projects are synced") {
             runCatching {
-                waitFor(
+                waitForIgnoringError(
                     duration = Duration.ofMinutes(2),
                     description = "Gradle projects to show up",
                     errorMessage = "Gradle projects did not show up",
@@ -56,10 +54,6 @@ class GradleToolWindowFixture(
                     !projectTree.hasText("Nothing to show")
                 }
             }.isFailure
-
-            runCatching {
-                CommonSteps(remoteRobot).waitForSmartMode(2)
-            }
 
             step("Manually reload gradle projects") {
                 reloadGradleButton.click()
@@ -73,27 +67,25 @@ class GradleToolWindowFixture(
                 }
             }
 
-            remoteRobot.ideaFrame().infoAndProgressPanel().waitForInProgressTasksToFinish()
+            remoteRobot.infoAndProgressPanel().waitForInProgressTasksToFinish()
         }
     }
 }
 
-fun IdeaFrame.gradleToolWindow(): GradleToolWindowFixture = find()
+fun RemoteRobot.gradleToolWindow(): GradleToolWindowFixture = find()
 
-fun IdeaFrame.maybeGradleToolWindow(): GradleToolWindowFixture? = runCatching {
+fun RemoteRobot.maybeGradleToolWindow(): GradleToolWindowFixture? = runCatching {
     gradleToolWindow()
 }.getOrNull()
 
-fun IdeaFrame.openGradleToolWindow(): GradleToolWindowFixture {
+fun RemoteRobot.openGradleToolWindow(): GradleToolWindowFixture {
     return step("Open gradle tool window") {
         waitFor(
             duration = Duration.ofMinutes(1),
             description = "Gradle tool window to open",
             errorMessage = "Gradle tool window did not open"
         ) {
-            maybeGradleToolWindow()?.let {
-                isShowing
-            } ?: run {
+            maybeGradleToolWindow()?.isShowing ?: run {
                 rightToolbar().gradleButton.click()
                 maybeGradleToolWindow()?.isShowing == true
             }

@@ -9,7 +9,6 @@ import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
-import com.mongodb.jbplugin.fixtures.components.idea.IdeaFrame
 import java.time.Duration
 
 @DefaultXpath(by = "class", xpath = "//div[@class='ToolWindowHeader'][.//div[@class='BaseLabel']]")
@@ -34,20 +33,22 @@ class RightToolWindowHeaderFixture(
     }
 }
 
-fun IdeaFrame.rightToolWindowHeader(): RightToolWindowHeaderFixture = remoteRobot.find()
+fun RemoteRobot.rightToolWindowHeader(): RightToolWindowHeaderFixture = find()
 
-fun IdeaFrame.maybeRightToolWindowHeader(): RightToolWindowHeaderFixture? = runCatching {
+fun RemoteRobot.maybeRightToolWindowHeader(): RightToolWindowHeaderFixture? = runCatching {
     rightToolWindowHeader()
 }.getOrNull()
 
-fun IdeaFrame.closeRightToolWindow() {
+fun RemoteRobot.closeRightToolWindow() {
     step("Closing right tool window") {
         waitFor(
             duration = Duration.ofMinutes(1),
             description = "Right tool window to close",
             errorMessage = "Right tool window did not close",
         ) {
-            maybeRightToolWindowHeader()?.hideButton?.click()
+            if (maybeRightToolWindowHeader()?.isShowing == true) {
+                maybeRightToolWindowHeader()?.hideButton?.click()
+            }
             maybeRightToolWindowHeader()?.isShowing != true
         }
     }

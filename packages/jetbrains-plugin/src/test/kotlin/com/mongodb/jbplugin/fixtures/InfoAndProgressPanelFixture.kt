@@ -8,7 +8,6 @@ import com.intellij.remoterobot.fixtures.FixtureName
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
-import com.mongodb.jbplugin.fixtures.components.idea.IdeaFrame
 import java.time.Duration
 
 @DefaultXpath(by = "class", xpath = "//div[@class='InfoAndProgressPanelImpl']")
@@ -44,4 +43,4 @@ class InfoAndProgressPanelFixture(
     }
 }
 
-fun IdeaFrame.infoAndProgressPanel(): InfoAndProgressPanelFixture = find()
+fun RemoteRobot.infoAndProgressPanel(): InfoAndProgressPanelFixture = find()

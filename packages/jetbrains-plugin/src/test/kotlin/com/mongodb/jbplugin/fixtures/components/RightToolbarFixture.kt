@@ -7,7 +7,6 @@ import com.intellij.remoterobot.fixtures.DefaultXpath
 import com.intellij.remoterobot.fixtures.FixtureName
 import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.search.locators.byXpath
-import com.mongodb.jbplugin.fixtures.components.idea.IdeaFrame
 import java.time.Duration
 
 @DefaultXpath(
@@ -28,6 +27,6 @@ class RightToolbarFixture(
     }
 }
 
-fun IdeaFrame.rightToolbar(): RightToolbarFixture = find(
+fun RemoteRobot.rightToolbar(): RightToolbarFixture = find(
     Duration.ofSeconds(30)
 )

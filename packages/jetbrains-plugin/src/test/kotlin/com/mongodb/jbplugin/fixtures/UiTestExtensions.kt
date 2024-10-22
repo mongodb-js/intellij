@@ -21,7 +21,6 @@ import org.junit.jupiter.api.extension.*
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.time.Duration
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
 
@@ -130,26 +129,25 @@ private class UiTestExtension :
         remoteRobot.keyboard { escape() }
         remoteRobot.closeProject()
 
-        requiresProject?.let {
+        requiresProject?.let { project ->
             // If we have the @RequireProject annotation, load that project on startup
             remoteRobot.openProject(
-                Path("src/test/resources/project-fixtures/${it.value}").toAbsolutePath().toString(),
+                Path(
+                    "src/test/resources/project-fixtures/${project.value}"
+                ).toAbsolutePath().toString(),
             )
 
-            if (it.smartMode) {
+            if (project.smartMode) {
                 remoteRobot.ideaFrame().disablePowerSaveMode()
-                remoteRobot.ideaFrame().waitUntilProjectIsInSync(
-                    modulesTimeout = Duration.ofMinutes(1),
-                    smartModeTimeout = 1,
-                )
-                val gradleToolWindow = remoteRobot.ideaFrame().openGradleToolWindow()
-                gradleToolWindow.ensureGradleProjectsAreSynced()
+                remoteRobot.openGradleToolWindow().also {
+                    it.ensureGradleProjectsAreSynced()
+                }
                 remoteRobot.ideaFrame().waitUntilProjectIsInSync()
                 saveScreenshot("$testMethodName-after-gradle-sync")
             }
 
             // Close any right tool window
-            remoteRobot.ideaFrame().closeRightToolWindow()
+            remoteRobot.closeRightToolWindow()
             saveScreenshot("$testMethodName-after-closing-right-tool-window")
         }
     }

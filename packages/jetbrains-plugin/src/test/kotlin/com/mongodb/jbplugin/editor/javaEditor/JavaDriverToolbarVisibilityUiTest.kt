@@ -29,7 +29,7 @@ class JavaDriverToolbarVisibilityUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `shows the toolbar in a java file with references to the driver`(remoteRobot: RemoteRobot) {
         remoteRobot.ideaFrame().openFile(
             "/src/main/java/alt/mongodb/javadriver/JavaDriverRepository.java"
@@ -39,7 +39,7 @@ class JavaDriverToolbarVisibilityUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `shows the toolbar in all the java files with references to the driver`(
         remoteRobot: RemoteRobot
     ) {
@@ -62,7 +62,7 @@ class JavaDriverToolbarVisibilityUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `does not show the toolbar in a java file without references to the driver`(
         remoteRobot: RemoteRobot
     ) {
@@ -73,7 +73,7 @@ class JavaDriverToolbarVisibilityUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `does show existing data sources in the combo box`(
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
@@ -87,7 +87,7 @@ class JavaDriverToolbarVisibilityUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `does not show the database select on a java driver file`(
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
@@ -101,7 +101,7 @@ class JavaDriverToolbarVisibilityUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `does show the database select on a spring criteria file`(
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
@@ -123,7 +123,7 @@ class JavaDriverToolbarVisibilityUiTest {
     }
 
     @Test
-    @RequiresProject("basic-java-project-with-mongodb")
+    @RequiresProject("basic-java-project-with-mongodb", smartMode = true)
     fun `shows the toolbar when a reference to the driver is added`(
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
