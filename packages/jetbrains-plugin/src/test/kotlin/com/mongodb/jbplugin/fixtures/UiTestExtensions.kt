@@ -139,6 +139,7 @@ private class UiTestExtension :
                 remoteRobot.ideaFrame().disablePowerSaveMode()
                 val gradleToolWindow = remoteRobot.ideaFrame().openGradleToolWindow()
                 gradleToolWindow.ensureGradleProjectsAreSynced()
+                remoteRobot.ideaFrame().waitUntilProjectIsInSync()
                 saveScreenshot("$testMethodName-after-gradle-sync")
             }
 
