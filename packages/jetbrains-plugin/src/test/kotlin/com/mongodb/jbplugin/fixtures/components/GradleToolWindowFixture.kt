@@ -9,6 +9,7 @@ import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.components.idea.IdeaFrame
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
 import com.mongodb.jbplugin.fixtures.infoAndProgressPanel
+import com.mongodb.jbplugin.fixtures.invokeAction
 import java.time.Duration
 
 @DefaultXpath(
@@ -46,29 +47,7 @@ class GradleToolWindowFixture(
 
     fun ensureGradleProjectsAreSynced() {
         step("Ensuring gradle projects are synced") {
-            val projectsDidNotShowUp = runCatching {
-                waitFor(
-                    duration = Duration.ofMinutes(2),
-                    description = "Gradle projects to show up",
-                    errorMessage = "Gradle projects did not show up",
-                ) {
-                    !projectTree.hasText("Nothing to show")
-                }
-            }.isFailure
-
-            if (projectsDidNotShowUp) {
-                step("Manually reload gradle projects") {
-                    reloadGradleButton.click()
-                    waitFor(
-                        duration = Duration.ofMinutes(2),
-                        description = "Gradle projects to show up after manual reload",
-                        errorMessage = "Gradle projects to show up after manual reload",
-                    ) {
-                        !projectTree.hasText("Nothing to show")
-                    }
-                }
-            }
-
+            remoteRobot.invokeAction("ExternalSystem.RefreshAllProjects")
             remoteRobot.ideaFrame().infoAndProgressPanel().waitForInProgressTasksToFinish()
         }
     }

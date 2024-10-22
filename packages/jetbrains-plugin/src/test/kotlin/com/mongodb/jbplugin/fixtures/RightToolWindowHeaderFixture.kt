@@ -34,7 +34,7 @@ class RightToolWindowHeaderFixture(
     }
 }
 
-fun IdeaFrame.rightToolWindowHeader(): RightToolWindowHeaderFixture = remoteRobot.findVisible()
+fun IdeaFrame.rightToolWindowHeader(): RightToolWindowHeaderFixture = remoteRobot.find()
 
 fun IdeaFrame.maybeRightToolWindowHeader(): RightToolWindowHeaderFixture? = runCatching {
     rightToolWindowHeader()
