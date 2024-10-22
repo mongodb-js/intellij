@@ -17,6 +17,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.findTopParentBy
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
 import com.mongodb.jbplugin.dialects.springcriteria.ModelCollectionExtractor
 import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonDouble
 import com.mongodb.jbplugin.mql.BsonInt32
 import com.mongodb.jbplugin.mql.BsonString
@@ -172,6 +173,11 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
             "OBJECT" -> {
                 return HasValueReference(
                     HasValueReference.Constant(valueRef, null, BsonAny)
+                )
+            }
+            "ARRAY" -> {
+                return HasValueReference(
+                    HasValueReference.Runtime(valueRef, BsonArray(BsonAny))
                 )
             }
             else -> {
