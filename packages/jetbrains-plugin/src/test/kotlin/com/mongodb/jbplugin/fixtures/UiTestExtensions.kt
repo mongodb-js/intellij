@@ -145,12 +145,10 @@ private class UiTestExtension :
                 // This ideally should not be needed anymore, but we still perform this
                 // to wait for smart mode to kick-in before doing anything else.
                 remoteRobot.ideaFrame().waitUntilProjectIsInSync()
-                saveScreenshot("$testMethodName-after-gradle-sync")
             }
 
             // Close any right tool window
             remoteRobot.closeRightToolWindow()
-            saveScreenshot("$testMethodName-after-closing-right-tool-window")
         }
     }
 

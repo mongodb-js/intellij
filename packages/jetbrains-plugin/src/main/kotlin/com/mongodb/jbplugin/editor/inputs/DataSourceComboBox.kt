@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.editor.inputs
 
 import com.intellij.database.dataSource.LocalDataSource
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.asSequence
@@ -21,7 +22,6 @@ import java.awt.event.ItemListener
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
 import javax.swing.SwingConstants
-import javax.swing.SwingUtilities
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
 
@@ -100,7 +100,7 @@ class DataSourceComboBox(
         var isFirstInit = true
         coroutineScope.launch {
             project.getToolbarModel().toolbarState.collect { state ->
-                SwingUtilities.invokeLater {
+                ApplicationManager.getApplication().invokeLater {
                     updateComboBoxState(state, isFirstInit)
                     isFirstInit = false
                 }
