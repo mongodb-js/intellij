@@ -7,13 +7,17 @@ package com.mongodb.jbplugin.fixtures
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.Fixture
+import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.search.locators.Locator
+import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.components.idea.maybeIdeaFrame
 import org.owasp.encoder.Encode
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.toJavaDuration
 
 /**
  * Returns a fixture by the default xpath of the fixture.
@@ -161,7 +165,9 @@ fun RemoteRobot.openProject(absolutePath: String) = step("Open Project at path $
         """,
     )
 
+    maybeTerminateButton()
     maybeIdeaFrame()?.closeAllFiles()
+    maybeTerminateButton()
 }
 
 /**
@@ -169,4 +175,16 @@ fun RemoteRobot.openProject(absolutePath: String) = step("Open Project at path $
  */
 fun RemoteRobot.closeProject() = step("Closing any open project") {
     invokeAction("CloseProject")
+    maybeTerminateButton()
+}
+
+private fun RemoteRobot.maybeTerminateButton() {
+    runCatching {
+        val terminateButton =
+            find<JButtonFixture>(
+                byXpath("//div[@text='Terminate']"),
+                timeout = 50.milliseconds.toJavaDuration(),
+            )
+        terminateButton.click()
+    }.getOrDefault(Unit)
 }
