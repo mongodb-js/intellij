@@ -7,7 +7,6 @@ import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.fixtures.DefaultXpath
 import com.intellij.remoterobot.fixtures.FixtureName
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
@@ -47,34 +46,28 @@ class MdbJavaEditorToolbarFixture(
         }.isSuccess
 
     fun selectDataSource(title: String) {
-        eventually(1.minutes.toJavaDuration()) {
-            step("Selecting DataSource $title in toolbar") {
-                dataSources.selectItemContains(title)
-                if (!dataSources.selectedText().contains(title)) {
-                    throw Exception("Could not select data source - $title")
-                }
+        eventually("Selecting DataSource $title in toolbar", 1.minutes.toJavaDuration()) {
+            dataSources.selectItemContains(title)
+            if (!dataSources.selectedText().contains(title)) {
+                throw Exception("Could not select data source - $title")
             }
         }
     }
 
     fun selectDetachDataSource() {
-        eventually(1.minutes.toJavaDuration()) {
-            step("Detaching DataSource from toolbar") {
-                dataSources.selectItem("Detach data source")
-                if (dataSources.selectedText() != "") {
-                    throw Exception("Could not detach data source")
-                }
+        eventually("Detaching DataSource from toolbar", 1.minutes.toJavaDuration()) {
+            dataSources.selectItem("Detach data source")
+            if (dataSources.selectedText() != "") {
+                throw Exception("Could not detach data source")
             }
         }
     }
 
     fun selectDatabase(title: String) {
-        eventually(1.minutes.toJavaDuration()) {
-            step("Selecting Database $title in toolbar") {
-                databases.selectItemContains(title)
-                if (!databases.selectedText().contains(title)) {
-                    throw Exception("Could not select database - $title")
-                }
+        eventually("Selecting Database $title in toolbar", 1.minutes.toJavaDuration()) {
+            databases.selectItemContains(title)
+            if (!databases.selectedText().contains(title)) {
+                throw Exception("Could not select database - $title")
             }
         }
     }

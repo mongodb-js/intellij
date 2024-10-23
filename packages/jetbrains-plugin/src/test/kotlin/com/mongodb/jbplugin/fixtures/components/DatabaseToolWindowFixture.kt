@@ -8,8 +8,10 @@ import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.fixtures.JPopupMenuFixture
 import com.intellij.remoterobot.fixtures.JTreeFixture
 import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
+import com.intellij.remoterobot.utils.waitForIgnoringError
 import java.time.Duration
 
 @DefaultXpath(
@@ -28,21 +30,23 @@ class DatabaseToolWindowFixture(
         val oldSize = databaseTree.collectRows().size
         val dataSourceAtIndex = databaseTree.collectRows()[index]
         step("Removing DataSource $dataSourceAtIndex at index $index") {
-            waitFor(
+            waitForIgnoringError(
                 duration = Duration.ofMinutes(1),
                 description = "Data source to be removed",
                 errorMessage = "Data source was not removed"
             ) {
                 databaseTree.rightClickRow(index)
+
+                CommonSteps(remoteRobot).wait(1)
                 val popupMenu = remoteRobot.find<JPopupMenuFixture>(
                     byXpath("//div[@class='MyMenu']")
                 )
                 popupMenu.select("Remove Data Source… ")
 
+                CommonSteps(remoteRobot).wait(1)
                 val confirmationDialog = remoteRobot.find<ContainerFixture>(
                     byXpath("//div[@class='MyDialog']")
                 )
-
                 confirmationDialog.find<JButtonFixture>(
                     byXpath("//div[@text='OK']")
                 ).click()

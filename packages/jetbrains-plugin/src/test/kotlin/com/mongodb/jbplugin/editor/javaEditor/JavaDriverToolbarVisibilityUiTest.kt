@@ -21,6 +21,9 @@ class JavaDriverToolbarVisibilityUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
+        // This is our safety net to ensure we start with a clean slate
+        remoteRobot.openDatabaseToolWindow().removeAllDataSources()
+        remoteRobot.closeRightToolWindow()
         remoteRobot.ideaFrame().addDataSourceWithUrl(javaClass.simpleName, url)
     }
 

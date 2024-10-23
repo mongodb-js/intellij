@@ -86,8 +86,9 @@ class IdeaFrame(
         url: MongoDbServerUrl,
     ) {
         step("Adding DataSource with name=$name, url=$url") {
-            runJs(
-                """
+            val failed = runCatching {
+                runJs(
+                    """
                 const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
                     'com.intellij.database.dataSource.LocalDataSourceManager'
                 )
@@ -133,9 +134,17 @@ class IdeaFrame(
                         .invoke(null, dataSource, null)
                         .run(new EmptyProgressIndicator())
                 }
-                """.trimIndent(),
-                runInEdt = true,
-            )
+                    """.trimIndent(),
+                    runInEdt = true,
+                )
+            }.isFailure
+
+            if (failed) {
+                step("Warning: Adding DataSource with name=$name, url=$url was errored") {
+                    // The runJs errors with Modality error but the DataSource is still added
+                    // which is why we ignore the error silently but log it for debug information
+                }
+            }
         }
         CommonSteps(remoteRobot).wait(1)
     }
