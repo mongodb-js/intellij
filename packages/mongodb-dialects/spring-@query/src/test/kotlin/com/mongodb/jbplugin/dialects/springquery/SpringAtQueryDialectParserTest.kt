@@ -42,9 +42,9 @@ public interface SQRepository extends Repository<Comment, ObjectId> {
         }
     }
 
-    @Disabled
+    @Disabled("until we unblock how to test injections: INTELLIJ-115")
     @ParsingTest(
-        fileName = "Repository.java",
+        fileName = "SQRepository.java",
         """
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -68,7 +68,7 @@ public interface SQRepository extends Repository<Comment, ObjectId> {
         file: PsiFile
     ) {
         val query = file.getQueryAtMethod("SQRepository", "findBySomething")
-        SpringAtQueryDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+        SpringAtQueryDialectParser.parse(query).assert(IsCommand.CommandType.FIND_ONE) {
             collection<HasCollectionReference.OnlyCollection<PsiElement>> {
                 assertEquals("comments", collection)
             }
