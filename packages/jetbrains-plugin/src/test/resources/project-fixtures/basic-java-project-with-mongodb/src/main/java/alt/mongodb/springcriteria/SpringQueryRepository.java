@@ -13,7 +13,7 @@ record Comment(
 ) {}
 
 public interface SpringQueryRepository extends Repository<Comment, ObjectId> {
-    @Query("{ name: { $gt:  10, $lt:  200 } }")
+    @Query("{ name: 'a' }")
     Optional<Comment> findBySomething(String something);
 }
 

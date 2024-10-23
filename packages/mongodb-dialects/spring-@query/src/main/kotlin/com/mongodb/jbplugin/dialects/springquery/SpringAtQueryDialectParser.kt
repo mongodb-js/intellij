@@ -17,6 +17,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.findTopParentBy
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
 import com.mongodb.jbplugin.dialects.springcriteria.ModelCollectionExtractor
 import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonDouble
 import com.mongodb.jbplugin.mql.BsonInt32
@@ -26,6 +27,7 @@ import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.IsCommand
 import com.mongodb.jbplugin.mql.components.Name
 import com.mongodb.jbplugin.mql.components.Named
 
@@ -53,13 +55,16 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
             it.hasQualifiedName(QUERY_FQN)
         } ?: return Node(source, listOf(collection))
 
+        val operation = inferCommandFromQuery(source, queryAnnotation)
         val injectedQueryHost = findInjectedQuery(queryAnnotation)
         val injectedQuery =
-            injectedQueryHost?.children?.firstOrNull() ?: return Node(source, listOf(collection))
+            injectedQueryHost?.children?.firstOrNull()
+                ?: return Node(source, listOf(operation, collection))
 
         return Node(
             source,
             listOf(
+                operation,
                 collection,
                 HasFilter(recursivelyParseJsonFilter(injectedQuery, source))
             )
@@ -75,7 +80,10 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
             }
             "PROPERTY" -> {
                 val fieldText = source.children[0].text
-                if (fieldText.startsWith('$') &&
+                val operator = Name.from(fieldText.substring(1))
+                if (operator != Name.UNKNOWN &&
+                    operator != Name.IN &&
+                    operator != Name.NIN &&
                     source.children[1].elementType.toString() == "ARRAY"
                 ) { // it's an operator with children
                     val opName = Named(Name.from(fieldText.substring(1)))
@@ -90,7 +98,7 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                             )
                         )
                     )
-                } else if (fieldText.startsWith('$')) { // it's an operator with a single value
+                } else if (operator != Name.UNKNOWN) { // it's an operator with a single value
                     val opName = Named(Name.from(fieldText.substring(1)))
                     return listOf(
                         Node(
@@ -176,8 +184,18 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                 )
             }
             "ARRAY" -> {
+                val arrayValues = valueRef.children.map {
+                    resolveValueReference(it, parent)
+                }.mapNotNull {
+                    when (val ref = it.reference) {
+                        is HasValueReference.Runtime -> ref.type
+                        is HasValueReference.Constant -> ref.type
+                        else -> null
+                    }
+                }.toSet()
+
                 return HasValueReference(
-                    HasValueReference.Runtime(valueRef, BsonArray(BsonAny))
+                    HasValueReference.Runtime(valueRef, BsonArray(BsonAnyOf(arrayValues)))
                 )
             }
             else -> {
@@ -262,5 +280,54 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                 .getOrNull(0) ?: return null
 
         return languageManager.getInjectedPsiFiles(literalExpression)?.getOrNull(0)?.first
+    }
+
+    private fun inferCommandFromQuery(method: PsiMethod, queryAnnotation: PsiAnnotation): IsCommand {
+        return IsCommand(
+            when {
+                queryAnnotation.findAttributeValue("count")?.text == "true" ->
+                    IsCommand.CommandType.COUNT_DOCUMENTS
+                queryAnnotation.findAttributeValue("exists")?.text == "true" ->
+                    IsCommand.CommandType.FIND_ONE
+                queryAnnotation.findAttributeValue("delete")?.text == "true" ->
+                    IsCommand.CommandType.DELETE_MANY
+                doesMethodReturnSingleObject(method) ->
+                    IsCommand.CommandType.FIND_ONE
+                else -> IsCommand.CommandType.FIND_MANY
+            }
+        )
+    }
+
+    private fun doesMethodReturnSingleObject(method: PsiMethod): Boolean {
+        val javaFacade = JavaPsiFacade.getInstance(method.project)
+        val iterableClass =
+            javaFacade.findClass(
+                "java.lang.Iterable",
+                GlobalSearchScope.everythingScope(method.project)
+            )
+                ?: return true // the jdk is not available
+
+        val baseStreamClass =
+            javaFacade.findClass(
+                "java.util.stream.BaseStream",
+                GlobalSearchScope.everythingScope(method.project)
+            )
+                ?: return true // the jdk is not available
+
+        val returnType = method.returnType ?: return true // if we don't know the type, assume it's a single object
+        val returnPsiClass = PsiTypesUtil.getPsiClass(returnType) ?: return true
+
+        if (returnPsiClass == iterableClass || returnPsiClass == baseStreamClass) {
+            return false
+        }
+
+        if (returnPsiClass.isInheritorDeep(iterableClass, null)) {
+            return false
+        }
+        if (returnPsiClass.isInheritorDeep(baseStreamClass, null)) {
+            return false
+        }
+
+        return true
     }
 }
