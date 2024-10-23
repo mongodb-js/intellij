@@ -40,36 +40,46 @@ class IdeaFrame(
 
             val escapedPath = Encode.forJavaScript(path)
 
-            runJs(
-                """
-            importPackage(com.intellij.openapi.fileEditor)
-            importPackage(com.intellij.openapi.vfs)
-            importPackage(com.intellij.openapi.wm.impl)
-            importClass(com.intellij.openapi.application.ApplicationManager)
-            importClass(com.intellij.openapi.fileEditor.FileEditorManager)
-            importClass(com.intellij.openapi.application.ModalityState)
-            
-            const path = '$escapedPath'
-            const frameHelper = ProjectFrameHelper.getFrameHelper(component)
-            if (frameHelper) {
-                const project = frameHelper.getProject()
-                const projectPath = project.getBasePath()
-                const file = LocalFileSystem.getInstance().findFileByPath(projectPath + '/' + path)
-                const openFileFunction = new Runnable({
-                    run: function() {
-                        const fileEditorManager = FileEditorManager.getInstance(project);
-                        const fileDescriptor = new OpenFileDescriptor(
-                            project,
-                            file
-                        );
-                        fileEditorManager.openTextEditor(fileDescriptor, true)
+            val runResult = runCatching {
+                runJs(
+                    """
+                    importPackage(com.intellij.openapi.fileEditor)
+                    importPackage(com.intellij.openapi.vfs)
+                    importPackage(com.intellij.openapi.wm.impl)
+                    importClass(com.intellij.openapi.application.ApplicationManager)
+                    importClass(com.intellij.openapi.fileEditor.FileEditorManager)
+                    importClass(com.intellij.openapi.application.ModalityState)
+                    
+                    const path = '$escapedPath'
+                    const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+                    if (frameHelper) {
+                        const project = frameHelper.getProject()
+                        const projectPath = project.getBasePath()
+                        const file = LocalFileSystem.getInstance().findFileByPath(projectPath + '/' + path)
+                        const openFileFunction = new Runnable({
+                            run: function() {
+                                const fileEditorManager = FileEditorManager.getInstance(project);
+                                const fileDescriptor = new OpenFileDescriptor(
+                                    project,
+                                    file
+                                );
+                                fileEditorManager.openTextEditor(fileDescriptor, true)
+                            }
+                        })
+                        ApplicationManager.getApplication().invokeAndWait(openFileFunction, ModalityState.current())
                     }
-                })
-                ApplicationManager.getApplication().invokeAndWait(openFileFunction, ModalityState.current())
+                """,
+                    true,
+                )
             }
-        """,
-                true,
-            )
+
+            if (runResult.isFailure) {
+                if (runResult.exceptionOrNull()?.message?.contains("Write-unsafe context") !=
+                    true
+                ) {
+                    throw runResult.exceptionOrNull()!!
+                }
+            }
         }
         CommonSteps(remoteRobot).wait(1)
     }
@@ -84,7 +94,7 @@ class IdeaFrame(
         url: MongoDbServerUrl,
     ) {
         step("Adding DataSource with name=$name, url=$url") {
-            val failed = runCatching {
+            val runResult = runCatching {
                 runJs(
                     """
                 const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
@@ -135,12 +145,13 @@ class IdeaFrame(
                     """.trimIndent(),
                     runInEdt = true,
                 )
-            }.isFailure
+            }
 
-            if (failed) {
-                step("Warning: Adding DataSource with name=$name, url=$url was errored") {
-                    // The runJs errors with Modality error but the DataSource is still added
-                    // which is why we ignore the error silently but log it for debug information
+            if (runResult.isFailure) {
+                if (runResult.exceptionOrNull()?.message?.contains("Write-unsafe context") !=
+                    true
+                ) {
+                    throw runResult.exceptionOrNull()!!
                 }
             }
         }
@@ -149,22 +160,32 @@ class IdeaFrame(
 
     fun disablePowerSaveMode() {
         step("Disable Power Save Mode") {
-            runJs(
-                """
-            importClass(com.intellij.ide.PowerSaveMode)
-            importClass(com.intellij.openapi.application.ApplicationManager)
-            importClass(com.intellij.openapi.application.ModalityState)
+            val runResult = runCatching {
+                runJs(
+                    """
+                importClass(com.intellij.ide.PowerSaveMode)
+                importClass(com.intellij.openapi.application.ApplicationManager)
+                importClass(com.intellij.openapi.application.ModalityState)
+                
+                const disableIt = new Runnable({
+                        run: function() {
+                            PowerSaveMode.setEnabled(false)
+                        }
+                    })
             
-            const disableIt = new Runnable({
-                    run: function() {
-                        PowerSaveMode.setEnabled(false)
-                    }
-                })
-        
-            ApplicationManager.getApplication().invokeLater(disableIt, ModalityState.current())
-                """.trimIndent(),
-                runInEdt = true,
-            )
+                ApplicationManager.getApplication().invokeLater(disableIt, ModalityState.current())
+                    """.trimIndent(),
+                    runInEdt = true,
+                )
+            }
+
+            if (runResult.isFailure) {
+                if (runResult.exceptionOrNull()?.message?.contains("Write-unsafe context") !=
+                    true
+                ) {
+                    throw runResult.exceptionOrNull()!!
+                }
+            }
         }
         CommonSteps(remoteRobot).wait(1)
     }
@@ -219,33 +240,43 @@ class IdeaFrame(
 
     fun closeAllFiles() {
         step("Closing all files") {
-            runJs(
-                """
-            importPackage(com.intellij.openapi.fileEditor)
-            importPackage(com.intellij.openapi.vfs)
-            importPackage(com.intellij.openapi.wm.impl)
-            importClass(com.intellij.openapi.application.ApplicationManager)
-            importClass(com.intellij.openapi.application.ModalityState)
-            
-            const frameHelper = ProjectFrameHelper.getFrameHelper(component)
-            if (frameHelper) {
-                const project = frameHelper.getProject()
-                const closeEditorsFunction = new Runnable({
-                    run: function() {
-                         const editorManager = FileEditorManager.getInstance(project)
-                         const files = editorManager.openFiles
-                         files.forEach((file) => { editorManager.closeFile(file) })
+            val runResult = runCatching {
+                runJs(
+                    """
+                    importPackage(com.intellij.openapi.fileEditor)
+                    importPackage(com.intellij.openapi.vfs)
+                    importPackage(com.intellij.openapi.wm.impl)
+                    importClass(com.intellij.openapi.application.ApplicationManager)
+                    importClass(com.intellij.openapi.application.ModalityState)
+                    
+                    const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+                    if (frameHelper) {
+                        const project = frameHelper.getProject()
+                        const closeEditorsFunction = new Runnable({
+                            run: function() {
+                                 const editorManager = FileEditorManager.getInstance(project)
+                                 const files = editorManager.openFiles
+                                 files.forEach((file) => { editorManager.closeFile(file) })
+                            }
+                        })
+        
+                        ApplicationManager.getApplication().invokeLater(
+                            closeEditorsFunction,
+                            ModalityState.current()
+                        )
                     }
-                })
-
-                ApplicationManager.getApplication().invokeLater(
-                    closeEditorsFunction,
-                    ModalityState.current()
+                    """,
+                    true,
                 )
             }
-        """,
-                true,
-            )
+
+            if (runResult.isFailure) {
+                if (runResult.exceptionOrNull()?.message?.contains("Write-unsafe context") !=
+                    true
+                ) {
+                    throw runResult.exceptionOrNull()!!
+                }
+            }
         }
         CommonSteps(remoteRobot).wait(1)
     }
