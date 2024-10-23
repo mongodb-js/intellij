@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.editor.inputs
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.asSequence
@@ -80,10 +81,10 @@ class DatabaseComboBox(
         var isFirstInit = true
         coroutineScope.launch {
             project.getToolbarModel().toolbarState.collect { state ->
-                ApplicationManager.getApplication().invokeLater {
+                ApplicationManager.getApplication().invokeLater({
                     updateComboBoxState(state, isFirstInit)
                     isFirstInit = false
-                }
+                }, ModalityState.stateForComponent(comboBoxComponent))
             }
         }
     }
