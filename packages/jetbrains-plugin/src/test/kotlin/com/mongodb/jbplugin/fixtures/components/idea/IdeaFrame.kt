@@ -158,6 +158,43 @@ class IdeaFrame(
         CommonSteps(remoteRobot).wait(1)
     }
 
+    fun cleanDataSources() {
+        step("Removing all data sources") {
+            val runResult = runCatching {
+                runJs(
+                    """
+                const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
+                    'com.intellij.database.dataSource.LocalDataSourceManager'
+                )
+                importClass(java.lang.System)
+                importClass(com.intellij.openapi.project.Project)
+                importClass(com.intellij.openapi.util.Key)
+                importPackage(com.intellij.openapi.progress)
+                importPackage(com.intellij.openapi.wm.impl)
+                importPackage(com.intellij.database.view.ui)
+                importClass(com.intellij.openapi.application.ApplicationManager)
+
+                const frameHelper = ProjectFrameHelper.getFrameHelper(component)
+                const project = frameHelper.getProject()
+                const dataSourceManager = LocalDataSourceManager.getMethod("getInstance", Project).invoke(null, project)
+                const dataSources = dataSourceManager.getDataSources();
+                for (let i = 0; i < dataSources.size(); i++) {
+                    dataSourceManager.removeDataSource(dataSources.get(i));
+                }
+                    """.trimIndent(),
+                    runInEdt = true,
+                )
+            }
+            if (runResult.isFailure) {
+                if (runResult.exceptionOrNull()?.message?.contains("Write-unsafe context") !=
+                    true
+                ) {
+                    throw runResult.exceptionOrNull()!!
+                }
+            }
+        }
+    }
+
     fun disablePowerSaveMode() {
         step("Disable Power Save Mode") {
             val runResult = runCatching {

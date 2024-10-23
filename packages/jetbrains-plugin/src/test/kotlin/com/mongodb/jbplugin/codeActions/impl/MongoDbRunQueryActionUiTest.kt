@@ -3,7 +3,6 @@ package com.mongodb.jbplugin.codeActions.impl
 import com.intellij.remoterobot.RemoteRobot
 import com.mongodb.jbplugin.fixtures.*
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
-import com.mongodb.jbplugin.fixtures.components.openDatabaseToolWindow
 import com.mongodb.jbplugin.fixtures.components.openRunQueryPopup
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -21,15 +20,13 @@ class MongoDbRunQueryActionUiTest {
         remoteRobot: RemoteRobot,
         url: MongoDbServerUrl,
     ) {
-        // This is our safety net to ensure we start with a clean slate
-        remoteRobot.openDatabaseToolWindow().removeAllDataSources()
-        remoteRobot.closeRightToolWindow()
+        remoteRobot.ideaFrame().cleanDataSources()
         remoteRobot.ideaFrame().addDataSourceWithUrl(javaClass.simpleName, url)
     }
 
     @AfterEach
     fun tearDown(remoteRobot: RemoteRobot) {
-        remoteRobot.openDatabaseToolWindow().removeAllDataSources()
+        remoteRobot.ideaFrame().cleanDataSources()
     }
 
     @Test
