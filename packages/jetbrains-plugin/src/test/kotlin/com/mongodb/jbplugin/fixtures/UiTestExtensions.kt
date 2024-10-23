@@ -10,11 +10,11 @@ import com.intellij.database.util.common.containsElements
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.fixtures.ContainerFixture
 import com.intellij.remoterobot.search.locators.byXpath
-import com.intellij.remoterobot.stepsProcessing.StepLogger
 import com.intellij.remoterobot.stepsProcessing.StepWorker
 import com.intellij.remoterobot.utils.DefaultHttpClient.client
 import com.intellij.remoterobot.utils.keyboard
 import com.mongodb.jbplugin.fixtures.components.idea.ideaFrame
+import com.mongodb.jbplugin.fixtures.components.openGradleToolWindow
 import okhttp3.Request
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.extension.*
@@ -71,8 +71,8 @@ private class UiTestExtension :
     ): Any = remoteRobot
 
     override fun beforeAll(context: ExtensionContext?) {
-        if (!StepWorker.processors.containsElements { it is StepLogger }) {
-            StepWorker.registerProcessor(StepLogger())
+        if (!StepWorker.processors.containsElements { it is MdbStepLogger }) {
+            StepWorker.registerProcessor(MdbStepLogger())
         }
 
         remoteRobot = RemoteRobot(remoteRobotUrl)
@@ -115,9 +115,12 @@ private class UiTestExtension :
     }
 
     override fun beforeEach(context: ExtensionContext?) {
+        val testMethod =
+            context?.requiredTestMethod ?: throw IllegalStateException("test method is null")
+        val testMethodName = testMethod.name
         val requiresProject =
             context
-                ?.requiredTestMethod
+                .requiredTestMethod
                 ?.annotations
                 ?.find { annotation ->
                     annotation.annotationClass == RequiresProject::class
@@ -126,18 +129,26 @@ private class UiTestExtension :
         remoteRobot.keyboard { escape() }
         remoteRobot.closeProject()
 
-        requiresProject?.let {
+        requiresProject?.let { project ->
             // If we have the @RequireProject annotation, load that project on startup
             remoteRobot.openProject(
-                Path("src/test/resources/project-fixtures/${it.value}").toAbsolutePath().toString(),
+                Path(
+                    "src/test/resources/project-fixtures/${project.value}"
+                ).toAbsolutePath().toString(),
             )
 
-            if (it.smartMode) {
+            if (project.smartMode) {
                 remoteRobot.ideaFrame().disablePowerSaveMode()
+                remoteRobot.openGradleToolWindow().also {
+                    it.ensureGradleProjectsAreSynced()
+                }
+                // This ideally should not be needed anymore, but we still perform this
+                // to wait for smart mode to kick-in before doing anything else.
                 remoteRobot.ideaFrame().waitUntilProjectIsInSync()
             }
 
-            remoteRobot.ideaFrame().hideIntellijAiAd()
+            // Close any right tool window
+            remoteRobot.closeRightToolWindow()
         }
     }
 

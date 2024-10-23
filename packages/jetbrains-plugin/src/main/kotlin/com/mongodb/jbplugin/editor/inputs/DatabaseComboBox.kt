@@ -1,10 +1,13 @@
 package com.mongodb.jbplugin.editor.inputs
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.asSequence
 import com.intellij.ui.AnimatedIcon.ANIMATION_IN_RENDERER_ALLOWED
 import com.intellij.ui.components.JBLabel
+import com.mongodb.jbplugin.editor.models.ToolbarState
 import com.mongodb.jbplugin.editor.models.getToolbarModel
 import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.i18n.Icons.scaledToText
@@ -78,14 +81,10 @@ class DatabaseComboBox(
         var isFirstInit = true
         coroutineScope.launch {
             project.getToolbarModel().toolbarState.collect { state ->
-                withoutSelectionChangedListener {
-                    loadingDatabases = state.databasesLoadingForSelectedDataSource
-                    if (isFirstInit || state.databases != databases) {
-                        isFirstInit = false
-                        populateComboBoxWithDatabases(state.databases)
-                    }
-                    selectDatabaseAndNotify(state.selectedDatabase)
-                }
+                ApplicationManager.getApplication().invokeLater({
+                    updateComboBoxState(state, isFirstInit)
+                    isFirstInit = false
+                }, ModalityState.stateForComponent(comboBoxComponent))
             }
         }
     }
@@ -99,11 +98,27 @@ class DatabaseComboBox(
         }
     }
 
-    private fun populateComboBoxWithDatabases(databases: List<String>) {
-        comboBoxModel.removeAllElements()
-        // First item is purposely a null to render "Detach data source label"
-        comboBoxModel.addElement(null)
-        comboBoxModel.addAll(databases)
+    private fun updateComboBoxState(state: ToolbarState, isFirstInit: Boolean) = withoutSelectionChangedListener {
+        loadingDatabases = state.databasesLoadingForSelectedDataSource
+        if (isFirstInit || state.databases != databases) {
+            populateComboBoxWithDatabases(state.databases.toSet())
+        }
+        selectDatabaseAndNotify(state.selectedDatabase)
+    }
+
+    private fun populateComboBoxWithDatabases(newDatabases: Set<String>) {
+        val oldDatabases = databases.toSet()
+
+        val databasesToAdd = newDatabases - oldDatabases
+        val databasesToRemove = oldDatabases - newDatabases
+
+        databasesToAdd.forEach { comboBoxModel.addElement(it) }
+        databasesToRemove.forEach { comboBoxModel.removeElement(it) }
+
+        if (comboBoxModel.getIndexOf(null) != 0) {
+            comboBoxModel.removeElement(null)
+            comboBoxModel.insertElementAt(null, 0)
+        }
     }
 
     private fun selectDatabaseAndNotify(database: String?) {
