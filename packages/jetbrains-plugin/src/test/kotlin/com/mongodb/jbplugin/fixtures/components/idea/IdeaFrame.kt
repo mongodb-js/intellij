@@ -9,7 +9,6 @@ package com.mongodb.jbplugin.fixtures.components.idea
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
-import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
@@ -256,76 +255,6 @@ class IdeaFrame(
             waitUntilModulesAreLoaded(modulesTimeout)
             waitForSmartMode(smartModeTimeout)
         }
-    }
-
-    fun hideIntellijAiAd() {
-        step("Hide IntelliJ AI Ad (uses a lot of space in a small window)") {
-            tryHidingAiAdOnOldUI()
-            tryHidingAiAdOnNewUI()
-        }
-    }
-
-    private fun tryHidingAiAdOnNewUI() {
-        step("Attempting to hide AI ad on new UI") {
-            runCatching {
-                val aiMenu = remoteRobot.find<JButtonFixture>(
-                    byXpath("//div[@accessiblename='AI Assistant']")
-                )
-                aiMenu.rightClick()
-                remoteRobot.find<JButtonFixture>(
-                    byXpath("//div[@text='Hide']")
-                ).click()
-            }
-        }
-    }
-
-    private fun tryHidingAiAdOnOldUI() {
-        step("Attempting to hide AI ad on old UI") {
-            runCatching {
-                val aiMenu = remoteRobot.find<JButtonFixture>(
-                    byXpath("//div[@tooltiptext='Install AI Assistant']")
-                )
-                aiMenu.rightClick()
-                remoteRobot.find<JButtonFixture>(
-                    byXpath("//div[@text='Remove from Sidebar']")
-                ).click()
-            }
-        }
-    }
-
-    fun cleanDataSources() {
-        step("Cleaning DataSources") {
-            // From time to time this fails with write safe context errors
-            // but given that the removal happens anyways, we are silently ignoring
-            // the error here
-            runCatching {
-                runJs(
-                    """
-                const LocalDataSourceManager = global.get('loadDataGripPluginClass')(
-                    'com.intellij.database.dataSource.LocalDataSourceManager'
-                )
-                
-                importClass(java.lang.System)
-                importClass(com.intellij.openapi.project.Project)
-                importClass(com.intellij.openapi.util.Key)
-                importPackage(com.intellij.openapi.progress)
-                importPackage(com.intellij.openapi.wm.impl)
-                importPackage(com.intellij.database.view.ui)
-                importClass(com.intellij.openapi.application.ApplicationManager)
-    
-                const frameHelper = ProjectFrameHelper.getFrameHelper(component)
-                const project = frameHelper.getProject()
-                const dataSourceManager = LocalDataSourceManager.getMethod("getInstance", Project).invoke(null, project)
-                const dataSources = dataSourceManager.getDataSources();
-                for (let i = 0; i < dataSources.size(); i++) {
-                    dataSourceManager.removeDataSource(dataSources.get(i));
-                }
-                    """.trimIndent(),
-                    runInEdt = true,
-                )
-            }
-        }
-        CommonSteps(remoteRobot).wait(1)
     }
 
     fun closeAllFiles() {
