@@ -13,9 +13,7 @@ import com.intellij.remoterobot.steps.CommonSteps
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.waitFor
 import com.mongodb.jbplugin.fixtures.MongoDbServerUrl
-import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.owasp.encoder.Encode
 import java.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -49,6 +47,7 @@ class IdeaFrame(
             importPackage(com.intellij.openapi.wm.impl)
             importClass(com.intellij.openapi.application.ApplicationManager)
             importClass(com.intellij.openapi.fileEditor.FileEditorManager)
+            importClass(com.intellij.openapi.application.ModalityState)
             
             const path = '$escapedPath'
             const frameHelper = ProjectFrameHelper.getFrameHelper(component)
@@ -66,7 +65,7 @@ class IdeaFrame(
                         fileEditorManager.openTextEditor(fileDescriptor, true)
                     }
                 })
-                ApplicationManager.getApplication().invokeAndWait(openFileFunction)
+                ApplicationManager.getApplication().invokeAndWait(openFileFunction, ModalityState.current())
             }
         """,
                 true,
@@ -148,53 +147,13 @@ class IdeaFrame(
         CommonSteps(remoteRobot).wait(1)
     }
 
-    fun waitUntilConnectedToMongoDb(name: String, timeout: Duration = Duration.ofMinutes(1)) {
-        eventually(timeout) {
-            step("Waiting for DataSource $name to connect, timeout=$timeout") {
-                assertTrue(
-                    callJs<Boolean>(
-                        """
-                    importClass(java.lang.System)
-
-                    const DatabaseConnectionManager = global.get('loadDataGripPluginClass')(
-                        'com.intellij.database.dataSource.DatabaseConnectionManager'
-                    )
-                    
-                    const connectionManager = DatabaseConnectionManager.getMethod("getInstance").invoke(null)
-                    const activeConnections = connectionManager.getActiveConnections()
-                    var connected = false;
-                    
-                    for (connection of activeConnections) {                    
-                        if(connection.getConnectionPoint().getDataSource().name.equals("$name")) {
-                            try {
-                                connected = !connection.getRemoteConnection().isClosed() && 
-                                             connection.getRemoteConnection().isValid(10)
-                            } catch (e) {
-                                System.err.println(e.toString())
-                            }
-                            
-                            if (connected) {
-                                break
-                            }
-                        }
-                    }
-                    
-                    connected
-                        """.trimIndent(),
-                        runInEdt = true
-                    )
-                )
-            }
-        }
-        CommonSteps(remoteRobot).wait(1)
-    }
-
     fun disablePowerSaveMode() {
         step("Disable Power Save Mode") {
             runJs(
                 """
             importClass(com.intellij.ide.PowerSaveMode)
             importClass(com.intellij.openapi.application.ApplicationManager)
+            importClass(com.intellij.openapi.application.ModalityState)
             
             const disableIt = new Runnable({
                     run: function() {
@@ -202,8 +161,9 @@ class IdeaFrame(
                     }
                 })
         
-            ApplicationManager.getApplication().invokeLater(disableIt)
-                """.trimIndent()
+            ApplicationManager.getApplication().invokeLater(disableIt, ModalityState.current())
+                """.trimIndent(),
+                runInEdt = true,
             )
         }
         CommonSteps(remoteRobot).wait(1)
@@ -265,6 +225,7 @@ class IdeaFrame(
             importPackage(com.intellij.openapi.vfs)
             importPackage(com.intellij.openapi.wm.impl)
             importClass(com.intellij.openapi.application.ApplicationManager)
+            importClass(com.intellij.openapi.application.ModalityState)
             
             const frameHelper = ProjectFrameHelper.getFrameHelper(component)
             if (frameHelper) {
@@ -277,7 +238,10 @@ class IdeaFrame(
                     }
                 })
 
-                ApplicationManager.getApplication().invokeLater(closeEditorsFunction)
+                ApplicationManager.getApplication().invokeLater(
+                    closeEditorsFunction,
+                    ModalityState.current()
+                )
             }
         """,
                 true,
