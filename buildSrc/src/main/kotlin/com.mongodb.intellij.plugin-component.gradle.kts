@@ -3,7 +3,6 @@ import org.gradle.accessors.dm.LibrariesForLibs
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.date
 import org.jetbrains.intellij.tasks.RunIdeForUiTestTask
-import org.gradle.api.Project
 
 plugins {
     id("com.mongodb.intellij.isolated-module")

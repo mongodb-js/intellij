@@ -26,6 +26,7 @@ dependencies {
     jacocoAggregation(project(":packages:mongodb-dialects:java-driver"))
     jacocoAggregation(project(":packages:mongodb-dialects:mongosh"))
     jacocoAggregation(project(":packages:mongodb-dialects:spring-criteria"))
+    jacocoAggregation(project(":packages:mongodb-dialects:spring-@query"))
     jacocoAggregation(project(":packages:mongodb-linting-engine"))
     jacocoAggregation(project(":packages:mongodb-mql-model"))
 }
