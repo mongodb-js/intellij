@@ -109,7 +109,7 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                             )
                         )
                     )
-                } else if (isImplicitAnd(source.children[1])) {
+                } else if (isImplicitAnd(source.children.getOrNull(1))) {
                     val fieldName = resolveToFieldNameReference(source.children[0])
                     val allFilters = recursivelyParseJsonFilter(source.children[1], parent).map {
                         it.copy(components = it.components + fieldName)
@@ -239,7 +239,11 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
         )
     }
 
-    private fun isImplicitAnd(valueRef: PsiElement): Boolean {
+    private fun isImplicitAnd(valueRef: PsiElement?): Boolean {
+        if (valueRef == null) {
+            return false
+        }
+
         val hasProps = valueRef.children.all {
             val propName = it.children[0].text
             propName.startsWith('$')
