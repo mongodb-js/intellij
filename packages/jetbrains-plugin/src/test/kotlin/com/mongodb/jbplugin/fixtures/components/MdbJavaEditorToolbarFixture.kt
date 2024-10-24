@@ -12,6 +12,7 @@ import com.mongodb.jbplugin.fixtures.eventually
 import com.mongodb.jbplugin.fixtures.findVisible
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -43,11 +44,30 @@ class MdbJavaEditorToolbarFixture(
                 timeout = 50.milliseconds.toJavaDuration()
             )
         }.isSuccess
-    fun detachDataSource() {
-        eventually {
+
+    fun selectDataSource(title: String) {
+        eventually("Selecting DataSource $title in toolbar", 1.minutes.toJavaDuration()) {
+            dataSources.selectItemContains(title)
+            if (!dataSources.selectedText().contains(title)) {
+                throw Exception("Could not select data source - $title")
+            }
+        }
+    }
+
+    fun selectDetachDataSource() {
+        eventually("Detaching DataSource from toolbar", 1.minutes.toJavaDuration()) {
             dataSources.selectItem("Detach data source")
-            if (!dataSources.selectedText().contains("Attach MongoDB")) {
+            if (dataSources.selectedText() != "") {
                 throw Exception("Could not detach data source")
+            }
+        }
+    }
+
+    fun selectDatabase(title: String) {
+        eventually("Selecting Database $title in toolbar", 1.minutes.toJavaDuration()) {
+            databases.selectItemContains(title)
+            if (!databases.selectedText().contains(title)) {
+                throw Exception("Could not select database - $title")
             }
         }
     }

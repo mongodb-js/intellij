@@ -213,7 +213,7 @@ jobs:
           path: |
             **/build/reports/**/*.html
             **/build/reports/**/*.log
-            **/build/reports/*/*.png
+            **/build/reports/**/*.png
             **/build/idea-sandbox/system/**/*.log
             **/build/idea-sandbox/system-test/**/*.log
             **/video/**/*.avi
