@@ -44,3 +44,4 @@ FAKE_BROWSER_OUTPUT
 /.kotlin
 
 /.idea/dataSources
+*.iml
