@@ -33,6 +33,8 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             return Node(source, emptyList())
         }
 
+        val sourceDialect = HasSourceDialect(HasSourceDialect.DialectName.SPRING_CRITERIA)
+
         val mongoOpCall = source.findSpringMongoDbExpression()
         val mongoOpMethod = mongoOpCall?.fuzzyResolveMethod()
 
@@ -50,11 +52,12 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "oneValue" -> {
                 // these are terminal operators, so the query is just above us (below in the PSI)
                 val actualMethod = mongoOpCall.firstChild?.firstChild as? PsiMethodCallExpression
-                    ?: return Node(mongoOpCall, listOf(command, inferredFromChain))
+                    ?: return Node(mongoOpCall, listOf(sourceDialect, command, inferredFromChain))
 
                 return Node(
                     actualMethod,
                     listOf(
+                        sourceDialect,
                         command,
                         inferredFromChain.or(
                             extractCollectionFromParameter(
@@ -81,6 +84,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "stream" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -101,6 +105,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "upsert" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -124,6 +129,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "findById" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -136,6 +142,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "findDistinct" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -151,6 +158,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "insert" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -162,6 +170,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "insertAll" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -173,6 +182,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "remove" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -188,6 +198,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             "replace" -> Node(
                 mongoOpCall,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
@@ -203,6 +214,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             else -> Node(
                 mongoOpCall!!,
                 listOf(
+                    sourceDialect,
                     command,
                     inferredFromChain.or(
                         extractCollectionFromParameter(
