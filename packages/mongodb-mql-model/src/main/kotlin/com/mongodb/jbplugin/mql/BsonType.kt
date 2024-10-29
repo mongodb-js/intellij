@@ -175,7 +175,7 @@ data class BsonArray(
         is BsonAny -> true
         is BsonAnyOf -> otherType.types.any { this.isAssignableTo(it) }
         is BsonArray -> this.schema.isAssignableTo(otherType.schema)
-        else -> false
+        else -> this.schema.isAssignableTo(otherType)
     }
 }
 
