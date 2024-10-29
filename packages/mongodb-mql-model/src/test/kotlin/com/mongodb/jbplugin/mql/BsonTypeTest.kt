@@ -122,6 +122,10 @@ class BsonTypeTest {
                     // For queries written in Java, it is possible that the values are boxed which makes them nullable
                     // also. Such values should still be assignable to a detected non-nullable BsonType
                     arrayOf(BsonAnyOf(simpleType, BsonNull), simpleType, true),
+                    // A list of simple type is assignable to the simple type in case of filters like
+                    // $in. Example: { continent: { $in: ["Europe", "Asia"] } }
+                    arrayOf(BsonArray(simpleType), simpleType, true),
+                    arrayOf(BsonArray(BsonAnyOf(simpleType)), simpleType, true),
 
                     // Any other type is just not assignable to this BsonType
                     arrayOf(simpleTypes.randomOtherThan(simpleType), simpleType, false),
@@ -136,7 +140,6 @@ class BsonTypeTest {
                     arrayOf(BsonNull, simpleType, false),
 
                     // Collections as well are not assignable to these simple types
-                    arrayOf(BsonArray(simpleType), simpleType, false),
                     arrayOf(BsonObject(mapOf("simpleTypeField" to simpleType)), simpleType, false),
                 )
             }.toTypedArray()
@@ -154,6 +157,8 @@ class BsonTypeTest {
             // also. Such values should still be assignable to a detected non-nullable BsonType
             arrayOf(BsonAnyOf(BsonInt64, BsonNull), BsonInt64, true),
             arrayOf(BsonAnyOf(BsonInt32, BsonNull), BsonInt64, true),
+            // Possible when used in a $in Filter
+            arrayOf(BsonArray(BsonInt64), BsonInt64, true),
 
             // Any other type is just not assignable to this BsonType
             arrayOf(simpleTypes.randomOtherThan(setOf(BsonInt32, BsonInt64)), BsonInt64, false),
@@ -172,7 +177,6 @@ class BsonTypeTest {
             arrayOf(BsonNull, BsonInt64, false),
 
             // Collections as well are not assignable to these simple types
-            arrayOf(BsonArray(BsonInt64), BsonInt64, false),
             arrayOf(BsonObject(mapOf("simpleTypeField" to BsonInt64)), BsonInt64, false),
         )
 
@@ -188,6 +192,8 @@ class BsonTypeTest {
             // also. Such values should still be assignable to a detected non-nullable BsonType
             arrayOf(BsonAnyOf(BsonDecimal128, BsonNull), BsonDecimal128, true),
             arrayOf(BsonAnyOf(BsonDouble, BsonNull), BsonDecimal128, true),
+            // Possible when used in a $in Filter
+            arrayOf(BsonArray(BsonDecimal128), BsonDecimal128, true),
 
             // Any other type is just not assignable to this BsonType
             arrayOf(
@@ -210,7 +216,6 @@ class BsonTypeTest {
             arrayOf(BsonNull, BsonDecimal128, false),
 
             // Collections as well are not assignable to these simple types
-            arrayOf(BsonArray(BsonDecimal128), BsonDecimal128, false),
             arrayOf(BsonObject(mapOf("simpleTypeField" to BsonDecimal128)), BsonDecimal128, false),
         )
 
@@ -358,6 +363,15 @@ class BsonTypeTest {
                 arrayOf(BsonArray(BsonAnyOf(BsonString, BsonNull)), BsonArray(BsonString), true),
                 arrayOf(
                     BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    BsonArray(BsonAnyOf(BsonString, BsonNull)),
+                    true
+                ),
+                // This happens when the underlying field is array of simple type and we are querying
+                // for documents having just the mentioned value of mentioned type
+                // example: { list_of_amenities: "TV" }
+                arrayOf(BsonString, BsonArray(BsonString), true),
+                arrayOf(
+                    BsonAnyOf(BsonString, BsonNull),
                     BsonArray(BsonAnyOf(BsonString, BsonNull)),
                     true
                 ),
