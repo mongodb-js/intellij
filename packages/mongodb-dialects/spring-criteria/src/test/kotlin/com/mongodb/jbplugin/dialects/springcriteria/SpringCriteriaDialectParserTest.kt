@@ -52,6 +52,10 @@ class Repository {
     ) {
         val query = psiFile.getQueryAtMethod("Repository", "allReleasedBooks")
         SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.FIND_MANY) {
+            component<HasSourceDialect> {
+                assertEquals(HasSourceDialect.DialectName.SPRING_CRITERIA, name)
+            }
+
             collection<HasCollectionReference.OnlyCollection<PsiElement>> {
                 assertEquals("book", collection)
             }

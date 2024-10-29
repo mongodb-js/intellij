@@ -33,6 +33,7 @@ import com.intellij.testFramework.fixtures.DefaultLightProjectDescriptor
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.InjectionTestFixture
 import com.mongodb.assertions.Assertions.assertNotNull
+import com.mongodb.jbplugin.mql.Component
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
@@ -343,6 +344,16 @@ inline fun <reified T : HasCollectionReference.CollectionReference<PsiElement>> 
             "Collection reference was not of type ${T::class.java.canonicalName} but ${ref.reference.javaClass.canonicalName}"
         )
     }
+}
+
+inline fun <reified T : Component> Node<PsiElement>.component(
+    assertions: T.() -> Unit = {
+    }
+) {
+    val maybeComponent = component<T>()
+    assertNotNull(maybeComponent)
+
+    maybeComponent!!.assertions()
 }
 
 inline fun <reified T : HasFieldReference.FieldReference<PsiElement>> Node<PsiElement>.field(

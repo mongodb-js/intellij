@@ -28,10 +28,12 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
+        val sourceDialect = HasSourceDialect(HasSourceDialect.DialectName.JAVA_DRIVER)
         val collectionReference = NamespaceExtractor.extractNamespace(source)
 
         val currentCall =
-            source as? PsiMethodCallExpression ?: return Node(source, listOf(collectionReference))
+            source as? PsiMethodCallExpression
+                ?: return Node(source, listOf(sourceDialect, collectionReference))
 
         val calledMethod = currentCall.fuzzyResolveMethod()
         if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
@@ -41,6 +43,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return Node(
                 source,
                 listOf(
+                    sourceDialect,
                     methodToCommand(calledMethod),
                     collectionReference,
                     hasFilters,
@@ -68,8 +71,16 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         } else {
                             innerQuery
                         }
-                    } ?: Node(source, listOf(collectionReference, methodToCommand(calledMethod)))
-            } ?: return Node(source, listOf(collectionReference))
+                    }
+                    ?: Node(
+                        source,
+                        listOf(
+                            sourceDialect,
+                            collectionReference,
+                            methodToCommand(calledMethod)
+                        )
+                    )
+            } ?: return Node(source, listOf(sourceDialect, collectionReference))
         }
     }
 

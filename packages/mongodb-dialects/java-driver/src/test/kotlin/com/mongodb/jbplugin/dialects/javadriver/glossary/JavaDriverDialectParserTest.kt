@@ -137,8 +137,10 @@ public final class Repository {
 
         val knownReference = parsedQuery.component<HasCollectionReference<*>>()?.reference as HasCollectionReference.Known
         val command = parsedQuery.component<IsCommand>()
+        val dialect = parsedQuery.component<HasSourceDialect>()
         val namespace = knownReference.namespace
 
+        assertEquals(HasSourceDialect.DialectName.JAVA_DRIVER, dialect?.name)
         assertEquals("simple", namespace.database)
         assertEquals("books", namespace.collection)
         assertEquals(IsCommand.CommandType.FIND_ONE, command?.type)

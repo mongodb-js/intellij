@@ -26,6 +26,7 @@ import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasFilter
+import com.mongodb.jbplugin.mql.components.HasSourceDialect
 import com.mongodb.jbplugin.mql.components.HasValueReference
 import com.mongodb.jbplugin.mql.components.IsCommand
 import com.mongodb.jbplugin.mql.components.Name
@@ -49,21 +50,23 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
             return Node(source, emptyList())
         }
 
+        val sourceDialect = HasSourceDialect(HasSourceDialect.DialectName.SPRING_QUERY)
         val collection = resolveMethodCollection(source)
 
         val queryAnnotation = source.annotations.find {
             it.hasQualifiedName(QUERY_FQN)
-        } ?: return Node(source, listOf(collection))
+        } ?: return Node(source, listOf(sourceDialect, collection))
 
         val operation = inferCommandFromQuery(source, queryAnnotation)
         val injectedQueryHost = findInjectedQuery(queryAnnotation)
         val injectedQuery =
             injectedQueryHost?.children?.firstOrNull()
-                ?: return Node(source, listOf(operation, collection))
+                ?: return Node(source, listOf(sourceDialect, operation, collection))
 
         return Node(
             source,
             listOf(
+                sourceDialect,
                 operation,
                 collection,
                 HasFilter(recursivelyParseJsonFilter(injectedQuery, source))

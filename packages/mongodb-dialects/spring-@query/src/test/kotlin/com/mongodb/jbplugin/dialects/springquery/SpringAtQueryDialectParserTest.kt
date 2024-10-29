@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasSourceDialect
 import com.mongodb.jbplugin.mql.components.HasValueReference
 import com.mongodb.jbplugin.mql.components.IsCommand
 import com.mongodb.jbplugin.mql.components.Name
@@ -36,6 +37,9 @@ public interface SQRepository extends Repository<Comment, ObjectId> {
     fun `can detect the namespace of a query`(psiFile: PsiFile) {
         val query = psiFile.getQueryAtMethod("SQRepository", "findBySomething")
         SpringAtQueryDialectParser.parse(query).assert(IsCommand.CommandType.FIND_ONE) {
+            component<HasSourceDialect> {
+                assertEquals(HasSourceDialect.DialectName.SPRING_QUERY, name)
+            }
             collection<HasCollectionReference.OnlyCollection<PsiElement>> {
                 assertEquals("comments", collection)
             }
