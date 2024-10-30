@@ -200,7 +200,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         } else if (method.isVarArgs || method.name == "not") {
-// Filters.and, Filters.or... are varargs
+            // Filters.and, Filters.or... are varargs
             return Node(
                 filter,
                 listOf(
@@ -211,6 +211,22 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                             .mapNotNull { parseFilterExpression(it) },
                     ),
                 ),
+            )
+        } else if (method.name == "eq" && method.parameters.size == 1) {
+            if (filter.argumentList.expressionCount == 0) {
+                return null
+            }
+            val valueExpression = filter.argumentList.expressions[0]
+            val valueReference = resolveValueFromExpression(valueExpression)
+            val fieldReference = HasFieldReference.Known(valueExpression, "_id")
+
+            return Node(
+                filter,
+                listOf(
+                    Named(Name.from(method.name)),
+                    HasFieldReference(fieldReference),
+                    HasValueReference(valueReference),
+                )
             )
         } else if (method.parameters.size == 2) {
             // If it has two parameters, it's field/value.
@@ -230,7 +246,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         }
-// here we really don't know much, so just don't attempt to parse the query
+        // here we really don't know much, so just don't attempt to parse the query
         return null
     }
 
@@ -297,7 +313,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     private fun parseUpdatesExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
         val method = filter.resolveMethod() ?: return null
         if (method.isVarArgs) {
-// Updates.combine
+            // Updates.combine
             return Node(
                 filter,
                 listOf(
@@ -310,7 +326,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         } else if (method.parameters.size == 2) {
-// If it has two parameters, it's field/value.
+            // If it has two parameters, it's field/value.
             val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
             val valueReference = resolveValueFromExpression(filter.argumentList.expressions[1])
 
@@ -327,7 +343,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         } else if (method.parameters.size == 1) {
-// Updates.unset for example
+            // Updates.unset for example
             val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
 
             return Node(
@@ -340,7 +356,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
             )
         }
-// here we really don't know much, so just don't attempt to parse the query
+        // here we really don't know much, so just don't attempt to parse the query
         return null
     }
 
@@ -442,7 +458,7 @@ fun PsiType.isJavaIterable(): Boolean {
             }
     }
 
-    return return recursivelyCheckIsIterable(this)
+    return recursivelyCheckIsIterable(this)
 }
 
 fun PsiType.guessIterableContentType(project: Project): BsonType {

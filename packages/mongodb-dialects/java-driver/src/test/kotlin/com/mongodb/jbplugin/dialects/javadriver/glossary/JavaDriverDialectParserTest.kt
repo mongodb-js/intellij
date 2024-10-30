@@ -282,6 +282,46 @@ public final class Repository {
     }
 
     public FindIterable<Document> findBookById(ObjectId id) {
+        return this.collection.find(Filters.eq(id));
+    }
+}
+        """,
+    )
+    fun `can parse a query working with single parameter version of Filters#eq`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findBookById")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+
+        val eq = hasFilter.children[0]
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
+        assertEquals(
+            "_id",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+        )
+        assertEquals(
+            BsonAnyOf(BsonObjectId, BsonNull),
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import com.mongodb.client.FindIterable;
+
+public final class Repository {
+    private final MongoCollection<Document> collection;
+
+    public Repository(MongoCollection<Document> collection) {
+        this.collection = collection;
+    }
+
+    public FindIterable<Document> findBookById(ObjectId id) {
         return this.collection.find((Filters.eq("_id", id)));
     }
 }
