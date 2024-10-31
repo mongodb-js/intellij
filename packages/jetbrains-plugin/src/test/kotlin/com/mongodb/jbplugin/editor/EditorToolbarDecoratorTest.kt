@@ -93,7 +93,7 @@ class EditorToolbarDecoratorTest {
             // First from execute but with false as applyReadAction and second from modificationCountChanged
             verify(editorService, times(1)).toggleToolbarForSelectedEditor(
                 decorator.getToolbarForTests()!!,
-                true
+                false
             )
         }
     }
@@ -114,7 +114,7 @@ class EditorToolbarDecoratorTest {
             // First from execute but with false as applyReadAction and second from modificationCountChanged
             verify(editorService, times(1)).toggleToolbarForSelectedEditor(
                 decorator.getToolbarForTests()!!,
-                true
+                false
             )
         }
     }
