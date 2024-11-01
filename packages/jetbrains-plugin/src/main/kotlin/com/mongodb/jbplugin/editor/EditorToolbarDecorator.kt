@@ -68,7 +68,7 @@ class EditorToolbarDecorator(
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        ApplicationManager.getApplication().runReadAction {
+        ApplicationManager.getApplication().invokeLater {
             val editorService = project?.let {
                 if (it.isDisposed) {
                     null
@@ -78,13 +78,13 @@ class EditorToolbarDecorator(
             }
 
             toolbar?.let {
-                editorService?.toggleToolbarForSelectedEditor(it, false)
+                editorService?.toggleToolbarForSelectedEditor(it, true)
             }
         }
     }
 
     override fun modificationCountChanged() {
-        ApplicationManager.getApplication().runReadAction {
+        ApplicationManager.getApplication().invokeLater {
             val editorService = project?.let {
                 if (it.isDisposed) {
                     null
@@ -95,7 +95,7 @@ class EditorToolbarDecorator(
             editorService?.removeDialectForSelectedEditor()
 
             toolbar?.let {
-                editorService?.toggleToolbarForSelectedEditor(it, false)
+                editorService?.toggleToolbarForSelectedEditor(it, true)
             }
         }
     }
