@@ -60,14 +60,15 @@ class ToolbarModelTest {
     }
 
     @Nested
-    @DisplayName("when initialised")
-    inner class ToolbarModelInitialised {
+    @DisplayName("when initial data is loaded")
+    inner class ToolbarModelInitialDataLoaded {
         @Test
         fun `restores last selected dataSource and initiate a connection attempt`() {
             `when`(toolbarSettings.dataSourceId).thenReturn("mocked-data-source-unique-id")
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
 
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
+            toolbarModel.loadInitialData()
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
                 assertEquals(
@@ -82,7 +83,8 @@ class ToolbarModelTest {
         fun `will not attempt to detach the datasource and database from Editor for restored selection`() {
             `when`(toolbarSettings.dataSourceId).thenReturn("mocked-data-source-unique-id")
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
+            toolbarModel.loadInitialData()
 
             // Wait for state update
             eventually {
@@ -101,7 +103,8 @@ class ToolbarModelTest {
             `when`(toolbarSettings.dataSourceId).thenReturn("mocked-data-source-unique-id")
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(emptyList())
 
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
+            toolbarModel.loadInitialData()
             val newToolbarState = toolbarModel.toolbarState.value
             assertNull(newToolbarState.selectedDataSource)
         }
@@ -113,7 +116,7 @@ class ToolbarModelTest {
         @Test
         fun `should update the state with the selected data source and start connecting`() {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -137,7 +140,8 @@ class ToolbarModelTest {
             `when`(
                 dataSourceService.listMongoDbDataSources()
             ).thenReturn(listOf(dataSource, previousDataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
+            toolbarModel.loadInitialData()
             // restore to take effect
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -159,7 +163,7 @@ class ToolbarModelTest {
         @Test
         fun `when connection starts, it should update the state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -178,7 +182,7 @@ class ToolbarModelTest {
         @Test
         fun `when connection is successful, it should update the state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -204,7 +208,7 @@ class ToolbarModelTest {
         @Test
         fun `when connection is successful, it should update ToolbarSettings, EditorService and also start loading databases`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -235,7 +239,7 @@ class ToolbarModelTest {
         @Test
         fun `when connection is unsuccessful, it should revert the selection, update the state, ToolbarSettings and EditorService`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -264,7 +268,7 @@ class ToolbarModelTest {
         @Test
         fun `when connection is failed, it should update the state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -286,7 +290,7 @@ class ToolbarModelTest {
         @Test
         fun `when databases loading starts, it updates the state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -319,7 +323,7 @@ class ToolbarModelTest {
         @Test
         fun `when databases loading failed, it updates the state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -360,7 +364,7 @@ class ToolbarModelTest {
         @Test
         fun `when databases loading is successful, it updates the state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -402,7 +406,7 @@ class ToolbarModelTest {
         @Test
         fun `when databases loading is successful, it restores the previous selection if it is present in databases list`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -449,7 +453,7 @@ class ToolbarModelTest {
         @Test
         fun `when databases loading is successful, it will not restore the previous selection if it is not present in databases list`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -492,7 +496,7 @@ class ToolbarModelTest {
         @Test
         fun `when databases loading is successful and the database was never selected, it will select the inferred database from editor service`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -544,7 +548,7 @@ class ToolbarModelTest {
         @Test
         fun `should update the state with the unselected data source and reset the dependent state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -577,7 +581,7 @@ class ToolbarModelTest {
         @Test
         fun `should update the state with the unselected data source and reset the dependent state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -610,7 +614,7 @@ class ToolbarModelTest {
         @Test
         fun `should update the state with the unselected data source and reset the dependent state`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -643,7 +647,7 @@ class ToolbarModelTest {
         @Test
         fun `should update the state with the updated data source`() {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -668,7 +672,7 @@ class ToolbarModelTest {
         @Test
         fun `should update the state with the selected database`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
@@ -719,7 +723,7 @@ class ToolbarModelTest {
         @Test
         fun `should update the state with the unselected database`() = runBlocking {
             `when`(dataSourceService.listMongoDbDataSources()).thenReturn(listOf(dataSource))
-            toolbarModel.initialise()
+            toolbarModel.setupEventsSubscription()
             toolbarModel.selectDataSource(dataSource)
             eventually {
                 val toolbarState = toolbarModel.toolbarState.value
