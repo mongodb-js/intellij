@@ -1,9 +1,11 @@
 package com.mongodb.jbplugin.editor.models
 
 import com.intellij.database.dataSource.LocalDataSource
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.rd.util.launchChildBackground
+import com.mongodb.jbplugin.editor.MdbJavaEditorToolbar
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DataSourceConnectionFailed
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DataSourceConnectionStarted
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DataSourceConnectionSuccessful
@@ -18,6 +20,9 @@ import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabaseUnselected
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabasesLoadingFailed
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabasesLoadingStarted
 import com.mongodb.jbplugin.editor.models.ToolbarEvent.DatabasesLoadingSuccessful
+import com.mongodb.jbplugin.editor.models.ToolbarEvent.ModificationCountChanged
+import com.mongodb.jbplugin.editor.models.ToolbarEvent.ProjectExecuted
+import com.mongodb.jbplugin.editor.models.ToolbarEvent.SelectionChanged
 import com.mongodb.jbplugin.editor.services.ToolbarSettings.Companion.UNINITIALIZED_DATABASE
 import com.mongodb.jbplugin.editor.services.implementations.getDataSourceService
 import com.mongodb.jbplugin.editor.services.implementations.getEditorService
@@ -84,6 +89,11 @@ sealed interface ToolbarEvent {
     // From DatabaseComboBox
     data class DatabaseSelected(val database: String) : ToolbarEvent
     data class DatabaseUnselected(val database: String) : ToolbarEvent
+
+    // From EditorToolbarDecorator
+    data class ProjectExecuted(val toolbar: MdbJavaEditorToolbar) : ToolbarEvent
+    data class SelectionChanged(val toolbar: MdbJavaEditorToolbar) : ToolbarEvent
+    data class ModificationCountChanged(val toolbar: MdbJavaEditorToolbar) : ToolbarEvent
 }
 
 @Service(Service.Level.PROJECT)
@@ -101,10 +111,12 @@ class ToolbarModel(
         replay = 1
     )
 
-    private val isInitialised = AtomicBoolean(false)
+    private val areEventsSubscribed = AtomicBoolean(false)
 
-    fun initialise() {
-        if (isInitialised.compareAndSet(false, true)) {
+    private val initialDataLoaded = AtomicBoolean(false)
+
+    fun setupEventsSubscription() {
+        if (areEventsSubscribed.compareAndSet(false, true)) {
             coroutineScope.launchChildBackground {
                 toolbarEvents.collect { toolbarEvent ->
                     when (toolbarEvent) {
@@ -138,10 +150,20 @@ class ToolbarModel(
                             handleDatabasesLoadingFailed(toolbarEvent.dataSource)
                         is DatabaseSelected -> handleDatabaseSelected(toolbarEvent.database)
                         is DatabaseUnselected -> handleDatabaseUnSelected(toolbarEvent.database)
+                        is ProjectExecuted ->
+                            handleProjectExecutedOrSelectionChanged(toolbarEvent.toolbar)
+                        is SelectionChanged ->
+                            handleProjectExecutedOrSelectionChanged(toolbarEvent.toolbar)
+                        is ModificationCountChanged ->
+                            handleModificationCountChanged(toolbarEvent.toolbar)
                     }
                 }
             }
+        }
+    }
 
+    fun loadInitialData() {
+        if (initialDataLoaded.compareAndSet(false, true)) {
             val toolbarSettings = project.getToolbarSettings()
             _toolbarState.value.dataSources.find {
                 it.uniqueId == toolbarSettings.dataSourceId
@@ -211,6 +233,24 @@ class ToolbarModel(
 
     suspend fun databasesLoadingFailed(dataSource: LocalDataSource, exception: Exception) {
         toolbarEvents.emit(DatabasesLoadingFailed(dataSource, exception))
+    }
+
+    fun projectExecuted(toolbar: MdbJavaEditorToolbar) {
+        coroutineScope.launchChildBackground {
+            toolbarEvents.emit(ProjectExecuted(toolbar))
+        }
+    }
+
+    fun selectionChanged(toolbar: MdbJavaEditorToolbar) {
+        coroutineScope.launchChildBackground {
+            toolbarEvents.emit(SelectionChanged(toolbar))
+        }
+    }
+
+    fun modificationCountChanged(toolbar: MdbJavaEditorToolbar) {
+        coroutineScope.launchChildBackground {
+            toolbarEvents.emit(ModificationCountChanged(toolbar))
+        }
     }
 
     private fun handleDataSourcesChanged() {
@@ -451,6 +491,28 @@ class ToolbarModel(
             editorService.reAnalyzeSelectedEditor(applyReadAction = true)
         }
     }
+
+    private fun handleProjectExecutedOrSelectionChanged(toolbar: MdbJavaEditorToolbar) {
+        ApplicationManager.getApplication().invokeLater {
+            project.getEditorService().toggleToolbarForSelectedEditor(
+                toolbar,
+                true,
+            )
+        }
+    }
+
+    private fun handleModificationCountChanged(toolbar: MdbJavaEditorToolbar) {
+        ApplicationManager.getApplication().invokeLater {
+            val editorService = project.getEditorService()
+            editorService.removeDialectForSelectedEditor()
+            editorService.toggleToolbarForSelectedEditor(toolbar, true)
+        }
+    }
 }
 
 fun Project.getToolbarModel(): ToolbarModel = getService(ToolbarModel::class.java)
+
+fun Project.maybeGetToolbarModel(): ToolbarModel? {
+    if (isDisposed) return null
+    return getToolbarModel()
+}
