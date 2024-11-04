@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - chore/UI-test-flakes
   pull_request:
     branches:
       - main
