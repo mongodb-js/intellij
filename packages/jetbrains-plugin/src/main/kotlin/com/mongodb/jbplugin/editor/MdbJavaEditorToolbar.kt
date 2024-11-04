@@ -6,7 +6,6 @@
 package com.mongodb.jbplugin.editor
 
 import com.intellij.database.dataSource.LocalDataSource
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.Project
@@ -32,23 +31,6 @@ import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
 import java.awt.event.ActionEvent
 import javax.swing.*
-
-private val log = logger<MdbJavaEditorToolbar>()
-
-/**
- * Data class to encapsulate the current state of the Toolbar
- *
- * @property dataSources
- * @property selectedDataSource
- * @property databases
- * @property selectedDatabase
- */
-data class ToolbarState(
-    val dataSources: List<LocalDataSource>,
-    val selectedDataSource: LocalDataSource?,
-    val databases: List<String>,
-    val selectedDatabase: String?,
-)
 
 /**
  * Toolbar class that encapsulates rendering and interacting with the toolbar itself
@@ -109,7 +91,7 @@ class MdbJavaEditorToolbar(
     }
 
     fun attachToEditor(editor: Editor, showDatabaseComboBox: Boolean) {
-        project.getToolbarModel().initialise()
+        project.getToolbarModel().loadInitialData()
         dataSourceComboBox.attachToParent()
         if (showDatabaseComboBox) {
             showDatabasesComboBox()
@@ -128,7 +110,7 @@ class MdbJavaEditorToolbar(
     }
 
     fun attachToParent(parent: JComponent, showDatabaseComboBox: Boolean) {
-        project.getToolbarModel().initialise()
+        project.getToolbarModel().loadInitialData()
         dataSourceComboBox.attachToParent()
         if (showDatabaseComboBox) {
             showDatabasesComboBox()

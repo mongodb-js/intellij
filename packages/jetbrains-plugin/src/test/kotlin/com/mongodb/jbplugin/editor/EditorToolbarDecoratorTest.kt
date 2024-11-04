@@ -132,7 +132,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(dataSourceService)
 
             // initialise the toolbar model
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
@@ -170,7 +170,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(dataSourceService)
 
             // initialise the toolbar model
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             val existingDataSource = mock<LocalDataSource>()
@@ -220,7 +220,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(dataSourceService)
 
             // initialise the toolbar model
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             // Both instances are for same DataSource
@@ -263,7 +263,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(dataSourceService)
 
             // initialise ToolbarModel
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             // Both instances are for same DataSource
@@ -323,7 +323,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
 
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
@@ -358,7 +358,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
 
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
@@ -404,7 +404,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
 
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
@@ -438,7 +438,7 @@ class EditorToolbarDecoratorTest {
             project.withMockedService(editorService)
             project.withMockedService(dataSourceService)
 
-            project.getToolbarModel().initialise()
+            project.getToolbarModel().setupEventsSubscription()
 
             // Mocks for our assertions
             val dataSource = mock<LocalDataSource>()
