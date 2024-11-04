@@ -179,7 +179,7 @@ object SpringAtQueryDialectParser : DialectParser<PsiElement> {
                 }
             }
             "STRING_LITERAL" -> return HasValueReference(
-                HasValueReference.Constant(valueRef, valueRef.text, BsonString)
+                HasValueReference.Constant(valueRef, valueRef.text.trim('\''), BsonString)
             )
             "OBJECT" -> {
                 return HasValueReference(
