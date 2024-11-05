@@ -1,0 +1,210 @@
+package com.mongodb.jbplugin.mql.parser
+
+import com.mongodb.jbplugin.mql.adt.Either
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+
+/**
+ * A Parser is a suspendable function that returns either an error or a valid output from a
+ * lazy input. Parsers can be composed using different functions, like filter, map, mapError...
+ * All these compositions return a new Parser.
+ *
+ * To understand how a parser works, we need to think in a pipeline: the output of the parser is
+ * the input of the next parser.
+ *
+ * Parser are typesafe on input, error and output.
+ *
+ * Some examples, let's say we want to get the collection reference, if it's know, on a query. We
+ * would define the parser as the following:
+ *
+ * ```kt
+ * val knownCollRef = knownCollectionReference<S>();
+ * ```
+ *
+ * Note how we specify S in the knownCollectionReference parser. It's because S is generic in our
+ * model. This will return a parser of the following type:
+ *
+ * ```kt
+ * Parser<Node<S>, NoCollectionReference, HasCollectionReference.Known<S>>
+ * ```
+ *
+ * If we want to get the namespace object from it, we would create a new parser from this one, in
+ * this case, using the .map combinator:
+ *
+ * ```kt
+ * val knownNamespace = knownCollRef.map { it.namespace }
+ * ```
+ *
+ * The .map combinator wil create a new parser, that receives a Node<S>, because the input of
+ * knownCollectionReference<S> is a Node<S>, and the output is a Namespace object. The final type
+ * would be:
+ *
+ * ```kt
+ * Parser<Node<S>, NoCollectionReference, Namespace>
+ * ```
+ */
+typealias Parser<I, E, O> = suspend (I) -> Either<E, O>
+
+data object ElementDoesNotMatchFilter
+
+/**
+ * Filter returns a Parser where the input must match the provided predicate, or returns a failing
+ * parser.
+ *
+ * @param filterFn The filter function.
+ */
+fun <I, E, O> Parser<I, E, O>.filter(
+    filterFn: (O) -> Boolean
+): Parser<I, Either<E, ElementDoesNotMatchFilter>, O> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> when (filterFn(result.value)) {
+                true -> Either.right(result.value)
+                false -> Either.left(Either.right(ElementDoesNotMatchFilter))
+            }
+        }
+    }
+}
+
+/**
+ * Returns a new parser that maps the output to a new type.
+ */
+fun <I, E, O, OO> Parser<I, E, O>.map(mapFn: (O) -> OO): Parser<I, E, OO> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(result.value)
+            is Either.Right -> Either.right(mapFn(result.value))
+        }
+    }
+}
+
+/**
+ * Returns a parser that maps the error of the previous parser.
+ */
+fun <I, E, O, EE> Parser<I, E, O>.mapError(mapFn: (E) -> EE): Parser<I, EE, O> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(mapFn(result.value))
+            is Either.Right -> Either.right(result.value)
+        }
+    }
+}
+
+/**
+ * Returns a parser that runs both this, and the parameter parser, in parallel, and aggregates
+ * the results.
+ */
+fun <I, E, O, E2, O2> Parser<I, E, O>.zip(
+    second: Parser<I, E2, O2>
+): Parser<I, Pair<E?, E2?>, Pair<O, O2>> {
+    return { input ->
+        coroutineScope {
+            val firstJob = async { this@zip(input) }
+            val secondJob = async { second(input) }
+
+            when (val firstResult = firstJob.await()) {
+                is Either.Left -> when (val secondResult = secondJob.await()) {
+                    is Either.Left -> Either.left(firstResult.value to secondResult.value)
+                    else -> Either.left(firstResult.value to null)
+                }
+                is Either.Right -> when (val secondResult = secondJob.await()) {
+                    is Either.Left -> Either.left(null to secondResult.value)
+                    is Either.Right -> Either.right(firstResult.value to secondResult.value)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Returns a parser that runs a parser for each element of the output list.
+ */
+fun <I, E, O, E2, O2> Parser<I, E, List<O>>.mapMany(
+    parser: Parser<O, E2, O2>
+): Parser<I, Either<E, List<E2>>, List<O2>> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> {
+                val eachResult = result.value.map { parser(it) }.groupBy { either ->
+                    either is Either.Right
+                }
+
+                val errorResult = eachResult[false]
+                val okResult = eachResult[true]
+
+                if (errorResult?.isNotEmpty() == true) {
+                    Either.left(
+                        Either.right(
+                            errorResult.mapNotNull {
+                                it as? Either.Left
+                            }.map { it.value }
+                        )
+                    )
+                } else {
+                    Either.right(
+                        okResult?.map { it as Either.Right }?.map { it.value } ?: emptyList()
+                    )
+                }
+            }
+        }
+    }
+}
+
+data object NoConditionFulfilled
+
+fun <I, E> equals(toValue: I): Parser<I, E, Boolean> {
+    return { input ->
+        Either.right(input == toValue)
+    }
+}
+
+fun <I, E> not(parser: Parser<I, E, Boolean>): Parser<I, E, Boolean> {
+    return parser.map { !it }
+}
+
+/**
+ * Returns a parser that checks that the source parser would fail or not.
+ */
+fun <I, E, O> Parser<I, E, O>.matches(): Parser<I, E, Boolean> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(result.value)
+            is Either.Right -> Either.right(true)
+        }
+    }
+}
+
+/**
+ * Executes the first parser where it's condition fulfills, and return it's result.
+ */
+fun <I, E, O> cond(
+    vararg branches: Pair<Parser<I, *, Boolean>, Parser<I, E, O>>
+): Parser<I, Either<NoConditionFulfilled, E>, O> {
+    return { input ->
+        suspend fun doesInputMatchCondition(condition: Parser<I, *, Boolean>): Boolean {
+            return when (val result = condition(input)) {
+                is Either.Left -> false
+                is Either.Right -> result.value
+            }
+        }
+
+        val branch = branches.firstOrNull { doesInputMatchCondition(it.first) }
+        when (val result = branch?.second?.invoke(input)) {
+            is Either.Left -> Either.left(Either.right(result.value))
+            is Either.Right -> Either.right(result.value)
+            null -> Either.left(Either.left(NoConditionFulfilled))
+        }
+    }
+}
+
+/**
+ * Uses the first matching parser.
+ */
+fun <I, E, O> first(
+    vararg parsers: Parser<I, E, O>
+): Parser<I, Either<NoConditionFulfilled, E>, O> {
+    val branches = parsers.map { it.matches() to it }.toTypedArray()
+    return cond(*branches)
+}
