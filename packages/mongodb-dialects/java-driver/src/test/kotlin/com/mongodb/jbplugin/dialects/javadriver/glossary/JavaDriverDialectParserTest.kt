@@ -453,6 +453,53 @@ public class Repository {
     }
 
     public FindIterable<Document> findReleasedBooks() {
+        try (var session = client.startSession()) {
+            return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(session, eq("myField", null));
+        }
+    }
+}
+        """,
+    )
+    fun `correctly detects session parameters`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+
+        val eq = hasFilter.children[0]
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
+        assertEquals(
+            "myField",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonNull,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(
+            null,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
         return client.getDatabase("myDatabase")
                 .getCollection("myCollection")
                 .find(and(eq("released", true), eq("hidden", false)));
@@ -845,14 +892,17 @@ public class Repository {
     }
     
     private Document findAllByReleaseFlag(boolean released) {
-        return client.getDatabase("myDatabase")
-                .getCollection("myCollection")
-                .updateOne(eq("released", released), unset("field"));
+        try (var session = client.startSession()) {
+            return client.getDatabase("myDatabase")
+                    .getCollection("myCollection")
+                    .updateOne(session, eq("released", released), unset("field"));    
+        }
+        
     }
 }
         """,
     )
-    fun `supports updateOne calls with a filter and update expressions`(psiFile: PsiFile) {
+    fun `supports updateOne calls with a session`(psiFile: PsiFile) {
         val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
         val parsedQuery = JavaDriverDialect.parser.parse(query)
 
@@ -873,6 +923,62 @@ public class Repository {
         )
 
         val unset = hasUpdates.children[0]
+        assertEquals(Name.UNSET, unset.component<Named>()!!.name)
+        assertEquals(
+            "field",
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> findReleasedBooks() {
+        return findAllByReleaseFlag(true);
+    }
+    
+    private Document findAllByReleaseFlag(boolean released) {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .updateOne(eq("released", released), unset("field"));
+    }
+}
+        """,
+    )
+    fun `supports updateOne calls with a filter and update expressions`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "findReleasedBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+        val hasUpdate = parsedQuery.component<HasUpdates<Unit?>>()!!
+
+        val eq = hasFilter.children[0]
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
+        assertEquals(
+            "released",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+        )
+        assertEquals(
+            BsonBoolean,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
+        )
+
+        val unset = hasUpdate.children[0]
         assertEquals(Name.UNSET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
