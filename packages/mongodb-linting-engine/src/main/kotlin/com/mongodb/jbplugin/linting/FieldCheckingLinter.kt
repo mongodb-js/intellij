@@ -14,11 +14,11 @@ import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.parser.components.NoFieldReference
+import com.mongodb.jbplugin.mql.parser.components.ParsedValueReference
 import com.mongodb.jbplugin.mql.parser.components.allFiltersRecursively
-import com.mongodb.jbplugin.mql.parser.components.constantValueReference
+import com.mongodb.jbplugin.mql.parser.components.extractValueReference
 import com.mongodb.jbplugin.mql.parser.components.knownCollection
 import com.mongodb.jbplugin.mql.parser.components.knownFieldReference
-import com.mongodb.jbplugin.mql.parser.components.runtimeValueReference
 import com.mongodb.jbplugin.mql.parser.filter
 import com.mongodb.jbplugin.mql.parser.first
 import com.mongodb.jbplugin.mql.parser.map
@@ -102,18 +102,13 @@ object FieldCheckingLinter {
                 is Either.Left -> emptyList()
                 is Either.Right -> {
                     val collectionSchema = collectionSchemaResult.value
+
                     val extractFieldExistenceWarning = knownFieldReference<S>()
                         .map { toFieldNotExistingWarning(collectionSchema, it) }
-                        .mapError { NoFieldReference }
-
-                    val extractValueReferenceParser = first(
-                        runtimeValueReference<S>().map { it.source to it.type },
-                        constantValueReference<S>().map { it.source to it.type }
-                    )
 
                     val extractTypeMismatchWarning = knownFieldReference<S>()
                         .filter { collectionSchema.typeOf(it.fieldName) != BsonNull }
-                        .zip(extractValueReferenceParser)
+                        .zip(extractValueReference())
                         .map { toValueMismatchWarning(collectionSchema, it) }
                         .mapError { NoFieldReference }
 
@@ -124,7 +119,8 @@ object FieldCheckingLinter {
                         )
                     )
 
-                    allFieldAndValueReferencesParser(query).orElse { emptyList() }.filterNotNull()
+                    val parsingResult = allFieldAndValueReferencesParser(query)
+                    parsingResult.orElse { emptyList() }.filterNotNull()
                 }
             }
         }
@@ -146,12 +142,12 @@ object FieldCheckingLinter {
 
     private fun <S> toValueMismatchWarning(
         collectionSchema: CollectionSchema,
-        pair: Pair<HasFieldReference.Known<S>, Pair<S, BsonType>>
+        pair: Pair<HasFieldReference.Known<S>, ParsedValueReference<S, out Any>>
     ): FieldCheckWarning<S>? {
         val fieldType = collectionSchema.typeOf(pair.first.fieldName)
         val fieldName = pair.first.fieldName
-        val valueSource = pair.second.first
-        val valueType = pair.second.second
+        val valueSource = pair.second.source
+        val valueType = pair.second.type
 
         return FieldCheckWarning.FieldValueTypeMismatch(
             fieldName,
