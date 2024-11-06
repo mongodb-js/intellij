@@ -12,8 +12,11 @@ import com.mongodb.jbplugin.linting.NamespaceCheckWarning.CollectionDoesNotExist
 import com.mongodb.jbplugin.linting.NamespaceCheckWarning.DatabaseDoesNotExist
 import com.mongodb.jbplugin.linting.NamespaceCheckWarning.NoNamespaceInferred
 import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.components.HasCollectionReference
 import com.mongodb.jbplugin.mql.parser.*
 import com.mongodb.jbplugin.mql.parser.components.knownCollection
+import com.mongodb.jbplugin.mql.parser.components.noCollection
+import com.mongodb.jbplugin.mql.parser.components.onlyCollection
 
 /**
  * Marker type for the result of the linter.
@@ -86,42 +89,68 @@ object NamespaceCheckingLinter {
         val dbList = readModelProvider.slice(dataSource, ListDatabases.Slice)
 
         val databaseDoesNotExistParser = knownCollection<S>()
-            .filter {
-                dbList.databases.find { database -> it.namespace.database == database.name } ==
-                    null
-            }
+            .filter { databaseDoesNotExist(dbList, it) }
             .map {
                 DatabaseDoesNotExist(
                     source = it.databaseSource!!,
                     database = it.namespace.database,
                 )
-            }
+            }.mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
 
         val collectionDoesNotExistParser = knownCollection<S>()
-            .filter { ref ->
-                !runCatching {
-                    readModelProvider.slice(
-                        dataSource,
-                        ListCollections.Slice(ref.namespace.database)
-                    ).collections.map { it.name }
-                }.getOrDefault(emptyList())
-                    .contains(ref.namespace.collection)
-            }.map {
+            .filter { collectionDoesNotExist(readModelProvider, dataSource, it) }
+            .map {
                 CollectionDoesNotExist(
                     source = it.collectionSource!!,
                     database = it.namespace.database,
                     collection = it.namespace.collection
                 )
-            }
+            }.mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
+
+        val databaseIsNotKnown = onlyCollection<S>()
+            .filter { it.collection.isNotEmpty() }
+            .map { NoNamespaceInferred(source = it.collectionSource) }
+            .mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
+
+        val noCollectionSpecified = noCollection<S>()
+            .map { NoNamespaceInferred(source = query.source) }
+            .mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
 
         val namespaceErrorsParser = first(
-            databaseDoesNotExistParser.map { it as NamespaceCheckWarning<S> }.map(::listOf),
-            collectionDoesNotExistParser.map { it as NamespaceCheckWarning<S> }.map(::listOf),
-            otherwise { listOf(NoNamespaceInferred(query.source)) }
+            databaseDoesNotExistParser,
+            collectionDoesNotExistParser,
+            databaseIsNotKnown,
+            noCollectionSpecified
         )
 
         return NamespaceCheckResult(
             namespaceErrorsParser.parse(query).orElse { emptyList() }
         )
     }
+
+    private fun <D, S> collectionDoesNotExist(
+        readModelProvider: MongoDbReadModelProvider<D>,
+        dataSource: D,
+        ref: HasCollectionReference.Known<S>
+    ): Boolean = !runCatching {
+        readModelProvider.slice(
+            dataSource,
+            ListCollections.Slice(ref.namespace.database)
+        ).collections.map { it.name }
+    }.getOrDefault(emptyList())
+        .contains(ref.namespace.collection)
+
+    private fun <S> databaseDoesNotExist(
+        dbList: ListDatabases,
+        known: HasCollectionReference.Known<S>
+    ): Boolean = dbList.databases.find { database -> known.namespace.database == database.name } ==
+        null
 }

@@ -73,6 +73,20 @@ fun <I, E, O> Parser<I, E, O>.filter(
 /**
  * Returns a new parser that maps the output to a new type.
  */
+fun <I, E, O> Parser<I, E, O>.anyError(): Parser<I, Any, O> {
+    return this as Parser<I, Any, O>
+}
+
+/**
+ * Returns a new parser that maps the output to a new type.
+ */
+fun <OO, I, E, O> Parser<I, E, O>.castValue(): Parser<I, E, OO> {
+    return this as Parser<I, E, OO>
+}
+
+/**
+ * Returns a new parser that maps the output to a new type.
+ */
 fun <I, E, O, OO> Parser<I, E, O>.map(mapFn: (O) -> OO): Parser<I, E, OO> {
     return { input ->
         when (val result = this(input)) {
@@ -80,6 +94,13 @@ fun <I, E, O, OO> Parser<I, E, O>.map(mapFn: (O) -> OO): Parser<I, E, OO> {
             is Either.Right -> Either.right(mapFn(result.value))
         }
     }
+}
+
+/**
+ * Returns a new parser that maps the output to a new type.
+ */
+inline fun <reified OO, I, E, O> Parser<I, E, O>.mapAs(): Parser<I, E, OO> {
+    return this as Parser<I, E, OO>
 }
 
 /**
