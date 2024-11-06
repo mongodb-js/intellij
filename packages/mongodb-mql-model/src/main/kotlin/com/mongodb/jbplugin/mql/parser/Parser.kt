@@ -1,8 +1,11 @@
 package com.mongodb.jbplugin.mql.parser
 
 import com.mongodb.jbplugin.mql.adt.Either
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.Executors
 
 /**
  * A Parser is a suspendable function that returns either an error or a valid output from a
@@ -207,4 +210,12 @@ fun <I, E, O> first(
 ): Parser<I, Either<NoConditionFulfilled, E>, O> {
     val branches = parsers.map { it.matches() to it }.toTypedArray()
     return cond(*branches)
+}
+
+private val PARSER = Executors.newWorkStealingPool(4).asCoroutineDispatcher()
+
+fun <I, E, O> Parser<I, E, O>.run(input: I): Either<E, O> {
+    return runBlocking(PARSER) {
+        this@run(input)
+    }
 }

@@ -24,8 +24,8 @@ import com.mongodb.jbplugin.mql.parser.first
 import com.mongodb.jbplugin.mql.parser.map
 import com.mongodb.jbplugin.mql.parser.mapError
 import com.mongodb.jbplugin.mql.parser.mapMany
+import com.mongodb.jbplugin.mql.parser.run
 import com.mongodb.jbplugin.mql.parser.zip
-import kotlinx.coroutines.runBlocking
 
 /**
  * Marker type for the result of the type.
@@ -88,21 +88,20 @@ object FieldCheckingLinter {
         readModelProvider: MongoDbReadModelProvider<D>,
         query: Node<S>,
     ): FieldCheckResult<S> {
-        val warnings = runBlocking {
-            val querySchemaParser = knownCollection<S>()
-                .filter { it.namespace.isValid }
-                .map {
-                    readModelProvider.slice(
-                        dataSource,
-                        GetCollectionSchema.Slice(it.namespace)
-                    ).schema
-                }
+        val querySchema = knownCollection<S>()
+            .filter { it.namespace.isValid }
+            .map {
+                readModelProvider.slice(
+                    dataSource,
+                    GetCollectionSchema.Slice(it.namespace)
+                ).schema
+            }.run(query)
 
-            when (val collectionSchemaResult = querySchemaParser(query)) {
+        return FieldCheckResult(
+            when (querySchema) {
                 is Either.Left -> emptyList()
                 is Either.Right -> {
-                    val collectionSchema = collectionSchemaResult.value
-
+                    val collectionSchema = querySchema.value
                     val extractFieldExistenceWarning = knownFieldReference<S>()
                         .map { toFieldNotExistingWarning(collectionSchema, it) }
 
@@ -119,13 +118,11 @@ object FieldCheckingLinter {
                         )
                     )
 
-                    val parsingResult = allFieldAndValueReferencesParser(query)
+                    val parsingResult = allFieldAndValueReferencesParser.run(query)
                     parsingResult.orElse { emptyList() }.filterNotNull()
                 }
             }
-        }
-
-        return FieldCheckResult(warnings)
+        )
     }
 
     private fun <S> toFieldNotExistingWarning(
