@@ -150,7 +150,7 @@ object FieldCheckingLinter {
     ): FieldCheckWarning<S>? {
         val fieldType = collectionSchema.typeOf(pair.first.fieldName)
         val fieldName = pair.first.fieldName
-        val valueSource = pair.first.source
+        val valueSource = pair.second.first
         val valueType = pair.second.second
 
         return FieldCheckWarning.FieldValueTypeMismatch(

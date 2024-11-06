@@ -16,7 +16,6 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 
 @CodeInsightTest
-@Suppress("TOO_LONG_FUNCTION", "LONG_LINE")
 class JavaDriverFieldCheckLinterInspectionTest {
     @ParsingTest(
         fileName = "Repository.java",
@@ -86,7 +85,9 @@ public class Repository {
         `when`(
             readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
         ).thenReturn(
-            GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
+            GetCollectionSchema(
+                CollectionSchema(Namespace("myDatabase", "myCollection"), BsonObject(emptyMap()))
+            ),
         )
 
         fixture.enableInspections(FieldCheckInspectionBridge::class.java)
@@ -129,7 +130,7 @@ public class Repository {
         ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(
-                    Namespace("", ""),
+                    Namespace("myDatabase", "myCollection"),
                     BsonObject(mapOf("thisIsDouble" to BsonDouble))
                 )
             ),
