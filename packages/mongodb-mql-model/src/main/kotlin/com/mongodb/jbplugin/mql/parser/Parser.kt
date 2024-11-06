@@ -167,6 +167,11 @@ fun <I, E> not(parser: Parser<I, E, Boolean>): Parser<I, E, Boolean> {
     return parser.map { !it }
 }
 
+fun <I, E, O> otherwise(defaultValue: () -> O): Parser<I, E, O> {
+    val thenDefaultValue: Parser<I, E, O> = { input: I -> Either.right(defaultValue()) }
+    return thenDefaultValue
+}
+
 /**
  * Returns a parser that checks that the source parser would fail or not.
  */
@@ -214,8 +219,8 @@ fun <I, E, O> first(
 
 private val PARSER = Executors.newWorkStealingPool(4).asCoroutineDispatcher()
 
-fun <I, E, O> Parser<I, E, O>.run(input: I): Either<E, O> {
+fun <I, E, O> Parser<I, E, O>.parse(input: I): Either<E, O> {
     return runBlocking(PARSER) {
-        this@run(input)
+        this@parse(input)
     }
 }

@@ -24,7 +24,7 @@ import com.mongodb.jbplugin.mql.parser.first
 import com.mongodb.jbplugin.mql.parser.map
 import com.mongodb.jbplugin.mql.parser.mapError
 import com.mongodb.jbplugin.mql.parser.mapMany
-import com.mongodb.jbplugin.mql.parser.run
+import com.mongodb.jbplugin.mql.parser.parse
 import com.mongodb.jbplugin.mql.parser.zip
 
 /**
@@ -95,7 +95,7 @@ object FieldCheckingLinter {
                     dataSource,
                     GetCollectionSchema.Slice(it.namespace)
                 ).schema
-            }.run(query)
+            }.parse(query)
 
         return FieldCheckResult(
             when (querySchema) {
@@ -118,7 +118,7 @@ object FieldCheckingLinter {
                         )
                     )
 
-                    val parsingResult = allFieldAndValueReferencesParser.run(query)
+                    val parsingResult = allFieldAndValueReferencesParser.parse(query)
                     parsingResult.orElse { emptyList() }.filterNotNull()
                 }
             }

@@ -18,3 +18,4 @@ inline fun <S, reified T : HasCollectionReference.CollectionReference<S>> collec
 }
 
 fun <S> knownCollection() = collectionReference<S, HasCollectionReference.Known<S>>()
+fun <S> onlyCollection() = collectionReference<S, HasCollectionReference.OnlyCollection<S>>()
