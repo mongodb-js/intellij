@@ -36,6 +36,12 @@ import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasSourceDialect
+import com.mongodb.jbplugin.mql.components.IsCommand
+import com.mongodb.jbplugin.mql.parser.components.whenHasAnyCommand
+import com.mongodb.jbplugin.mql.parser.components.whenIsCommand
+import com.mongodb.jbplugin.mql.parser.first
+import com.mongodb.jbplugin.mql.parser.map
+import com.mongodb.jbplugin.mql.parser.parse
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -58,35 +64,52 @@ internal object RunQueryCodeAction : MongoDbCodeAction {
         dataSource: LocalDataSource?,
         query: Node<PsiElement>,
         formatter: DialectFormatter
-    ): LineMarkerInfo<PsiElement> = LineMarkerInfo(
-        query.sourceForMarker,
-        query.sourceForMarker.textRange,
-        Icons.runQueryGutter,
-        { CodeActionsMessages.message("code.action.run.query") },
-        { _, _ ->
-            if (shouldDelegateToIntelliJRunQuery(query)) {
-                delegateRunQueryToIntelliJ(query)
-            } else {
-                coroutineScope.launchChildBackground {
-                    val outputQuery = MongoshDialect.formatter.formatQuery(query, explain = false)
-                    if (dataSource?.isConnected() == true) {
-                        coroutineScope.launchChildOnUi {
-                            openDataGripConsole(query, dataSource, outputQuery.query)
-                        }
-                    } else {
-                        openConsoleAfterSelection(
+    ): LineMarkerInfo<PsiElement>? {
+        if (!shouldShowRunGutterIcon(query)) {
+            return null
+        }
+
+        return LineMarkerInfo(
+            query.sourceForMarker,
+            query.sourceForMarker.textRange,
+            Icons.runQueryGutter,
+            { CodeActionsMessages.message("code.action.run.query") },
+            { _, _ ->
+                if (shouldDelegateToIntelliJRunQuery(query)) {
+                    delegateRunQueryToIntelliJ(query)
+                } else {
+                    coroutineScope.launchChildBackground {
+                        val outputQuery = MongoshDialect.formatter.formatQuery(
                             query,
-                            outputQuery,
-                            query.source.project,
-                            coroutineScope
+                            explain = false
                         )
+                        if (dataSource?.isConnected() == true) {
+                            coroutineScope.launchChildOnUi {
+                                openDataGripConsole(query, dataSource, outputQuery.query)
+                            }
+                        } else {
+                            openConsoleAfterSelection(
+                                query,
+                                outputQuery,
+                                query.source.project,
+                                coroutineScope
+                            )
+                        }
                     }
                 }
-            }
-        },
-        GutterIconRenderer.Alignment.RIGHT,
-        { CodeActionsMessages.message("code.action.run.query") }
-    )
+            },
+            GutterIconRenderer.Alignment.RIGHT,
+            { CodeActionsMessages.message("code.action.run.query") }
+        )
+    }
+
+    private fun shouldShowRunGutterIcon(node: Node<PsiElement>): Boolean {
+        return first(
+            whenIsCommand<PsiElement>(IsCommand.CommandType.AGGREGATE).map { false },
+            whenHasAnyCommand<PsiElement>().map { true }
+        ).parse(node) // if we couldn't parse the query, don't show the gutter icon
+            .orElse { false }
+    }
 
     private fun openDataGripConsole(
         query: Node<PsiElement>,

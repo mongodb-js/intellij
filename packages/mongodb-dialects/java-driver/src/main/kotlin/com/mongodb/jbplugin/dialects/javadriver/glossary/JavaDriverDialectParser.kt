@@ -21,7 +21,7 @@ private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun isCandidateForQuery(source: PsiElement) =
-        methodToCommand((source as? PsiMethodCallExpression)?.fuzzyResolveMethod()).type !=
+        methodCallToCommand((source as? PsiMethodCallExpression)).type !=
             IsCommand.CommandType.UNKNOWN
 
     override fun attachment(source: PsiElement): PsiElement = source.findTopParentBy {
@@ -45,7 +45,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 source,
                 listOf(
                     sourceDialect,
-                    methodToCommand(calledMethod),
+                    methodCallToCommand(currentCall),
                     collectionReference,
                     hasFilters,
                     hasUpdates
@@ -78,7 +78,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         listOf(
                             sourceDialect,
                             collectionReference,
-                            methodToCommand(calledMethod)
+                            methodCallToCommand(currentCall)
                         )
                     )
             } ?: return Node(source, listOf(sourceDialect, collectionReference))
@@ -421,7 +421,27 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return valueReference as HasValueReference.ValueReference<PsiElement>
     }
 
-    private fun methodToCommand(method: PsiMethod?): IsCommand {
+    private fun methodCallToCommand(methodCall: PsiMethodCallExpression?): IsCommand {
+        if (methodCall == null) {
+            return IsCommand(IsCommand.CommandType.UNKNOWN)
+        }
+
+        val method = methodCall.fuzzyResolveMethod()
+
+        if (method?.containingClass?.qualifiedName?.contains("MongoIterable") == true) {
+            // we are in a cursor, so the actual operation is in the upper method call
+            val allCallExpressions = methodCall.findAllChildrenOfType(
+                PsiMethodCallExpression::class.java
+            )
+            val lastCallExpression = allCallExpressions.getOrNull(allCallExpressions.lastIndex - 1)
+
+            val result = methodCallToCommand(lastCallExpression)
+
+            if (result.type == IsCommand.CommandType.AGGREGATE) {
+                return result
+            }
+        }
+
         return IsCommand(
             when (method?.name) {
                 "countDocuments" -> IsCommand.CommandType.COUNT_DOCUMENTS

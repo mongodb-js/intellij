@@ -3,6 +3,7 @@ package alt.mongodb.javadriver;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
 
@@ -33,5 +34,12 @@ public class JavaDriverRepository {
         return client.getDatabase("myDatabase")
             .getCollection("myCollection")
             .find(in("genre", validGenres)).first();
+    }
+
+
+    private Document findBooks(String[] validGenres) {
+        return client.getDatabase("myDatabase")
+            .getCollection("myCollection")
+            .aggregate(Aggregates.match(Filters.eq("genre", validGenres))).first();
     }
 }

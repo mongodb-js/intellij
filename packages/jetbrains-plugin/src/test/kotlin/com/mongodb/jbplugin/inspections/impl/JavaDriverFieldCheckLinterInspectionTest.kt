@@ -114,7 +114,7 @@ public class Repository {
     public FindIterable<Document> exampleFind() {
         return client.getDatabase("myDatabase")
                 .getCollection("myCollection")
-                .find(eq("thisIsDouble", <warning descr="A \"String\"(type of provided value) can not be assigned to \"double\"(type of \"thisIsDouble\")">"123"</warning>));
+                .find(eq("thisIsDouble", <warning descr="A \"String\"(type of provided value) cannot be assigned to \"double\"(type of \"thisIsDouble\")">"123"</warning>));
     }
 }
         """,
