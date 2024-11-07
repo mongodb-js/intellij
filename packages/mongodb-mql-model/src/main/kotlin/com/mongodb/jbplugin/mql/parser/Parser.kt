@@ -1,6 +1,7 @@
 package com.mongodb.jbplugin.mql.parser
 
 import com.mongodb.jbplugin.mql.adt.Either
+import com.mongodb.jbplugin.mql.adt.EitherInclusive
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -80,13 +81,6 @@ fun <I, E, O> Parser<I, E, O>.anyError(): Parser<I, Any, O> {
 /**
  * Returns a new parser that maps the output to a new type.
  */
-fun <OO, I, E, O> Parser<I, E, O>.castValue(): Parser<I, E, OO> {
-    return this as Parser<I, E, OO>
-}
-
-/**
- * Returns a new parser that maps the output to a new type.
- */
 fun <I, E, O, OO> Parser<I, E, O>.map(mapFn: (O) -> OO): Parser<I, E, OO> {
     return { input ->
         when (val result = this(input)) {
@@ -121,7 +115,7 @@ fun <I, E, O, EE> Parser<I, E, O>.mapError(mapFn: (E) -> EE): Parser<I, EE, O> {
  */
 fun <I, E, O, E2, O2> Parser<I, E, O>.zip(
     second: Parser<I, E2, O2>
-): Parser<I, Pair<E?, E2?>, Pair<O, O2>> {
+): Parser<I, EitherInclusive<E, E2>, Pair<O, O2>> {
     return { input ->
         coroutineScope {
             val firstJob = async { this@zip(input) }
