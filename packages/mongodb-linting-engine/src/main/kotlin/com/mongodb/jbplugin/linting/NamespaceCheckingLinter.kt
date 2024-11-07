@@ -8,9 +8,15 @@ package com.mongodb.jbplugin.linting
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.ListCollections
 import com.mongodb.jbplugin.accessadapter.slice.ListDatabases
-import com.mongodb.jbplugin.linting.NamespaceCheckWarning.*
+import com.mongodb.jbplugin.linting.NamespaceCheckWarning.CollectionDoesNotExist
+import com.mongodb.jbplugin.linting.NamespaceCheckWarning.DatabaseDoesNotExist
+import com.mongodb.jbplugin.linting.NamespaceCheckWarning.NoNamespaceInferred
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import com.mongodb.jbplugin.mql.parser.*
+import com.mongodb.jbplugin.mql.parser.components.knownCollection
+import com.mongodb.jbplugin.mql.parser.components.noCollection
+import com.mongodb.jbplugin.mql.parser.components.onlyCollection
 
 /**
  * Marker type for the result of the linter.
@@ -80,45 +86,71 @@ object NamespaceCheckingLinter {
         readModelProvider: MongoDbReadModelProvider<D>,
         query: Node<S>,
     ): NamespaceCheckResult<S> {
-        val collReference =
-            query.component<HasCollectionReference<S>>() ?: return NamespaceCheckResult(
-                listOf(NoNamespaceInferred(query.source))
-            )
+        val dbList = readModelProvider.slice(dataSource, ListDatabases.Slice)
+
+        val databaseDoesNotExistParser = knownCollection<S>()
+            .filter { databaseDoesNotExist(dbList, it) }
+            .map {
+                DatabaseDoesNotExist(
+                    source = it.databaseSource!!,
+                    database = it.namespace.database,
+                )
+            }.mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
+
+        val collectionDoesNotExistParser = knownCollection<S>()
+            .filter { collectionDoesNotExist(readModelProvider, dataSource, it) }
+            .map {
+                CollectionDoesNotExist(
+                    source = it.collectionSource!!,
+                    database = it.namespace.database,
+                    collection = it.namespace.collection
+                )
+            }.mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
+
+        val databaseIsNotKnown = onlyCollection<S>()
+            .filter { it.collection.isNotEmpty() }
+            .map { NoNamespaceInferred(source = it.collectionSource) }
+            .mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
+
+        val noCollectionSpecified = noCollection<S>()
+            .map { NoNamespaceInferred(source = query.source) }
+            .mapAs<NamespaceCheckWarning<S>, _, _, _>()
+            .map(::listOf)
+            .anyError()
+
+        val namespaceErrorsParser = first(
+            databaseDoesNotExistParser,
+            collectionDoesNotExistParser,
+            databaseIsNotKnown,
+            noCollectionSpecified
+        )
 
         return NamespaceCheckResult(
-            when (val ref = collReference.reference) {
-                is HasCollectionReference.Known<S> -> {
-                    val dbList = readModelProvider.slice(dataSource, ListDatabases.Slice)
-                    val collList = runCatching {
-                        readModelProvider.slice(
-                            dataSource,
-                            ListCollections.Slice(ref.namespace.database)
-                        )
-                            .collections.map { it.name }
-                    }.getOrDefault(emptyList())
-
-                    if (dbList.databases.find { it.name == ref.namespace.database } == null) {
-                        listOf(
-                            DatabaseDoesNotExist(
-                                source = ref.databaseSource!!,
-                                database = ref.namespace.database,
-                            )
-                        )
-                    } else if (!collList.contains(ref.namespace.collection)) {
-                        listOf(
-                            CollectionDoesNotExist(
-                                source = ref.collectionSource!!,
-                                database = ref.namespace.database,
-                                collection = ref.namespace.collection
-                            )
-                        )
-                    } else {
-                        emptyList()
-                    }
-                }
-
-                else -> listOf(NoNamespaceInferred(query.source))
-            }
+            namespaceErrorsParser.parse(query).orElse { emptyList() }
         )
     }
+
+    private fun <D, S> collectionDoesNotExist(
+        readModelProvider: MongoDbReadModelProvider<D>,
+        dataSource: D,
+        ref: HasCollectionReference.Known<S>
+    ): Boolean = !runCatching {
+        readModelProvider.slice(
+            dataSource,
+            ListCollections.Slice(ref.namespace.database)
+        ).collections.map { it.name }
+    }.getOrDefault(emptyList())
+        .contains(ref.namespace.collection)
+
+    private fun <S> databaseDoesNotExist(
+        dbList: ListDatabases,
+        known: HasCollectionReference.Known<S>
+    ): Boolean = dbList.databases.find { database -> known.namespace.database == database.name } ==
+        null
 }

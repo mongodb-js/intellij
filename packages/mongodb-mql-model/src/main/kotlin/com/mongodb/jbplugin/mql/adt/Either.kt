@@ -8,4 +8,11 @@ sealed class Either<A, B> {
         fun <A, B> left(a: A): Either<A, B> = Left(a) as Either<A, B>
         fun <A, B> right(a: B): Either<A, B> = Right(a) as Either<A, B>
     }
+
+    fun orElse(defVal: () -> B): B {
+        return when (this) {
+            is Left -> defVal()
+            is Right -> value
+        }
+    }
 }

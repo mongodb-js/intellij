@@ -124,7 +124,9 @@ class BookRepository {
         `when`(
             readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
         ).thenReturn(
-            GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
+            GetCollectionSchema(
+                CollectionSchema(Namespace("sample_mflix", "book"), BsonObject(emptyMap()))
+            ),
         )
 
         application.withMockedService(dbConnectionManager)
@@ -203,7 +205,9 @@ class BookRepository {
         `when`(
             readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
         ).thenReturn(
-            GetCollectionSchema(CollectionSchema(Namespace("", ""), BsonObject(emptyMap()))),
+            GetCollectionSchema(
+                CollectionSchema(Namespace("bad_db", "book"), BsonObject(emptyMap()))
+            ),
         )
 
         application.withMockedService(dbConnectionManager)

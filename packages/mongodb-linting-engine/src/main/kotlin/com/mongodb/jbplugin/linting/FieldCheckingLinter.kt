@@ -6,16 +6,26 @@ package com.mongodb.jbplugin.linting
 
 import com.mongodb.jbplugin.accessadapter.MongoDbReadModelProvider
 import com.mongodb.jbplugin.accessadapter.slice.GetCollectionSchema
-import com.mongodb.jbplugin.linting.FieldCheckWarning.FieldDoesNotExist
-import com.mongodb.jbplugin.mql.*
-import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import com.mongodb.jbplugin.mql.BsonNull
+import com.mongodb.jbplugin.mql.BsonType
+import com.mongodb.jbplugin.mql.CollectionSchema
+import com.mongodb.jbplugin.mql.Namespace
+import com.mongodb.jbplugin.mql.Node
+import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasFieldReference
-import com.mongodb.jbplugin.mql.components.HasFilter
-import com.mongodb.jbplugin.mql.components.HasValueReference
-
-private typealias FieldCheckWarnings<S> = List<FieldCheckWarning<S>>
-
-private typealias FieldAndValueReferences<S> = List<Reference<S>>
+import com.mongodb.jbplugin.mql.parser.components.NoFieldReference
+import com.mongodb.jbplugin.mql.parser.components.ParsedValueReference
+import com.mongodb.jbplugin.mql.parser.components.allFiltersRecursively
+import com.mongodb.jbplugin.mql.parser.components.extractValueReference
+import com.mongodb.jbplugin.mql.parser.components.knownCollection
+import com.mongodb.jbplugin.mql.parser.components.knownFieldReference
+import com.mongodb.jbplugin.mql.parser.filter
+import com.mongodb.jbplugin.mql.parser.first
+import com.mongodb.jbplugin.mql.parser.map
+import com.mongodb.jbplugin.mql.parser.mapError
+import com.mongodb.jbplugin.mql.parser.mapMany
+import com.mongodb.jbplugin.mql.parser.parse
+import com.mongodb.jbplugin.mql.parser.zip
 
 /**
  * Marker type for the result of the type.
@@ -44,8 +54,7 @@ sealed interface FieldCheckWarning<S> {
      * value does not match the BsonType of inspected field
      *
      * @param S
-     * @property valueSource The source providing the field and value
-     * for inspection
+     * @property valueSource The source providing the field and value for inspection
      * @property field Text value of the field being inspected
      * @property fieldType BsonType of inspected field
      * @property valueType BsonType of inspected value
@@ -67,12 +76,8 @@ sealed interface FieldCheckWarning<S> {
  * @property warnings
  */
 data class FieldCheckResult<S>(
-    val warnings: FieldCheckWarnings<S>,
-) {
-    companion object {
-        fun <S> empty(): FieldCheckResult<S> = FieldCheckResult(emptyList())
-    }
-}
+    val warnings: List<FieldCheckWarning<S>>,
+)
 
 /**
  * Linter that verifies that all fields that are referenced in a query do exist in the target collection.
@@ -83,131 +88,69 @@ object FieldCheckingLinter {
         readModelProvider: MongoDbReadModelProvider<D>,
         query: Node<S>,
     ): FieldCheckResult<S> {
-        val queryNamespace =
-            query.component<HasCollectionReference<S>>() ?: return FieldCheckResult.empty()
-        if (queryNamespace.reference !is HasCollectionReference.Known) {
-            return FieldCheckResult.empty()
-        }
+        val querySchema = knownCollection<S>()
+            .filter { it.namespace.isValid }
+            .map {
+                readModelProvider.slice(
+                    dataSource,
+                    GetCollectionSchema.Slice(it.namespace)
+                ).schema
+            }.parse(query)
 
-        val namespace = (queryNamespace.reference as HasCollectionReference.Known).namespace
-        if (!namespace.isValid) {
-            return FieldCheckResult.empty()
-        }
+        return FieldCheckResult(
+            when (querySchema) {
+                is Either.Left -> emptyList()
+                is Either.Right -> {
+                    val collectionSchema = querySchema.value
+                    val extractFieldExistenceWarning = knownFieldReference<S>()
+                        .map { toFieldNotExistingWarning(collectionSchema, it) }
 
-        val collection = readModelProvider.slice(
-            dataSource,
-            GetCollectionSchema.Slice(namespace)
-        ).schema
-        val fieldAndValueRefs = query.getAllFieldAndValueReferences()
+                    val extractTypeMismatchWarning = knownFieldReference<S>()
+                        .filter { collectionSchema.typeOf(it.fieldName) != BsonNull }
+                        .zip(extractValueReference())
+                        .map { toValueMismatchWarning(collectionSchema, it) }
+                        .mapError { NoFieldReference }
 
-        val warnings =
-            fieldAndValueRefs.mapNotNull {
-                when (it) {
-                    is Reference.FieldReference -> it.toFieldExistenceWarning(collection, namespace)
-                    is Reference.FieldValueReference ->
-                        it.toFieldExistenceWarning(collection, namespace)
-                            ?: it.toFieldValueTypeMismatchWarning(collection)
+                    val allFieldAndValueReferencesParser = allFiltersRecursively<S>().mapMany(
+                        first(
+                            extractTypeMismatchWarning,
+                            extractFieldExistenceWarning
+                        )
+                    )
+
+                    val parsingResult = allFieldAndValueReferencesParser.parse(query)
+                    parsingResult.orElse { emptyList() }.filterNotNull()
                 }
             }
-
-        return FieldCheckResult(warnings)
-    }
-}
-
-/**
- * @param S
- */
-sealed interface Reference<S> {
-    /**
-     * @param S
-     * @property fieldSource
-     * @property fieldName
-     */
-    data class FieldReference<S>(val fieldSource: S, val fieldName: String) : Reference<S> {
-        fun toFieldExistenceWarning(
-            collectionSchema: CollectionSchema,
-            namespace: Namespace,
-        ): FieldCheckWarning.FieldDoesNotExist<S>? {
-            val fieldType = collectionSchema.typeOf(fieldName)
-            return FieldCheckWarning.FieldDoesNotExist(
-                fieldSource,
-                fieldName,
-                namespace
-            ).takeIf { fieldType == BsonNull }
-        }
+        )
     }
 
-    /**
-     * @param S
-     * @property fieldSource
-     * @property fieldName
-     * @property valueSource
-     * @property valueType
-     */
-    data class FieldValueReference<S>(
-        val fieldSource: S,
-        val fieldName: String,
-        val valueSource: S,
-        val valueType: BsonType
-    ) : Reference<S> {
-        fun toFieldExistenceWarning(
-            collectionSchema: CollectionSchema,
-            namespace: Namespace,
-        ): FieldCheckWarning.FieldDoesNotExist<S>? {
-            val fieldType = collectionSchema.typeOf(fieldName)
-            return FieldCheckWarning.FieldDoesNotExist(
-                fieldSource,
-                fieldName,
-                namespace
-            ).takeIf { fieldType == BsonNull }
-        }
-
-        fun toFieldValueTypeMismatchWarning(
-            collectionSchema: CollectionSchema,
-        ): FieldCheckWarning.FieldValueTypeMismatch<S>? {
-            val fieldType = collectionSchema.typeOf(fieldName)
-            return FieldCheckWarning.FieldValueTypeMismatch(
-                fieldName,
-                fieldType,
-                valueSource,
-                valueType
-            ).takeIf { !valueType.isAssignableTo(fieldType) }
-        }
+    private fun <S> toFieldNotExistingWarning(
+        collectionSchema: CollectionSchema,
+        known: HasFieldReference.Known<S>
+    ): FieldCheckWarning<S>? {
+        val fieldType = collectionSchema.typeOf(known.fieldName)
+        return FieldCheckWarning.FieldDoesNotExist(
+            known.source,
+            known.fieldName,
+            collectionSchema.namespace
+        ).takeIf { fieldType == BsonNull } as? FieldCheckWarning<S>
     }
-}
 
-private fun <S> Node<S>.getAllFieldAndValueReferences(): FieldAndValueReferences<S> {
-    val hasFilter = component<HasFilter<S>>()
-    val otherRefs =
-        hasFilter?.children?.flatMap { it.getAllFieldAndValueReferences() } ?: emptyList()
-    val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
-    val valueRef = component<HasValueReference<S>>()?.reference
-    return if (fieldRef is HasFieldReference.Known) {
-        otherRefs + (
-            valueRef?.let { reference ->
-                when (reference) {
-                    is HasValueReference.Constant<S> -> Reference.FieldValueReference(
-                        fieldRef.source,
-                        fieldRef.fieldName,
-                        reference.source,
-                        reference.type
-                    )
+    private fun <S> toValueMismatchWarning(
+        collectionSchema: CollectionSchema,
+        pair: Pair<HasFieldReference.Known<S>, ParsedValueReference<S, out Any>>
+    ): FieldCheckWarning<S>? {
+        val fieldType = collectionSchema.typeOf(pair.first.fieldName)
+        val fieldName = pair.first.fieldName
+        val valueSource = pair.second.source
+        val valueType = pair.second.type
 
-                    is HasValueReference.Runtime<S> -> Reference.FieldValueReference(
-                        fieldRef.source,
-                        fieldRef.fieldName,
-                        reference.source,
-                        reference.type
-                    )
-
-                    else -> null
-                }
-            } ?: Reference.FieldReference(
-                fieldRef.source,
-                fieldRef.fieldName,
-            )
-            )
-    } else {
-        otherRefs
+        return FieldCheckWarning.FieldValueTypeMismatch(
+            fieldName,
+            fieldType,
+            valueSource,
+            valueType
+        ).takeIf { !valueType.isAssignableTo(fieldType) } as? FieldCheckWarning<S>
     }
 }
