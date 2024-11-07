@@ -26,7 +26,7 @@ data class ExplainQuery(
         override val id = "${javaClass.canonicalName}::$query"
 
         override suspend fun queryUsingDriver(from: MongoDbDriver): ExplainQuery {
-            val plan = from.explain(query)
+            val plan = runCatching { from.explain(query) }.getOrDefault(ExplainPlan.NotRun)
             return ExplainQuery(plan)
         }
     }
