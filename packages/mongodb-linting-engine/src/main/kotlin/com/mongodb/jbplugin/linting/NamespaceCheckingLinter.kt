@@ -97,7 +97,7 @@ object NamespaceCheckingLinter {
                 )
             }.mapAs<NamespaceCheckWarning<S>, _, _, _>()
             .map(::listOf)
-            .anyError()
+            .acceptAnyError()
 
         val collectionDoesNotExistParser = knownCollection<S>()
             .filter { collectionDoesNotExist(readModelProvider, dataSource, it) }
@@ -109,20 +109,20 @@ object NamespaceCheckingLinter {
                 )
             }.mapAs<NamespaceCheckWarning<S>, _, _, _>()
             .map(::listOf)
-            .anyError()
+            .acceptAnyError()
 
         val databaseIsNotKnown = onlyCollection<S>()
             .filter { it.collection.isNotEmpty() }
             .map { NoNamespaceInferred(source = it.collectionSource) }
             .mapAs<NamespaceCheckWarning<S>, _, _, _>()
             .map(::listOf)
-            .anyError()
+            .acceptAnyError()
 
         val noCollectionSpecified = noCollection<S>()
             .map { NoNamespaceInferred(source = query.source) }
             .mapAs<NamespaceCheckWarning<S>, _, _, _>()
             .map(::listOf)
-            .anyError()
+            .acceptAnyError()
 
         val namespaceErrorsParser = first(
             databaseDoesNotExistParser,

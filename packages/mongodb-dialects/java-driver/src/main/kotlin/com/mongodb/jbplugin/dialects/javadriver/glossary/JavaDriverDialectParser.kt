@@ -1,20 +1,58 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.project.Project
-import com.intellij.psi.*
+import com.intellij.psi.PsiArrayType
+import com.intellij.psi.PsiClassType
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiExpression
+import com.intellij.psi.PsiExpressionList
+import com.intellij.psi.PsiLiteralExpression
+import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.PsiReferenceExpression
+import com.intellij.psi.PsiReturnStatement
+import com.intellij.psi.PsiType
+import com.intellij.psi.PsiVariable
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.classIs
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.containingClass
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodCall
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodCallChain
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodName
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.resolveMethod
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
-import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.adt.Either
+import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasFilter
+import com.mongodb.jbplugin.mql.components.HasSourceDialect
+import com.mongodb.jbplugin.mql.components.HasUpdates
+import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.IsCommand
+import com.mongodb.jbplugin.mql.components.Name
+import com.mongodb.jbplugin.mql.components.Named
 import com.mongodb.jbplugin.mql.flattenAnyOfReferences
+import com.mongodb.jbplugin.mql.parser.Parser
+import com.mongodb.jbplugin.mql.parser.acceptAnyError
+import com.mongodb.jbplugin.mql.parser.cond
+import com.mongodb.jbplugin.mql.parser.constant
+import com.mongodb.jbplugin.mql.parser.equalsTo
+import com.mongodb.jbplugin.mql.parser.filter
+import com.mongodb.jbplugin.mql.parser.first
+import com.mongodb.jbplugin.mql.parser.firstMatching
+import com.mongodb.jbplugin.mql.parser.flatMap
+import com.mongodb.jbplugin.mql.parser.matches
 import com.mongodb.jbplugin.mql.toBsonType
+import kotlinx.coroutines.runBlocking
 
+private const val ITERABLE_FQN = "com.mongodb.client.MongoIterable"
 private const val SESSION_FQN = "com.mongodb.client.ClientSession"
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
@@ -422,47 +460,63 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun methodCallToCommand(methodCall: PsiMethodCallExpression?): IsCommand {
-        if (methodCall == null) {
-            return IsCommand(IsCommand.CommandType.UNKNOWN)
-        }
+        val resolveFromMethodName = methodCall()
+            .flatMap(resolveMethod())
+            .flatMap(methodName())
+            .flatMap(
+                cond(
+                    equalsTo("countDocuments") to constant(IsCommand.CommandType.COUNT_DOCUMENTS),
+                    equalsTo("estimatedDocumentCount") to
+                        constant(IsCommand.CommandType.ESTIMATED_DOCUMENT_COUNT),
+                    equalsTo("distinct") to constant(IsCommand.CommandType.DISTINCT),
+                    equalsTo("find") to constant(IsCommand.CommandType.FIND_MANY),
+                    equalsTo("first") to constant(IsCommand.CommandType.FIND_ONE),
+                    equalsTo("aggregate") to constant(IsCommand.CommandType.AGGREGATE),
+                    equalsTo("insertOne") to constant(IsCommand.CommandType.INSERT_ONE),
+                    equalsTo("insertMany") to constant(IsCommand.CommandType.INSERT_MANY),
+                    equalsTo("deleteOne") to constant(IsCommand.CommandType.DELETE_ONE),
+                    equalsTo("deleteMany") to constant(IsCommand.CommandType.DELETE_MANY),
+                    equalsTo("replaceOne") to constant(IsCommand.CommandType.REPLACE_ONE),
+                    equalsTo("updateOne") to constant(IsCommand.CommandType.UPDATE_ONE),
+                    equalsTo("updateMany") to constant(IsCommand.CommandType.UPDATE_MANY),
+                    equalsTo("findOneAndDelete") to
+                        constant(IsCommand.CommandType.FIND_ONE_AND_DELETE),
+                    equalsTo("findOneAndReplace") to
+                        constant(IsCommand.CommandType.FIND_ONE_AND_REPLACE),
+                    equalsTo("findOneAndUpdate") to
+                        constant(IsCommand.CommandType.FIND_ONE_AND_UPDATE)
+                )
+            ).acceptAnyError()
 
-        val method = methodCall.fuzzyResolveMethod()
-
-        if (method?.containingClass?.qualifiedName?.contains("MongoIterable") == true) {
-            // we are in a cursor, so the actual operation is in the upper method call
-            val allCallExpressions = methodCall.findAllChildrenOfType(
-                PsiMethodCallExpression::class.java
+        val onIterableResolveUpwards = methodCall()
+            .filter(
+                resolveMethod()
+                    .flatMap(containingClass())
+                    .flatMap(classIs(ITERABLE_FQN))
+                    .matches()
             )
-            val lastCallExpression = allCallExpressions.getOrNull(allCallExpressions.lastIndex - 1)
+            .flatMap(methodCallChain()).acceptAnyError()
+            .firstMatching(
+                resolveFromMethodName.flatMap(equalsTo(IsCommand.CommandType.AGGREGATE)).matches()
+            ).flatMap(resolveFromMethodName)
+            .acceptAnyError()
 
-            val result = methodCallToCommand(lastCallExpression)
+        return first(
+            onIterableResolveUpwards,
+            resolveFromMethodName,
+        ).parseInReadAction(methodCall)
+            .map(::IsCommand)
+            .orElse { IsCommand(IsCommand.CommandType.UNKNOWN) }
+    }
+}
 
-            if (result.type == IsCommand.CommandType.AGGREGATE) {
-                return result
+fun <I, E, O> Parser<I, E, O>.parseInReadAction(input: I): Either<E, O> {
+    return runBlocking {
+        readAction {
+            runBlocking {
+                this@parseInReadAction(input)
             }
         }
-
-        return IsCommand(
-            when (method?.name) {
-                "countDocuments" -> IsCommand.CommandType.COUNT_DOCUMENTS
-                "estimatedDocumentCount" -> IsCommand.CommandType.ESTIMATED_DOCUMENT_COUNT
-                "distinct" -> IsCommand.CommandType.DISTINCT
-                "find" -> IsCommand.CommandType.FIND_MANY
-                "first" -> IsCommand.CommandType.FIND_ONE
-                "aggregate" -> IsCommand.CommandType.AGGREGATE
-                "insertOne" -> IsCommand.CommandType.INSERT_ONE
-                "insertMany" -> IsCommand.CommandType.INSERT_MANY
-                "deleteOne" -> IsCommand.CommandType.DELETE_ONE
-                "deleteMany" -> IsCommand.CommandType.DELETE_MANY
-                "replaceOne" -> IsCommand.CommandType.REPLACE_ONE
-                "updateOne" -> IsCommand.CommandType.UPDATE_ONE
-                "updateMany" -> IsCommand.CommandType.UPDATE_MANY
-                "findOneAndDelete" -> IsCommand.CommandType.FIND_ONE_AND_DELETE
-                "findOneAndReplace" -> IsCommand.CommandType.FIND_ONE_AND_REPLACE
-                "findOneAndUpdate" -> IsCommand.CommandType.FIND_ONE_AND_UPDATE
-                else -> IsCommand.CommandType.UNKNOWN
-            }
-        )
     }
 }
 

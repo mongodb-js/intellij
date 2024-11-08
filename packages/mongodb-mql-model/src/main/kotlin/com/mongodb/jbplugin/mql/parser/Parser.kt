@@ -52,6 +52,23 @@ typealias Parser<I, E, O> = suspend (I) -> Either<E, O>
 data object ElementDoesNotMatchFilter
 
 /**
+ * Filter returns a Parser where the input must match the provided parser
+ */
+fun <I, E, O> Parser<I, E, O>.filter(
+    filterFn: Parser<O, E, Boolean>
+): Parser<I, Either<E, ElementDoesNotMatchFilter>, O> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> when (filterFn(result.value).orElse { false }) {
+                true -> Either.right(result.value)
+                false -> Either.left(Either.right(ElementDoesNotMatchFilter))
+            }
+        }
+    }
+}
+
+/**
  * Filter returns a Parser where the input must match the provided predicate, or returns a failing
  * parser.
  *
@@ -72,10 +89,29 @@ fun <I, E, O> Parser<I, E, O>.filter(
 }
 
 /**
- * Returns a new parser that maps the output to a new type.
+ * Returns a parser that ignores the type of error from the previous parser, as it's not relevant for the rest
+ * of the chain.
  */
-fun <I, E, O> Parser<I, E, O>.anyError(): Parser<I, Any, O> {
+fun <I, E, O> Parser<I, E, O>.acceptAnyError(): Parser<I, Any, O> {
     return this as Parser<I, Any, O>
+}
+
+/**
+ * Returns a new parser that maps the output to a new type that can be an error or a success
+ * value.
+ */
+fun <I, E, O, EE, OO> Parser<I, E, O>.flatMap(
+    mapFn: suspend (O) -> Either<EE, OO>
+): Parser<I, Either<E, EE>, OO> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> when (val mappingResult = mapFn(result.value)) {
+                is Either.Left -> Either.left(Either.right(mappingResult.value))
+                is Either.Right -> Either.right(mappingResult.value)
+            }
+        }
+    }
 }
 
 /**
@@ -172,9 +208,42 @@ fun <I, E, O, E2, O2> Parser<I, E, List<O>>.mapMany(
 
 data object NoConditionFulfilled
 
-fun <I, E> equals(toValue: I): Parser<I, E, Boolean> {
+/**
+ * Returns a parser that runs a parser for each element of the output list.
+ */
+fun <I, E, O> Parser<I, E, List<O>>.firstMatching(
+    parser: Parser<O, E, Boolean>
+): Parser<I, Either<E, NoConditionFulfilled>, O> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> {
+                val firstResult = result.value.firstOrNull {
+                    when (val result = parser(it)) {
+                        is Either.Left -> false
+                        is Either.Right -> result.value
+                    }
+                }
+
+                if (firstResult == null) {
+                    Either.left(Either.right(NoConditionFulfilled))
+                } else {
+                    Either.right(firstResult)
+                }
+            }
+        }
+    }
+}
+
+fun <I> equalsTo(toValue: I): Parser<I, Unit, Boolean> {
     return { input ->
         Either.right(input == toValue)
+    }
+}
+
+fun <I, O> constant(value: O): Parser<I, Unit, O> {
+    return { input ->
+        Either.right(value)
     }
 }
 
@@ -182,18 +251,19 @@ fun <I, E> not(parser: Parser<I, E, Boolean>): Parser<I, E, Boolean> {
     return parser.map { !it }
 }
 
-fun <I, E, O> otherwise(defaultValue: () -> O): Parser<I, E, O> {
+fun <I, E, O> otherwise(defaultValue: () -> O): Pair<Parser<I, E, Boolean>, Parser<I, E, O>> {
+    val alwaysMatches: Parser<I, E, Boolean> = { input: I -> Either.right(true) }
     val thenDefaultValue: Parser<I, E, O> = { input: I -> Either.right(defaultValue()) }
-    return thenDefaultValue
+    return alwaysMatches to thenDefaultValue
 }
 
 /**
  * Returns a parser that checks that the source parser would fail or not.
  */
-fun <I, E, O> Parser<I, E, O>.matches(): Parser<I, E, Boolean> {
+fun <I, E, O> Parser<I, E, O>.matches(): Parser<I, Any, Boolean> {
     return { input ->
         when (val result = this(input)) {
-            is Either.Left -> Either.left(result.value)
+            is Either.Left -> Either.left(result.value as Any)
             is Either.Right -> Either.right(true)
         }
     }
@@ -230,6 +300,19 @@ fun <I, E, O> first(
 ): Parser<I, Either<NoConditionFulfilled, E>, O> {
     val branches = parsers.map { it.matches() to it }.toTypedArray()
     return cond(*branches)
+}
+
+/**
+ * Requires the input to be non null. In case it's null returns a failed parser output.
+ */
+fun <I, E> requireNonNull(err: E): Parser<I?, E, I> {
+    return { input ->
+        if (input == null) {
+            Either.left(err)
+        } else {
+            Either.right(input)
+        }
+    }
 }
 
 private val PARSER = Executors.newWorkStealingPool(4).asCoroutineDispatcher()
