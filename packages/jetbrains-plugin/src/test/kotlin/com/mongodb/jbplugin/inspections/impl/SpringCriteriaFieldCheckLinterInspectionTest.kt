@@ -239,7 +239,7 @@ class BookRepository {
 
     public void allReleasedBooks() {
         template.find(
-                query(where("released").is(<warning descr="A \"String\"(type of provided value) can not be assigned to \"boolean\"(type of \"released\")">"true"</warning>)),
+                query(where("released").is(<warning descr="A \"String\"(type of provided value) cannot be assigned to \"boolean\"(type of \"released\")">"true"</warning>)),
                 Book.class
         );
     }
