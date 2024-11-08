@@ -47,7 +47,7 @@ fun methodCallChain(): Parser<PsiMethodCallExpression, Any, List<PsiMethodCallEx
     }
 }
 
-fun methodName(): Parser<PsiMethod, Unit, String> {
+fun methodName(): Parser<PsiMethod, Any, String> {
     return { input ->
         Either.right(input.name)
     }
