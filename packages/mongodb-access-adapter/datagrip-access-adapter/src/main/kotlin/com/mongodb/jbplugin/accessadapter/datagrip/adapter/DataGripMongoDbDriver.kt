@@ -84,7 +84,7 @@ internal class DataGripMongoDbDriver(
 
     override suspend fun connectionString(): ConnectionString = ConnectionString(dataSource.url!!)
 
-    override suspend fun <S> explain(query: Node<S>): ExplainPlan = withContext(Dispatchers.IO) {
+    override suspend fun <S> explain(query: Node<S>): ExplainPlan = withContext(mongosh) {
         val queryScript = ApplicationManager.getApplication().runReadAction<OutputQuery> {
             MongoshDialect.formatter.formatQuery(query, explain = true)
         }
