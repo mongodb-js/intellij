@@ -272,9 +272,6 @@ private fun <S> MongoshBackend.resolveFieldReference(fieldRef: HasFieldReference
     when (val ref = fieldRef.reference) {
         is FromSchema -> registerConstant(ref.fieldName)
         is Unknown -> registerVariable("field", BsonAny)
-        else -> {
-            // Do nothing for now
-        }
     }
 
 private fun <S> MongoshBackend.emitCollectionReference(collRef: HasCollectionReference<S>?): MongoshBackend {
