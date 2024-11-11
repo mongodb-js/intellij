@@ -1,6 +1,6 @@
 package com.mongodb.jbplugin.mql.components
 
-import com.mongodb.jbplugin.mql.Component
+import com.mongodb.jbplugin.mql.HasChildren
 import com.mongodb.jbplugin.mql.Node
 
 /**
@@ -8,5 +8,5 @@ import com.mongodb.jbplugin.mql.Node
  * @property children
  */
 data class HasFilter<S>(
-    val children: List<Node<S>>,
-) : Component
+    override val children: List<Node<S>>,
+) : HasChildren<S>
