@@ -244,7 +244,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             }
             val valueExpression = filter.argumentList.expressions[0]
             val valueReference = resolveValueFromExpression(valueExpression)
-            val fieldReference = HasFieldReference.Known(valueExpression, "_id")
+            val fieldReference = HasFieldReference.FromSchema(valueExpression, "_id")
 
             return Node(
                 filter,
@@ -400,7 +400,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val fieldNameAsString = expression.tryToResolveAsConstantString()
         val fieldReference =
             fieldNameAsString?.let {
-                HasFieldReference.Known(expression, it)
+                HasFieldReference.FromSchema(expression, it)
             } ?: HasFieldReference.Unknown
 
         return fieldReference

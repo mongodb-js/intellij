@@ -29,7 +29,7 @@ class IndexAnalyzerTest {
                         Node(
                             Unit,
                             listOf(
-                                HasFieldReference(HasFieldReference.Known(Unit, "myField"))
+                                HasFieldReference(HasFieldReference.FromSchema(Unit, "myField"))
                             )
                         )
                     )
@@ -60,19 +60,21 @@ class IndexAnalyzerTest {
                         Node(
                             Unit,
                             listOf(
-                                HasFieldReference(HasFieldReference.Known(Unit, "myField"))
+                                HasFieldReference(HasFieldReference.FromSchema(Unit, "myField"))
                             )
                         ),
                         Node(
                             Unit,
                             listOf(
-                                HasFieldReference(HasFieldReference.Known(Unit, "mySecondField"))
+                                HasFieldReference(
+                                    HasFieldReference.FromSchema(Unit, "mySecondField")
+                                )
                             )
                         ),
                         Node(
                             Unit,
                             listOf(
-                                HasFieldReference(HasFieldReference.Known(Unit, "myField"))
+                                HasFieldReference(HasFieldReference.FromSchema(Unit, "myField"))
                             )
                         )
                     )

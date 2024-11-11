@@ -78,7 +78,7 @@ public interface SQRepository extends Repository<Comment, ObjectId> {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("name", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> { assertEquals("name", fieldName) }
                 value<HasValueReference.Constant<PsiElement>> { assertEquals("a", value) }
             }
         }

@@ -30,9 +30,9 @@ class NodeTest {
             Node<Unit?>(
                 null,
                 listOf(
-                    HasFieldReference(HasFieldReference.Known(null, "field1")),
+                    HasFieldReference(HasFieldReference.FromSchema(null, "field1")),
                     HasFieldReference(
-                        HasFieldReference.Known(
+                        HasFieldReference.FromSchema(
                             null,
                             "field2",
                         ),
@@ -41,8 +41,14 @@ class NodeTest {
             )
         val fieldReferences = node.components<HasFieldReference<Unit?>>()
 
-        assertEquals("field1", (fieldReferences[0].reference as HasFieldReference.Known).fieldName)
-        assertEquals("field2", (fieldReferences[1].reference as HasFieldReference.Known).fieldName)
+        assertEquals(
+            "field1",
+            (fieldReferences[0].reference as HasFieldReference.FromSchema).fieldName
+        )
+        assertEquals(
+            "field2",
+            (fieldReferences[1].reference as HasFieldReference.FromSchema).fieldName
+        )
     }
 
     @Test
@@ -50,7 +56,7 @@ class NodeTest {
         val node =
             Node<Unit?>(
                 null,
-                listOf(HasFieldReference(HasFieldReference.Known(null, "field1"))),
+                listOf(HasFieldReference(HasFieldReference.FromSchema(null, "field1"))),
             )
         val hasFieldReferences = node.hasComponent<HasFieldReference<Unit?>>()
 
@@ -62,7 +68,7 @@ class NodeTest {
         val node =
             Node<Unit?>(
                 null,
-                listOf(HasFieldReference(HasFieldReference.Known(null, "field1"))),
+                listOf(HasFieldReference(HasFieldReference.FromSchema(null, "field1"))),
             )
         val hasNamedComponent = node.hasComponent<Named>()
 
@@ -190,7 +196,7 @@ class NodeTest {
                     HasFieldReference::class.java
                 ),
                 arrayOf(
-                    HasFieldReference(HasFieldReference.Known(null, "abc")),
+                    HasFieldReference(HasFieldReference.FromSchema(null, "abc")),
                     HasFieldReference::class.java
                 ),
                 arrayOf(

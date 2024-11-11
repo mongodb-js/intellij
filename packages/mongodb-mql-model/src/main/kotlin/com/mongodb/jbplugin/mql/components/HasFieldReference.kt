@@ -2,27 +2,25 @@ package com.mongodb.jbplugin.mql.components
 
 import com.mongodb.jbplugin.mql.Component
 
-/**
- * @param S
- * @property reference
- */
 data class HasFieldReference<S>(
     val reference: FieldReference<S>,
 ) : Component {
-    data object Unknown : FieldReference<Any>
 
-    /**
-     * @param S
-     */
     sealed interface FieldReference<S>
 
     /**
-     * @param S
-     * @property fieldName
-     * @property source
+     * Encodes a possible FieldReference that cannot be classified as one of the remaining
+     * FieldReference implementations because of us not having enough metadata about it.
      */
-    data class Known<S>(
+    data object Unknown : FieldReference<Any>
+
+    /**
+     * Encodes a FieldReference that is statically typed in the user code and one that is
+     * expected to reference a field from the target namespace of the query / aggregation.
+     */
+    data class FromSchema<S>(
         val source: S,
         val fieldName: String,
+        val displayName: String = fieldName,
     ) : FieldReference<S>
 }

@@ -5,6 +5,8 @@ import com.mongodb.jbplugin.dialects.OutputQuery
 import com.mongodb.jbplugin.dialects.mongosh.backend.MongoshBackend
 import com.mongodb.jbplugin.mql.*
 import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.components.HasFieldReference.FromSchema
+import com.mongodb.jbplugin.mql.components.HasFieldReference.Unknown
 import io.github.z4kn4fein.semver.Version
 import org.owasp.encoder.Encode
 
@@ -256,7 +258,7 @@ private fun <S> MongoshBackend.resolveValueReference(
 ) = when (val ref = valueRef.reference) {
     is HasValueReference.Constant -> registerConstant(ref.value)
     is HasValueReference.Runtime -> registerVariable(
-        (fieldRef?.reference as? HasFieldReference.Known)?.fieldName ?: "value",
+        (fieldRef?.reference as? FromSchema)?.fieldName ?: "value",
         ref.type
     )
 
@@ -268,8 +270,11 @@ private fun <S> MongoshBackend.resolveValueReference(
 
 private fun <S> MongoshBackend.resolveFieldReference(fieldRef: HasFieldReference<S>) =
     when (val ref = fieldRef.reference) {
-        is HasFieldReference.Known -> registerConstant(ref.fieldName)
-        is HasFieldReference.Unknown -> registerVariable("field", BsonAny)
+        is FromSchema -> registerConstant(ref.fieldName)
+        is Unknown -> registerVariable("field", BsonAny)
+        else -> {
+            // Do nothing for now
+        }
     }
 
 private fun <S> MongoshBackend.emitCollectionReference(collRef: HasCollectionReference<S>?): MongoshBackend {
