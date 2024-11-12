@@ -35,27 +35,34 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val currentCall =
             source as? PsiMethodCallExpression
                 ?: return Node(source, listOf(sourceDialect, collectionReference))
+        val command = methodCallToCommand(currentCall)
 
-        val calledMethod = currentCall.fuzzyResolveMethod()
-        if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
-            val hasFilters = HasFilter(parseAllFiltersFromCurrentCall(currentCall))
-            val hasUpdates = HasUpdates(parseAllUpdatesFromCurrentCall(currentCall))
+        /**
+         * We might come across a FIND_ONE command and in that case we need to be pointing to the
+         * right method call, find() and not find().first(), in order to parse the filter arguments
+         */
+        val commandCall = currentCall.findMongoDbCollectionMethodCallForCommand(command)
+        val commandCallMethod = commandCall.fuzzyResolveMethod()
+
+        if (commandCallMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
+            val hasFilters = HasFilter(parseAllFiltersFromCurrentCall(commandCall))
+            val hasUpdates = HasUpdates(parseAllUpdatesFromCurrentCall(commandCall))
 
             return Node(
                 source,
                 listOf(
                     sourceDialect,
-                    methodCallToCommand(currentCall),
+                    command,
                     collectionReference,
                     hasFilters,
                     hasUpdates
                 ),
             )
         } else {
-            calledMethod?.let {
+            commandCallMethod?.let {
                 // if it's another class, try to resolve the query from the method body
                 val allReturns = PsiTreeUtil.findChildrenOfType(
-                    calledMethod.body,
+                    commandCallMethod.body,
                     PsiReturnStatement::class.java
                 )
                 return allReturns
@@ -78,7 +85,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         listOf(
                             sourceDialect,
                             collectionReference,
-                            methodCallToCommand(currentCall)
+                            command
                         )
                     )
             } ?: return Node(source, listOf(sourceDialect, collectionReference))
@@ -429,13 +436,23 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val method = methodCall.fuzzyResolveMethod()
 
         if (method?.containingClass?.qualifiedName?.contains("MongoIterable") == true) {
-            // we are in a cursor, so the actual operation is in the upper method call
+            // We are in a cursor, so the actual operation is in the upper method calls
+            // For context, the current call is somewhat like this:
+            //   MongoCollection.find(Filters.eq(...)).first()
+            // and to correctly identify the command we need to be analysing
+            //   MongoCollection.find(Filters.eq(...))
             val allCallExpressions = methodCall.findAllChildrenOfType(
                 PsiMethodCallExpression::class.java
             )
             val lastCallExpression = allCallExpressions.getOrNull(allCallExpressions.lastIndex - 1)
-
             val result = methodCallToCommand(lastCallExpression)
+
+            // FindIterable.first() translates to a valid MongoDB driver command so we need to take
+            // that into account and return correct command result. Because we analysed the earlier
+            // chained call the result in this case will be FIND_MANY
+            if (result.type == IsCommand.CommandType.FIND_MANY && method.name == "first") {
+                return IsCommand(IsCommand.CommandType.FIND_ONE)
+            }
 
             if (result.type == IsCommand.CommandType.AGGREGATE) {
                 return result
