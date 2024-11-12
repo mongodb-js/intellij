@@ -102,13 +102,10 @@ public final class Repository {
     fun `the attachment for findOne command happens at the first() method call`(psiFile: PsiFile) {
         // Returns the value of the entire return expression
         val query = psiFile.getQueryAtMethod("Repository", "findBookById")
-        val collectionReference =
-            PsiTreeUtil
-                .findChildrenOfType(query, PsiMethodCallExpression::class.java)
-                .first { it.text.endsWith("id))") }
-
         assertTrue(JavaDriverDialectParser.isCandidateForQuery(query))
-        assertEquals(collectionReference, JavaDriverDialectParser.attachment(query))
+        // The entire return value of the method will be the attachment because the entire query
+        // constructs a FIND_ONE command
+        assertEquals(query, JavaDriverDialectParser.attachment(query))
     }
 
     @ParsingTest(
@@ -144,6 +141,7 @@ public final class Repository {
         val actualQuery = PsiTreeUtil
             .findChildrenOfType(queryWithIterableCall, PsiMethodCallExpression::class.java)
             .first { it.text.endsWith("id))") }
+        // Only the expressions until the actual find call is the valid candidate for query
         assertTrue(JavaDriverDialectParser.isCandidateForQuery(actualQuery))
 
         assertEquals(actualQuery, JavaDriverDialectParser.attachment(actualQuery))
@@ -293,6 +291,48 @@ public final class Repository {
         val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
 
         val eq = hasFilter.children[0]
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
+        assertEquals(
+            "_id",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+        )
+        assertEquals(
+            BsonAnyOf(BsonObjectId, BsonNull),
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import com.mongodb.client.FindIterable;
+
+public final class Repository {
+    private final MongoCollection<Document> collection;
+
+    public Repository(MongoCollection<Document> collection) {
+        this.collection = collection;
+    }
+
+    public Document findBookById(ObjectId id) {
+        return this.collection.find(Filters.eq("_id", id)).first();
+    }
+}
+        """,
+    )
+    fun `can parse a basic Filters query for FIND_ONE command`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findBookById")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val command = parsedQuery.component<IsCommand>()
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+
+        val eq = hasFilter.children[0]
+        assertEquals(IsCommand.CommandType.FIND_ONE, command?.type)
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
