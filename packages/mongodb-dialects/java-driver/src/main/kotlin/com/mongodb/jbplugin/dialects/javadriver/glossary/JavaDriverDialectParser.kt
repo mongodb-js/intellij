@@ -9,10 +9,8 @@ import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiExpressionList
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiMethodCallExpression
-import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.PsiReturnStatement
 import com.intellij.psi.PsiType
-import com.intellij.psi.PsiVariable
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
@@ -20,10 +18,14 @@ import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.classIs
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.containingClass
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.meaningfulExpression
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodCall
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodCallChain
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodName
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodReturnStatements
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.referenceExpression
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.resolveMethod
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.variable
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
@@ -44,11 +46,16 @@ import com.mongodb.jbplugin.mql.parser.acceptAnyError
 import com.mongodb.jbplugin.mql.parser.cond
 import com.mongodb.jbplugin.mql.parser.constant
 import com.mongodb.jbplugin.mql.parser.equalsTo
-import com.mongodb.jbplugin.mql.parser.filter
 import com.mongodb.jbplugin.mql.parser.first
 import com.mongodb.jbplugin.mql.parser.firstMatching
+import com.mongodb.jbplugin.mql.parser.firstResult
 import com.mongodb.jbplugin.mql.parser.flatMap
+import com.mongodb.jbplugin.mql.parser.inputAs
+import com.mongodb.jbplugin.mql.parser.lateInit
+import com.mongodb.jbplugin.mql.parser.mapAs
+import com.mongodb.jbplugin.mql.parser.mapMany
 import com.mongodb.jbplugin.mql.parser.matches
+import com.mongodb.jbplugin.mql.parser.otherwiseParse
 import com.mongodb.jbplugin.mql.toBsonType
 import kotlinx.coroutines.runBlocking
 
@@ -231,7 +238,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             // - in(field, array) -> valid because of varargs
             // - in(field, iterable) -> valid because of overload
             val valueReference = if (filter.argumentList.expressionCount == 2) {
-                var secondArg = filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
+                var secondArg =
+                    filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
                 if (secondArg.type?.isJavaIterable() == true) { // case 3
                     filter.argumentList.inferFromSingleVarArgElement(start = 1)
                 } else if (secondArg.type?.isArray() == false) { // case 1
@@ -308,63 +316,67 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
-        when (val expression = element.meaningfulExpression()) {
-            is PsiMethodCallExpression -> {
-                val method = expression.fuzzyResolveMethod() ?: return null
-                if (method.containingClass?.qualifiedName == FILTERS_FQN) {
-                    return expression
-                }
-                val allReturns = PsiTreeUtil.findChildrenOfType(
-                    method.body,
-                    PsiReturnStatement::class.java
-                )
-                return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
-                    resolveToFiltersCall(it)
-                }
-            }
-
-            is PsiVariable -> {
-                expression.initializer ?: return null
-                return resolveToFiltersCall(expression.initializer!!)
-            }
-
-            is PsiReferenceExpression -> {
-                val referredValue = expression.resolve() ?: return null
-                return resolveToFiltersCall(referredValue)
-            }
-
-            else -> return null
-        }
+        return resolveToCallToMongoDbQueryBuilder(FILTERS_FQN)
+            .parseInReadAction(element)
+            .orElseNull()
     }
 
     private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
-        when (val expression = element.meaningfulExpression()) {
-            is PsiMethodCallExpression -> {
-                val method = expression.resolveMethod() ?: return null
-                if (method.containingClass?.qualifiedName == UPDATES_FQN) {
-                    return expression
-                }
-                val allReturns = PsiTreeUtil.findChildrenOfType(
-                    method.body,
-                    PsiReturnStatement::class.java
-                )
-                return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
-                    resolveToUpdatesCall(it)
-                }
-            }
+        return resolveToCallToMongoDbQueryBuilder(UPDATES_FQN)
+            .parseInReadAction(element)
+            .orElseNull()
+    }
 
-            is PsiVariable -> {
-                expression.initializer ?: return null
-                return resolveToUpdatesCall(expression.initializer!!)
-            }
+    private fun resolveToCallToMongoDbQueryBuilder(builderFqn: String): Parser<PsiElement, Any, PsiMethodCallExpression> {
+        val resolveToFiltersParser = lateInit<PsiElement, Any, PsiMethodCallExpression>()
 
-            is PsiReferenceExpression -> {
-                val referredValue = expression.resolve() ?: return null
-                return resolveToUpdatesCall(referredValue)
-            }
+        val isFilterFunction = methodCall()
+            .matches(
+                resolveMethod()
+                    .flatMap(containingClass())
+                    .flatMap(classIs(builderFqn)).matches()
+            ).inputAs<PsiElement, _, _, _>()
 
-            else -> return null
-        }
+        val firstReturnStatementWithFilters = methodCall()
+            .flatMap(resolveMethod())
+            .flatMap(methodReturnStatements())
+            .mapMany(resolveToFiltersParser::invoke)
+            .firstResult()
+            .mapAs<PsiMethodCallExpression, _, _, _>()
+            .inputAs<PsiElement, _, _, _>()
+            .acceptAnyError()
+
+        val whenPsiMethodCallExpression = cond(
+            isFilterFunction.matches() to
+                methodCall().inputAs<PsiElement, _, _, _>().acceptAnyError(),
+            otherwiseParse(firstReturnStatementWithFilters)
+        ).acceptAnyError()
+
+        val whenIsVariable = variable()
+            .flatMap(meaningfulExpression())
+            .flatMap(resolveToFiltersParser::invoke)
+            .mapAs<PsiMethodCallExpression, _, _, _>()
+            .inputAs<PsiElement, _, _, _>()
+            .acceptAnyError()
+
+        val whenIsReferenceExpression = referenceExpression()
+            .flatMap(meaningfulExpression())
+            .flatMap(resolveToFiltersParser::invoke)
+            .mapAs<PsiMethodCallExpression, _, _, _>()
+            .inputAs<PsiElement, _, _, _>()
+            .acceptAnyError()
+
+        resolveToFiltersParser.init(
+            first(
+                whenPsiMethodCallExpression,
+                whenIsVariable,
+                whenIsReferenceExpression
+            ).acceptAnyError()
+        )
+
+        return meaningfulExpression()
+            .flatMap(resolveToFiltersParser::invoke)
+            .acceptAnyError()
     }
 
     private fun parseUpdatesExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
@@ -489,7 +501,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             ).acceptAnyError()
 
         val onIterableResolveUpwards = methodCall()
-            .filter(
+            .matches(
                 resolveMethod()
                     .flatMap(containingClass())
                     .flatMap(classIs(ITERABLE_FQN))

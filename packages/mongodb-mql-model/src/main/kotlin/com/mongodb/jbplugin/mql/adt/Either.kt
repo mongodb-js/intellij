@@ -22,4 +22,11 @@ sealed class Either<A, B> {
             is Right -> value
         }
     }
+
+    fun orElseNull(): B? {
+        return when (this) {
+            is Left -> null
+            is Right -> value
+        }
+    }
 }

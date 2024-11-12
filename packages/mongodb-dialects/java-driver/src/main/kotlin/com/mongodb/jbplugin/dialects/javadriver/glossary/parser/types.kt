@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary.parser
 
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiType
@@ -8,6 +9,7 @@ import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.parser.Parser
 import com.mongodb.jbplugin.mql.parser.flatMap
 import com.mongodb.jbplugin.mql.parser.mapError
+import com.mongodb.jbplugin.mql.parser.matches
 import com.mongodb.jbplugin.mql.parser.requireNonNull
 
 data object CouldNotResolveClass
@@ -41,4 +43,13 @@ fun containingClass(): Parser<PsiMethod, NotInAClass, PsiClass> {
             else -> Either.left(NotInAClass)
         }
     }
+}
+
+data object NotFromMongoDbCollection
+fun isMethodFromDriverMongoDbCollection(
+    project: Project
+): Parser<PsiMethod?, NotFromMongoDbCollection, PsiMethod> {
+    return method()
+        .matches(containingClass().flatMap(classIs("com.mongodb.client.MongoCollection")).matches())
+        .mapError { NotFromMongoDbCollection }
 }
