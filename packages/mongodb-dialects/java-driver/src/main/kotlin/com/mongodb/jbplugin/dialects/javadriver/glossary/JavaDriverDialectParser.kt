@@ -27,9 +27,11 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodName
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodReturnStatements
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.referenceExpression
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.resolveMethod
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.resolveType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toFieldReference
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toValueFromArgumentList
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toValueReference
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.typeToClass
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.variable
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonAnyOf
@@ -142,52 +144,46 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun parseAllFiltersFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> {
-        if (currentCall.argumentList.expressionCount > 0) {
-            // TODO: we might want to have a component that tells this query is in a transaction
-            val startIndex = if (hasMongoDbSessionReference(currentCall)) 1 else 0
-            var filterExpression = currentCall.argumentList.expressions.getOrNull(startIndex)
+        val whenHasSessionArgument = methodCall().matches(hasMongoDbSessionReference())
+            .flatMap(argumentAt(1))
+            .flatMap(resolveToCallToMongoDbQueryBuilder(FILTERS_FQN))
+            .flatMap(parseFilterExpression())
+            .acceptAnyError()
 
-            if (filterExpression == null) {
-                return emptyList()
-            }
+        val whenDoesNotHaveSessionArgument = methodCall()
+            .flatMap(argumentAt(0))
+            .flatMap(resolveToCallToMongoDbQueryBuilder(FILTERS_FQN))
+            .flatMap(parseFilterExpression())
+            .acceptAnyError()
 
-            // we have at least 1 argument in the current method call
-            // try to get the relevant filter calls, or avoid parsing the query at all
-            val argumentAsFilters = resolveToFiltersCall(filterExpression)
-            return argumentAsFilters?.let {
-                val parsedQuery = parseFilterExpression(argumentAsFilters)
-                parsedQuery?.let {
-                    listOf(
-                        parsedQuery,
-                    )
-                } ?: emptyList()
-            } ?: emptyList()
-        } else {
-            return emptyList()
-        }
+        return first(
+            whenHasSessionArgument,
+            whenDoesNotHaveSessionArgument
+        ).parseInReadAction(currentCall)
+            .map(::listOf)
+            .orElse { emptyList() }
     }
 
     private fun parseAllUpdatesFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> {
-        if (currentCall.argumentList.expressionCount > 1) {
-            // TODO: we might want to have a component that tells this query is in a transaction
-            val startIndex = if (hasMongoDbSessionReference(currentCall)) 2 else 1
-            var updateExpression = currentCall.argumentList.expressions.getOrNull(startIndex)
+        val whenHasSessionArgument = methodCall().matches(hasMongoDbSessionReference())
+            .flatMap(argumentAt(2)) // the update is the 3rd argument
+            .flatMap(resolveToCallToMongoDbQueryBuilder(UPDATES_FQN))
+            .flatMap(parseUpdatesExpression())
+            .acceptAnyError()
 
-            if (updateExpression == null) {
-                return emptyList()
-            }
+        val whenDoesNotHaveSessionArgument = methodCall()
+            .flatMap(argumentAt(1)) // the update is the 2nd argument
+            .flatMap(resolveToCallToMongoDbQueryBuilder(UPDATES_FQN))
+            .flatMap(parseUpdatesExpression())
+            .acceptAnyError()
 
-            val argumentAsUpdates = resolveToUpdatesCall(updateExpression)
-            // parse only if it's a call to `updates` methods
-            return argumentAsUpdates?.let {
-                val parsedQuery = parseUpdatesExpression(argumentAsUpdates)
-                parsedQuery?.let {
-                    listOf(parsedQuery)
-                } ?: emptyList()
-            } ?: emptyList()
-        } else {
-            return emptyList()
-        }
+        val x = first(
+            whenHasSessionArgument,
+            whenDoesNotHaveSessionArgument
+        ).parseInReadAction(currentCall)
+
+        return x.map(::listOf)
+            .orElse { emptyList() }
     }
 
     override fun isReferenceToDatabase(source: PsiElement): Boolean {
@@ -236,7 +232,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             containingClass.qualifiedName == UPDATES_FQN
     }
 
-    private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
+    private fun parseFilterExpression(): Parser<PsiMethodCallExpression, Any, Node<PsiElement>> {
         val parseFilterExpression = lateInit<PsiElement, Any, Node<PsiElement>>()
 
         val whenInAInOrNinMethod = methodCall()
@@ -340,7 +336,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             .zip(argumentAt(0).flatMap(toValueReference()))
             .map {
                 Node(
-                    filter as PsiElement,
+                    it.first as PsiElement,
                     listOf(
                         Named(Name.EQ),
                         HasFieldReference(HasFieldReference.Known(it.first, "_id")),
@@ -378,20 +374,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         )
 
         return parseFilterExpression.asParser()
-            .parseInReadAction(filter)
-            .orElseNull()
-    }
-
-    private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
-        return resolveToCallToMongoDbQueryBuilder(FILTERS_FQN)
-            .parseInReadAction(element)
-            .orElseNull()
-    }
-
-    private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
-        return resolveToCallToMongoDbQueryBuilder(UPDATES_FQN)
-            .parseInReadAction(element)
-            .orElseNull()
     }
 
     private fun resolveToCallToMongoDbQueryBuilder(builderFqn: String): Parser<PsiElement, Any, PsiMethodCallExpression> {
@@ -446,7 +428,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             .acceptAnyError()
     }
 
-    private fun parseUpdatesExpression(updateExpression: PsiMethodCallExpression): Node<PsiElement>? {
+    private fun parseUpdatesExpression(): Parser<PsiMethodCallExpression, Any, Node<PsiElement>> {
         val parseUpdatesExpression = lateInit<PsiElement, Any, Node<PsiElement>>()
 
         val updatesCombine = methodCall()
@@ -512,18 +494,15 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         )
 
         return parseUpdatesExpression.asParser()
-            .parseInReadAction(updateExpression)
-            .orElseNull()
     }
 
-    private fun hasMongoDbSessionReference(methodCall: PsiMethodCallExpression): Boolean {
-        val hasEnoughArgs = methodCall.argumentList.expressionCount > 0
-        if (!hasEnoughArgs) {
-            return false
-        }
-
-        val typeOfFirstArg = methodCall.argumentList.expressionTypes[0]
-        return typeOfFirstArg.equalsToText(SESSION_FQN)
+    private fun hasMongoDbSessionReference(): Parser<PsiMethodCallExpression, Any, Boolean> {
+        return methodCall().matches(
+            argumentAt(
+                0
+            ).flatMap(resolveType()).flatMap(typeToClass()).flatMap(classIs(SESSION_FQN)).matches()
+        ).map { true }
+            .acceptAnyError()
     }
 
     private fun methodCallToCommand(methodCall: PsiMethodCallExpression?): IsCommand {
