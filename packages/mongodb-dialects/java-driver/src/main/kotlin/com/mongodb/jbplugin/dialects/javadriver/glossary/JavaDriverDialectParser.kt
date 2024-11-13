@@ -4,6 +4,7 @@ import com.intellij.openapi.application.readAction
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiLiteralExpression
+import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.util.parentOfType
@@ -37,12 +38,12 @@ import com.mongodb.jbplugin.mql.components.HasUpdates
 import com.mongodb.jbplugin.mql.components.IsCommand
 import com.mongodb.jbplugin.mql.components.Name
 import com.mongodb.jbplugin.mql.components.Named
+import com.mongodb.jbplugin.mql.parser.NoConditionFulfilled
 import com.mongodb.jbplugin.mql.parser.Parser
 import com.mongodb.jbplugin.mql.parser.acceptAnyError
 import com.mongodb.jbplugin.mql.parser.allMatching
 import com.mongodb.jbplugin.mql.parser.cond
 import com.mongodb.jbplugin.mql.parser.constant
-import com.mongodb.jbplugin.mql.parser.debug
 import com.mongodb.jbplugin.mql.parser.equalsTo
 import com.mongodb.jbplugin.mql.parser.filter
 import com.mongodb.jbplugin.mql.parser.first
@@ -85,25 +86,20 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val collectionReference = NamespaceExtractor.extractNamespace(source)
 
         val isAMongoDbCollectionMethod = queryRoot()
-            .flatMap(methodCall())
             .acceptAnyError()
-            .debug("1")
             .matches(resolveMethod().flatMap(isMethodFromDriverMongoDbCollection()).matches())
-            .debug("2")
             .zip(
                 first(
-                    parseAllFiltersFromCurrentCall(),
+                    queryRoot().flatMap(parseAllFiltersFromCurrentCall()).acceptAnyError(),
                     constant(HasFilter<PsiElement>(emptyList()))
                 )
             )
-            .debug("3")
             .zip(
                 first(
-                    parseAllUpdatesFromCurrentCall(),
+                    queryRoot().flatMap(parseAllUpdatesFromCurrentCall()).acceptAnyError(),
                     constant(HasUpdates<PsiElement>(emptyList()))
                 )
             )
-            .debug("4")
             .zip(first(methodCallToCommand(), constant(IsCommand(IsCommand.CommandType.UNKNOWN))))
             .map {
                 Node(
@@ -119,7 +115,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             }.acceptAnyError()
             .inputAs<PsiElement, _, _, _>()
 
-        val resolveUnderlyingQuery = queryRoot()
+        val resolveUnderlyingQuery = methodCall()
             .flatMap(resolveMethod())
             .flatMap(methodReturnStatements())
             .mapMany(parse::invoke)
@@ -559,7 +555,25 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun queryRoot(): Parser<PsiElement, Any, PsiMethodCallExpression> {
-        return methodCall()
+        return { input ->
+            val isMdbCollMethod = methodCall().matches(
+                resolveMethod().flatMap(isMethodFromDriverMongoDbCollection()).matches()
+            )
+
+            val allMethodCalls =
+                input.collectTypeUntil(PsiMethodCallExpression::class.java, PsiMethod::class.java) +
+                    input.findAllChildrenOfType(PsiMethodCallExpression::class.java)
+
+            val result = allMethodCalls.firstOrNull {
+                isMdbCollMethod.parseInReadAction(it).map { true }.orElse { false }
+            }
+
+            if (result == null) {
+                Either.left(NoConditionFulfilled)
+            } else {
+                Either.right(result)
+            }
+        }
     }
 }
 

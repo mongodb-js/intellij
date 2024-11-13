@@ -256,15 +256,6 @@ fun <I, E, O, E2, O2> Parser<I, E, List<O>>.mapMany(
     }
 }
 
-fun <I, E, O> Parser<I, E, List<List<O>>>.flatten(): Parser<I, E, List<O>> {
-    return { input ->
-        when (val result = this(input)) {
-            is Either.Left -> Either.left(result.value)
-            is Either.Right -> Either.right(result.value.flatten())
-        }
-    }
-}
-
 data object NoConditionFulfilled
 
 /**
@@ -335,12 +326,6 @@ fun <I, O> constant(value: O): Parser<I, Any, O> {
 
 fun <I, E> not(parser: Parser<I, E, Boolean>): Parser<I, E, Boolean> {
     return parser.map { !it }
-}
-
-fun <I, E, O> otherwise(defaultValue: () -> O): Pair<Parser<I, E, Boolean>, Parser<I, E, O>> {
-    val alwaysMatches: Parser<I, E, Boolean> = { input: I -> Either.right(true) }
-    val thenDefaultValue: Parser<I, E, O> = { input: I -> Either.right(defaultValue()) }
-    return alwaysMatches to thenDefaultValue
 }
 
 fun <I, E, O> otherwiseParse(parser: Parser<I, E, O>): Pair<Parser<I, E, Boolean>, Parser<I, E, O>> {

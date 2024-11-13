@@ -279,7 +279,7 @@ public final class Repository {
     private final MongoClient client;
 
     public Repository(MongoClient client) {
-        this.client = client
+        this.client = client;
     }
 
     public FindIterable<Document> findBookById(ObjectId id) {
