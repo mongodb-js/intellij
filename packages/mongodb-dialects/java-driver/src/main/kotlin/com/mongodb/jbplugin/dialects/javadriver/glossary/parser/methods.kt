@@ -1,5 +1,6 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary.parser
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
@@ -9,6 +10,11 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.fuzzyResolveMethod
 import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.parser.Parser
+import com.mongodb.jbplugin.mql.parser.acceptAnyError
+import com.mongodb.jbplugin.mql.parser.flatMap
+import com.mongodb.jbplugin.mql.parser.mapAs
+import com.mongodb.jbplugin.mql.parser.mapError
+import com.mongodb.jbplugin.mql.parser.mapMany
 import com.mongodb.jbplugin.mql.parser.requireNonNull
 
 data object CouldNotResolveMethod
@@ -33,6 +39,34 @@ fun resolveMethod(): Parser<PsiMethodCallExpression?, CouldNotResolveMethod, Psi
 
 fun method() = requireNonNull<PsiMethod>()
 fun methodCall() = requireNonNull<PsiMethodCallExpression>()
+
+data object ArgumentNotFound
+
+fun allArguments(): Parser<PsiMethodCallExpression, Any, List<PsiExpression>> {
+    val baseParser: Parser<PsiMethodCallExpression, Any, List<PsiExpression>> = { input ->
+        Either.right(input.argumentList.expressions.toList())
+    }
+
+    return baseParser
+        .mapMany(meaningfulExpression())
+        .mapAs<List<PsiExpression>, _, _, _>()
+        .acceptAnyError()
+}
+
+fun argumentAt(n: Int): Parser<PsiMethodCallExpression, ArgumentNotFound, PsiElement> {
+    val baseParser: Parser<PsiMethodCallExpression, ArgumentNotFound, PsiExpression> = { input ->
+        val arg = input.argumentList.expressions.getOrNull(n)
+        if (arg != null) {
+            Either.right(arg)
+        } else {
+            Either.left(ArgumentNotFound)
+        }
+    }
+
+    return baseParser
+        .flatMap(meaningfulExpression())
+        .mapError { ArgumentNotFound }
+}
 
 fun methodCallChain(): Parser<PsiMethodCallExpression, Any, List<PsiMethodCallExpression>> {
     return { input ->

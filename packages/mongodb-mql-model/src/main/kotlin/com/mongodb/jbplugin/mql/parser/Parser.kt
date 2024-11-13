@@ -7,6 +7,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.Executors
+import kotlin.collections.groupBy
+import kotlin.collections.map
+import kotlin.collections.mapNotNull
 
 /**
  * A Parser is a suspendable function that returns either an error or a valid output from a
@@ -63,6 +66,30 @@ fun <I, E, O> Parser<I, E, O>.matches(
             is Either.Right -> when (filterFn(result.value).orElse { false }) {
                 true -> Either.right(result.value)
                 false -> Either.left(Either.right(ElementDoesNotMatchFilter))
+            }
+        }
+    }
+}
+
+/**
+ * Filter returns a Parser where the input must match the provided parser
+ */
+fun <I, E, O> Parser<I, E, O>.matchesAny(
+    vararg filterFns: Parser<O, E, Boolean>
+): Parser<I, Either<E, ElementDoesNotMatchFilter>, O> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> {
+                val firstMatch = filterFns.find {
+                    it(result.value).orElseNull() == true
+                }
+
+                if (firstMatch == null) {
+                    Either.left(Either.right(ElementDoesNotMatchFilter))
+                } else {
+                    Either.right(result.value)
+                }
             }
         }
     }
@@ -244,6 +271,29 @@ fun <I, E, O> Parser<I, E, List<O>>.firstMatching(
                 } else {
                     Either.right(firstResult)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Returns a parser that runs a parser for each element of the output list.
+ */
+fun <I, E, O> Parser<I, E, List<O>>.allMatching(
+    parser: Parser<O, E, Boolean>
+): Parser<I, E, List<O>> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(result.value)
+            is Either.Right -> {
+                val allResults = result.value.filter {
+                    when (val result = parser(it)) {
+                        is Either.Left -> false
+                        is Either.Right -> result.value
+                    }
+                }
+
+                Either.right(allResults)
             }
         }
     }

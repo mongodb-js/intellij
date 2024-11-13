@@ -16,6 +16,8 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.allArguments
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.argumentAt
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.classIs
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.containingClass
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.meaningfulExpression
@@ -25,6 +27,9 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodName
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodReturnStatements
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.referenceExpression
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.resolveMethod
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toFieldReference
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toValueFromArgumentList
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toValueReference
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.variable
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonAnyOf
@@ -43,19 +48,25 @@ import com.mongodb.jbplugin.mql.components.Named
 import com.mongodb.jbplugin.mql.flattenAnyOfReferences
 import com.mongodb.jbplugin.mql.parser.Parser
 import com.mongodb.jbplugin.mql.parser.acceptAnyError
+import com.mongodb.jbplugin.mql.parser.allMatching
 import com.mongodb.jbplugin.mql.parser.cond
 import com.mongodb.jbplugin.mql.parser.constant
 import com.mongodb.jbplugin.mql.parser.equalsTo
+import com.mongodb.jbplugin.mql.parser.filter
 import com.mongodb.jbplugin.mql.parser.first
 import com.mongodb.jbplugin.mql.parser.firstMatching
 import com.mongodb.jbplugin.mql.parser.firstResult
 import com.mongodb.jbplugin.mql.parser.flatMap
 import com.mongodb.jbplugin.mql.parser.inputAs
 import com.mongodb.jbplugin.mql.parser.lateInit
+import com.mongodb.jbplugin.mql.parser.map
 import com.mongodb.jbplugin.mql.parser.mapAs
 import com.mongodb.jbplugin.mql.parser.mapMany
 import com.mongodb.jbplugin.mql.parser.matches
+import com.mongodb.jbplugin.mql.parser.matchesAny
 import com.mongodb.jbplugin.mql.parser.otherwiseParse
+import com.mongodb.jbplugin.mql.parser.requireNonNull
+import com.mongodb.jbplugin.mql.parser.zip
 import com.mongodb.jbplugin.mql.toBsonType
 import kotlinx.coroutines.runBlocking
 
@@ -226,93 +237,149 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
-        val method = filter.fuzzyResolveMethod() ?: return null
-        if (method.name == "in" || method.name == "nin") {
-            if (filter.argumentList.expressionCount == 0) {
-                return null // empty, do nothing
-            }
+        val parseFilterExpression = lateInit<PsiElement, Any, Node<PsiElement>>()
 
-            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
-            // if it's only 2 arguments it can be either:
-            // - in(field, singleElement) -> valid because of varargs, becomes a single element array
-            // - in(field, array) -> valid because of varargs
-            // - in(field, iterable) -> valid because of overload
-            val valueReference = if (filter.argumentList.expressionCount == 2) {
-                var secondArg =
-                    filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
-                if (secondArg.type?.isJavaIterable() == true) { // case 3
-                    filter.argumentList.inferFromSingleVarArgElement(start = 1)
-                } else if (secondArg.type?.isArray() == false) { // case 1
-                    filter.argumentList.inferFromSingleArrayArgument(start = 1)
-                } else { // case 2
-                    HasValueReference.Runtime(
-                        secondArg,
-                        secondArg.type?.toBsonType() ?: BsonArray(BsonAny)
-                    )
-                }
-            } else if (filter.argumentList.expressionCount > 2) {
-                filter.argumentList.inferValueReferenceFromVarArg(start = 1)
-            } else {
-                HasValueReference.Runtime(filter, BsonArray(BsonAny))
-            }
-
-            return Node(
-                filter,
-                listOf(
-                    Named(Name.from(method.name)),
-                    HasFieldReference(fieldReference),
-                    HasValueReference(valueReference)
-                ),
+        val whenInAInOrNinMethod = methodCall()
+            .matches(
+                resolveMethod().flatMap(methodName())
+                    .filter { it == "in" || it == "nin" }
+                    .matches()
             )
-        } else if (method.isVarArgs || method.name == "not") {
-            // Filters.and, Filters.or... are varargs
-            return Node(
-                filter,
-                listOf(
-                    Named(Name.from(method.name)),
-                    HasFilter(
-                        filter.argumentList.expressions
-                            .mapNotNull { resolveToFiltersCall(it) }
-                            .mapNotNull { parseFilterExpression(it) },
+            .acceptAnyError()
+
+        val whenHasTwoArguments = methodCall()
+            .filter { it.argumentList.expressionCount == 2 }
+
+        val whenInOrNinUsesASingleElementValue = whenInAInOrNinMethod
+            .matches(whenHasTwoArguments.matches())
+            .flatMap(argumentAt(1))
+
+        val whenSecondArgumentIsJavaIterable = whenInOrNinUsesASingleElementValue
+            .mapAs<PsiExpression, _, _, _>()
+            .filter { it.type?.isJavaIterable() == true }
+            .flatMap(toValueReference(isArrayElement = false))
+            .acceptAnyError()
+
+        val whenSecondArgumentIsJavaArray = whenInOrNinUsesASingleElementValue
+            .mapAs<PsiExpression, _, _, _>()
+            .filter { it.type?.isArray() == true }
+            .flatMap(toValueReference(isArrayElement = false))
+            .acceptAnyError()
+
+        val whenSecondArgumentIsASingleObject = whenInOrNinUsesASingleElementValue
+            .flatMap(toValueReference(isArrayElement = true))
+            .acceptAnyError()
+
+        val varargInOrNinParser = whenInAInOrNinMethod
+            .matches(resolveMethod().filter { it.isVarArgs }.matches())
+            .zip(resolveMethod().map { it.name })
+            .zip(argumentAt(0).flatMap(toFieldReference()))
+            .zip(toValueFromArgumentList(start = 1))
+            .map {
+                Node(
+                    it.first.first.first as PsiElement,
+                    listOf(
+                        Named(Name.from(it.first.first.second)),
+                        it.first.second,
+                        it.second
                     ),
-                ),
-            )
-        } else if (method.name == "eq" && method.parameters.size == 1) {
-            if (filter.argumentList.expressionCount == 0) {
-                return null
-            }
-            val valueExpression = filter.argumentList.expressions[0]
-            val valueReference = resolveValueFromExpression(valueExpression)
-            val fieldReference = HasFieldReference.Known(valueExpression, "_id")
-
-            return Node(
-                filter,
-                listOf(
-                    Named(Name.from(method.name)),
-                    HasFieldReference(fieldReference),
-                    HasValueReference(valueReference),
                 )
-            )
-        } else if (method.parameters.size == 2) {
-            // If it has two parameters, it's field/value.
-            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
-            val valueReference = resolveValueFromExpression(filter.argumentList.expressions[1])
+            }.acceptAnyError()
 
-            return Node(
-                filter,
-                listOf(
-                    Named(Name.from(method.name)),
-                    HasFieldReference(
-                        fieldReference,
+        val fixedArgumentsInOrNinParser = methodCall()
+            .zip(
+                first(
+                    whenSecondArgumentIsJavaIterable,
+                    whenSecondArgumentIsJavaArray,
+                    whenSecondArgumentIsASingleObject
+                )
+            ).zip(argumentAt(0).flatMap(toFieldReference()))
+            .zip(resolveMethod().flatMap(methodName()))
+            .map {
+                Node(
+                    it.first.first.first as PsiElement,
+                    listOf(
+                        Named(Name.from(it.second)),
+                        it.first.second,
+                        it.first.first.second
                     ),
-                    HasValueReference(
-                        valueReference,
-                    ),
-                ),
+                )
+            }.acceptAnyError()
+
+        val isLogicalVarArg = methodCall()
+            .matchesAny(
+                resolveMethod().filter { it.isVarArgs }.matches(),
+                resolveMethod().flatMap(methodName()).filter { it == "not" }.matches(),
             )
-        }
-        // here we really don't know much, so just don't attempt to parse the query
-        return null
+
+        val varArgExpressionParsing = methodCall().matches(isLogicalVarArg.matches())
+            .zip(resolveMethod().flatMap(methodName()))
+            .zip(
+                allArguments()
+                    .allMatching(requireNonNull<PsiElement>().map { it is PsiMethodCallExpression })
+                    .mapMany(parseFilterExpression::invoke)
+            ).map {
+                val filter = it.first.first
+                val methodName = it.first.second
+                val filterNodes = it.second
+
+                Node(
+                    filter as PsiElement,
+                    listOf(
+                        Named(Name.from(methodName)),
+                        HasFilter(
+                            filterNodes,
+                        ),
+                    ),
+                )
+            }.acceptAnyError()
+
+        val eqWithSingleArgument = methodCall()
+            .filter { it.argumentList.expressionCount == 1 }.acceptAnyError()
+            .matches(resolveMethod().flatMap(methodName()).filter { it == "eq" }.matches())
+            .zip(argumentAt(0).flatMap(toValueReference()))
+            .map {
+                Node(
+                    filter as PsiElement,
+                    listOf(
+                        Named(Name.EQ),
+                        HasFieldReference(HasFieldReference.Known(it.first, "_id")),
+                        it.second,
+                    )
+                )
+            }.acceptAnyError()
+
+        val twoParametersQueryBuilder = methodCall()
+            .filter { it.argumentList.expressionCount == 2 }
+            .zip(argumentAt(0).flatMap(toFieldReference()))
+            .zip(argumentAt(1).flatMap(toValueReference()))
+            .zip(methodCall().flatMap(resolveMethod()).flatMap(methodName()))
+            .map {
+                Node(
+                    it.first.first.first as PsiElement,
+                    listOf(
+                        Named(Name.from(it.second)),
+                        it.first.first.second,
+                        it.first.second,
+                    ),
+                )
+            }.acceptAnyError()
+
+        parseFilterExpression.init(
+            first(
+                fixedArgumentsInOrNinParser,
+                varargInOrNinParser,
+                varArgExpressionParsing,
+                eqWithSingleArgument,
+                twoParametersQueryBuilder
+            ).inputAs<PsiElement, _, _, _>()
+                .mapAs<Node<PsiElement>, _, _, _>()
+                .acceptAnyError()
+        )
+
+        return parseFilterExpression.asParser()
+            .parseInReadAction(filter)
+            .orElseNull()
     }
 
     private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
@@ -328,9 +395,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun resolveToCallToMongoDbQueryBuilder(builderFqn: String): Parser<PsiElement, Any, PsiMethodCallExpression> {
-        val resolveToFiltersParser = lateInit<PsiElement, Any, PsiMethodCallExpression>()
+        val resolveToBuilder = lateInit<PsiElement, Any, PsiMethodCallExpression>()
 
-        val isFilterFunction = methodCall()
+        val isBuilderFunction = methodCall()
             .matches(
                 resolveMethod()
                     .flatMap(containingClass())
@@ -340,33 +407,33 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val firstReturnStatementWithFilters = methodCall()
             .flatMap(resolveMethod())
             .flatMap(methodReturnStatements())
-            .mapMany(resolveToFiltersParser::invoke)
+            .mapMany(resolveToBuilder::invoke)
             .firstResult()
             .mapAs<PsiMethodCallExpression, _, _, _>()
             .inputAs<PsiElement, _, _, _>()
             .acceptAnyError()
 
         val whenPsiMethodCallExpression = cond(
-            isFilterFunction.matches() to
+            isBuilderFunction.matches() to
                 methodCall().inputAs<PsiElement, _, _, _>().acceptAnyError(),
             otherwiseParse(firstReturnStatementWithFilters)
         ).acceptAnyError()
 
         val whenIsVariable = variable()
             .flatMap(meaningfulExpression())
-            .flatMap(resolveToFiltersParser::invoke)
+            .flatMap(resolveToBuilder::invoke)
             .mapAs<PsiMethodCallExpression, _, _, _>()
             .inputAs<PsiElement, _, _, _>()
             .acceptAnyError()
 
         val whenIsReferenceExpression = referenceExpression()
             .flatMap(meaningfulExpression())
-            .flatMap(resolveToFiltersParser::invoke)
+            .flatMap(resolveToBuilder::invoke)
             .mapAs<PsiMethodCallExpression, _, _, _>()
             .inputAs<PsiElement, _, _, _>()
             .acceptAnyError()
 
-        resolveToFiltersParser.init(
+        resolveToBuilder.init(
             first(
                 whenPsiMethodCallExpression,
                 whenIsVariable,
@@ -375,7 +442,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         )
 
         return meaningfulExpression()
-            .flatMap(resolveToFiltersParser::invoke)
+            .flatMap(resolveToBuilder::invoke)
             .acceptAnyError()
     }
 
