@@ -1,25 +1,20 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
 import com.intellij.openapi.application.readAction
-import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiArrayType
-import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
-import com.intellij.psi.PsiExpressionList
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiMethodCallExpression
-import com.intellij.psi.PsiReturnStatement
-import com.intellij.psi.PsiType
 import com.intellij.psi.PsiWhiteSpace
-import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.allArguments
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.argumentAt
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.classIs
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.containingClass
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.isArray
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.isJavaIterable
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.isMethodFromDriverMongoDbCollection
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.meaningfulExpression
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodCall
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodCallChain
@@ -33,26 +28,21 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toValueFromArgum
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toValueReference
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.typeToClass
 import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.variable
-import com.mongodb.jbplugin.mql.BsonAny
-import com.mongodb.jbplugin.mql.BsonAnyOf
-import com.mongodb.jbplugin.mql.BsonArray
-import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.components.HasSourceDialect
 import com.mongodb.jbplugin.mql.components.HasUpdates
-import com.mongodb.jbplugin.mql.components.HasValueReference
 import com.mongodb.jbplugin.mql.components.IsCommand
 import com.mongodb.jbplugin.mql.components.Name
 import com.mongodb.jbplugin.mql.components.Named
-import com.mongodb.jbplugin.mql.flattenAnyOfReferences
 import com.mongodb.jbplugin.mql.parser.Parser
 import com.mongodb.jbplugin.mql.parser.acceptAnyError
 import com.mongodb.jbplugin.mql.parser.allMatching
 import com.mongodb.jbplugin.mql.parser.cond
 import com.mongodb.jbplugin.mql.parser.constant
+import com.mongodb.jbplugin.mql.parser.debug
 import com.mongodb.jbplugin.mql.parser.equalsTo
 import com.mongodb.jbplugin.mql.parser.filter
 import com.mongodb.jbplugin.mql.parser.first
@@ -67,9 +57,7 @@ import com.mongodb.jbplugin.mql.parser.mapMany
 import com.mongodb.jbplugin.mql.parser.matches
 import com.mongodb.jbplugin.mql.parser.matchesAny
 import com.mongodb.jbplugin.mql.parser.otherwiseParse
-import com.mongodb.jbplugin.mql.parser.requireNonNull
 import com.mongodb.jbplugin.mql.parser.zip
-import com.mongodb.jbplugin.mql.toBsonType
 import kotlinx.coroutines.runBlocking
 
 private const val ITERABLE_FQN = "com.mongodb.client.MongoIterable"
@@ -79,71 +67,92 @@ private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun isCandidateForQuery(source: PsiElement) =
-        methodCallToCommand((source as? PsiMethodCallExpression)).type !=
-            IsCommand.CommandType.UNKNOWN
+        methodCall()
+            .flatMap(methodCallToCommand())
+            .filter { it.type != IsCommand.CommandType.UNKNOWN }
+            .map { true }
+            .parseInReadAction(source)
+            .orElse { false }
 
     override fun attachment(source: PsiElement): PsiElement = source.findTopParentBy {
         isCandidateForQuery(it)
     }!!
 
     override fun parse(source: PsiElement): Node<PsiElement> {
+        val parse = lateInit<PsiElement, Any, Node<PsiElement>>()
+
         val sourceDialect = HasSourceDialect(HasSourceDialect.DialectName.JAVA_DRIVER)
         val collectionReference = NamespaceExtractor.extractNamespace(source)
 
-        val currentCall =
-            source as? PsiMethodCallExpression
-                ?: return Node(source, listOf(sourceDialect, collectionReference))
-
-        val calledMethod = currentCall.fuzzyResolveMethod()
-        if (calledMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
-            val hasFilters = HasFilter(parseAllFiltersFromCurrentCall(currentCall))
-            val hasUpdates = HasUpdates(parseAllUpdatesFromCurrentCall(currentCall))
-
-            return Node(
-                source,
-                listOf(
-                    sourceDialect,
-                    methodCallToCommand(currentCall),
-                    collectionReference,
-                    hasFilters,
-                    hasUpdates
-                ),
-            )
-        } else {
-            calledMethod?.let {
-                // if it's another class, try to resolve the query from the method body
-                val allReturns = PsiTreeUtil.findChildrenOfType(
-                    calledMethod.body,
-                    PsiReturnStatement::class.java
+        val isAMongoDbCollectionMethod = queryRoot()
+            .flatMap(methodCall())
+            .acceptAnyError()
+            .debug("1")
+            .matches(resolveMethod().flatMap(isMethodFromDriverMongoDbCollection()).matches())
+            .debug("2")
+            .zip(
+                first(
+                    parseAllFiltersFromCurrentCall(),
+                    constant(HasFilter<PsiElement>(emptyList()))
                 )
-                return allReturns
-                    .mapNotNull { it.returnValue }
-                    .flatMap {
-                        it.collectTypeUntil(
-                            PsiMethodCallExpression::class.java,
-                            PsiReturnStatement::class.java
-                        )
-                    }.firstNotNullOfOrNull {
-                        val innerQuery = parse(it)
-                        if (!innerQuery.hasComponent<HasFilter<PsiElement>>()) {
-                            null
-                        } else {
-                            innerQuery
-                        }
-                    }
-                    ?: Node(
-                        source,
-                        listOf(
-                            sourceDialect,
-                            collectionReference,
-                            methodCallToCommand(currentCall)
-                        )
+            )
+            .debug("3")
+            .zip(
+                first(
+                    parseAllUpdatesFromCurrentCall(),
+                    constant(HasUpdates<PsiElement>(emptyList()))
+                )
+            )
+            .debug("4")
+            .zip(first(methodCallToCommand(), constant(IsCommand(IsCommand.CommandType.UNKNOWN))))
+            .map {
+                Node(
+                    it.first.first.first as PsiElement,
+                    listOf(
+                        HasSourceDialect(HasSourceDialect.DialectName.JAVA_DRIVER),
+                        collectionReference,
+                        it.first.first.second,
+                        it.first.second,
+                        it.second,
                     )
-            } ?: return Node(source, listOf(sourceDialect, collectionReference))
-        }
+                )
+            }.acceptAnyError()
+            .inputAs<PsiElement, _, _, _>()
+
+        val resolveUnderlyingQuery = queryRoot()
+            .flatMap(resolveMethod())
+            .flatMap(methodReturnStatements())
+            .mapMany(parse::invoke)
+            .firstResult()
+            .acceptAnyError()
+            .inputAs<PsiElement, _, _, _>()
+
+        val emptyQuery = queryRoot()
+            .zip(methodCallToCommand())
+            .map {
+                Node(
+                    it.first as PsiElement,
+                    listOf(
+                        sourceDialect,
+                        collectionReference,
+                        it.second
+                    )
+                )
+            }.acceptAnyError()
+            .inputAs<PsiElement, _, _, _>()
+
+        parse.init(
+            first(
+                isAMongoDbCollectionMethod,
+                resolveUnderlyingQuery,
+                emptyQuery
+            ).acceptAnyError()
+        )
+
+        return parse.asParser().parseInReadAction(source).orElseNull()!!
     }
 
-    private fun parseAllFiltersFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> {
+    private fun parseAllFiltersFromCurrentCall(): Parser<PsiMethodCallExpression, Any, HasFilter<PsiElement>> {
         val whenHasSessionArgument = methodCall().matches(hasMongoDbSessionReference())
             .flatMap(argumentAt(1))
             .flatMap(resolveToCallToMongoDbQueryBuilder(FILTERS_FQN))
@@ -159,12 +168,11 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return first(
             whenHasSessionArgument,
             whenDoesNotHaveSessionArgument
-        ).parseInReadAction(currentCall)
-            .map(::listOf)
-            .orElse { emptyList() }
+        ).acceptAnyError()
+            .map { HasFilter(listOf(it)) }
     }
 
-    private fun parseAllUpdatesFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> {
+    private fun parseAllUpdatesFromCurrentCall(): Parser<PsiMethodCallExpression, Any, HasUpdates<PsiElement>> {
         val whenHasSessionArgument = methodCall().matches(hasMongoDbSessionReference())
             .flatMap(argumentAt(2)) // the update is the 3rd argument
             .flatMap(resolveToCallToMongoDbQueryBuilder(UPDATES_FQN))
@@ -177,13 +185,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             .flatMap(parseUpdatesExpression())
             .acceptAnyError()
 
-        val x = first(
+        return first(
             whenHasSessionArgument,
             whenDoesNotHaveSessionArgument
-        ).parseInReadAction(currentCall)
-
-        return x.map(::listOf)
-            .orElse { emptyList() }
+        ).acceptAnyError().map { HasUpdates(listOf(it)) }
     }
 
     override fun isReferenceToDatabase(source: PsiElement): Boolean {
@@ -312,7 +317,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             .zip(resolveMethod().flatMap(methodName()))
             .zip(
                 allArguments()
-                    .allMatching(requireNonNull<PsiElement>().map { it is PsiMethodCallExpression })
+                    .allMatching(methodCall().matches())
                     .mapMany(parseFilterExpression::invoke)
             ).map {
                 val filter = it.first.first
@@ -505,7 +510,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             .acceptAnyError()
     }
 
-    private fun methodCallToCommand(methodCall: PsiMethodCallExpression?): IsCommand {
+    private fun methodCallToCommand(): Parser<PsiMethodCallExpression, Any, IsCommand> {
         val resolveFromMethodName = methodCall()
             .flatMap(resolveMethod())
             .flatMap(methodName())
@@ -550,9 +555,11 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return first(
             onIterableResolveUpwards,
             resolveFromMethodName,
-        ).parseInReadAction(methodCall)
-            .map(::IsCommand)
-            .orElse { IsCommand(IsCommand.CommandType.UNKNOWN) }
+        ).map(::IsCommand).acceptAnyError()
+    }
+
+    private fun queryRoot(): Parser<PsiElement, Any, PsiMethodCallExpression> {
+        return methodCall()
     }
 }
 
@@ -563,85 +570,5 @@ fun <I, E, O> Parser<I, E, O>.parseInReadAction(input: I): Either<E, O> {
                 this@parseInReadAction(input)
             }
         }
-    }
-}
-
-fun PsiType.isArray(): Boolean {
-    return this is PsiArrayType
-}
-
-fun PsiType.isJavaIterable(): Boolean {
-    if (this !is PsiClassType) {
-        return false
-    }
-
-    fun recursivelyCheckIsIterable(superType: PsiClassType): Boolean {
-        return superType.canonicalText.startsWith("java.lang.Iterable") ||
-            superType.superTypes.any {
-                it.canonicalText.startsWith("java.lang.Iterable") ||
-                    if (it is PsiClassType) {
-                        recursivelyCheckIsIterable(it)
-                    } else {
-                        false
-                    }
-            }
-    }
-
-    return recursivelyCheckIsIterable(this)
-}
-
-fun PsiType.guessIterableContentType(project: Project): BsonType {
-    val text = canonicalText
-    val start = text.indexOf('<')
-    if (start == -1) {
-        return BsonAny
-    }
-    val end = text.indexOf('>', startIndex = start)
-    if (end == -1) {
-        return BsonAny
-    }
-
-    val typeStr = text.substring(start + 1, end)
-    return PsiType.getTypeByName(
-        typeStr,
-        project,
-        GlobalSearchScope.everythingScope(project)
-    ).toBsonType()
-}
-
-fun PsiExpressionList.inferValueReferenceFromVarArg(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
-    val allConstants: List<Pair<Boolean, Any?>> = expressions.slice(
-        start..<expressionCount
-    ).map { it.tryToResolveAsConstant() }
-
-    if (allConstants.isEmpty()) {
-        return HasValueReference.Runtime(parent, BsonArray(BsonAny))
-    } else if (allConstants.all { it.first }) {
-        val eachType = allConstants.mapNotNull {
-            it.second?.javaClass?.toBsonType(it.second)
-        }.map {
-            flattenAnyOfReferences(it)
-        }.toSet()
-
-        if (eachType.size == 1) {
-            val type = eachType.first()
-            return HasValueReference.Constant(
-                parent,
-                allConstants.map { it.second },
-                BsonArray(type)
-            )
-        } else {
-            val eachType = allConstants.mapNotNull {
-                it.second?.javaClass?.toBsonType(it.second)
-            }.toSet()
-            val schema = flattenAnyOfReferences(BsonAnyOf(eachType))
-            return HasValueReference.Constant(
-                parent,
-                allConstants.map { it.second },
-                BsonArray(schema)
-            )
-        }
-    } else {
-        return HasValueReference.Runtime(parent, BsonArray(BsonAny))
     }
 }

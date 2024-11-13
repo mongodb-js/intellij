@@ -1,7 +1,8 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary.parser
 
-import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiArrayType
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiMethod
@@ -11,6 +12,7 @@ import com.intellij.psi.util.PsiTypesUtil
 import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.parser.Parser
 import com.mongodb.jbplugin.mql.parser.flatMap
+import com.mongodb.jbplugin.mql.parser.inputAs
 import com.mongodb.jbplugin.mql.parser.mapError
 import com.mongodb.jbplugin.mql.parser.matches
 import com.mongodb.jbplugin.mql.parser.requireNonNull
@@ -67,10 +69,33 @@ fun containingClass(): Parser<PsiMethod, NotInAClass, PsiClass> {
 }
 
 data object NotFromMongoDbCollection
-fun isMethodFromDriverMongoDbCollection(
-    project: Project
-): Parser<PsiMethod?, NotFromMongoDbCollection, PsiMethod> {
+fun isMethodFromDriverMongoDbCollection(): Parser<PsiMethod?, NotFromMongoDbCollection, PsiMethod> {
     return method()
         .matches(containingClass().flatMap(classIs("com.mongodb.client.MongoCollection")).matches())
         .mapError { NotFromMongoDbCollection }
+        .inputAs<PsiMethod?, _, _, _>()
+}
+
+fun PsiType.isArray(): Boolean {
+    return this is PsiArrayType
+}
+
+fun PsiType.isJavaIterable(): Boolean {
+    if (this !is PsiClassType) {
+        return false
+    }
+
+    fun recursivelyCheckIsIterable(superType: PsiClassType): Boolean {
+        return superType.canonicalText.startsWith("java.lang.Iterable") ||
+            superType.superTypes.any {
+                it.canonicalText.startsWith("java.lang.Iterable") ||
+                    if (it is PsiClassType) {
+                        recursivelyCheckIsIterable(it)
+                    } else {
+                        false
+                    }
+            }
+    }
+
+    return recursivelyCheckIsIterable(this)
 }

@@ -268,6 +268,52 @@ public final class Repository {
     @ParsingTest(
         fileName = "Repository.java",
         value = """
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import com.mongodb.client.FindIterable;
+
+public final class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client
+    }
+
+    public FindIterable<Document> findBookById(ObjectId id) {
+        return client.getDatabase("production")
+                .getCollection("books")
+                .find(
+                        Filters.eq(id)
+                )
+                .into(new ArrayList<>());
+    }
+}
+        """,
+    )
+    fun `can parse a basic Filters query with a chain of methods`(psiFile: PsiFile) {
+        val query = psiFile.getQueryAtMethod("Repository", "findBookById")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+
+        val eq = hasFilter.children[0]
+        assertEquals(Name.EQ, eq.component<Named>()!!.name)
+        assertEquals(
+            "_id",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+        )
+        assertEquals(
+            BsonAnyOf(BsonObjectId, BsonNull),
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Runtime).type,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;

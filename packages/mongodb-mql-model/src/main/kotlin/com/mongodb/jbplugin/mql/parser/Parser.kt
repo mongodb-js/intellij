@@ -256,6 +256,15 @@ fun <I, E, O, E2, O2> Parser<I, E, List<O>>.mapMany(
     }
 }
 
+fun <I, E, O> Parser<I, E, List<List<O>>>.flatten(): Parser<I, E, List<O>> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(result.value)
+            is Either.Right -> Either.right(result.value.flatten())
+        }
+    }
+}
+
 data object NoConditionFulfilled
 
 /**
@@ -312,23 +321,13 @@ fun <I, E, O> Parser<I, E, List<O>>.firstResult(): Parser<I, Either<E, NoConditi
     return firstMatching { Either.right(true) }
 }
 
-data object InputIsNull
-fun <I> notNull(): Parser<I?, InputIsNull, I> {
-    return { input ->
-        when (input) {
-            null -> Either.left(InputIsNull)
-            else -> Either.right(input)
-        }
-    }
-}
-
-fun <I> equalsTo(toValue: I): Parser<I, Unit, Boolean> {
+fun <I> equalsTo(toValue: I): Parser<I, Any, Boolean> {
     return { input ->
         Either.right(input == toValue)
     }
 }
 
-fun <I, O> constant(value: O): Parser<I, Unit, O> {
+fun <I, O> constant(value: O): Parser<I, Any, O> {
     return { input ->
         Either.right(value)
     }
@@ -410,11 +409,11 @@ fun <I, E> requireNonNull(err: E): Parser<I?, E, I> {
 /**
  * Requires the input to be non null. In case it's null returns a failed parser output.
  */
-inline fun <reified I> requireNonNull(): Parser<Any?, Any, I> {
+inline fun <reified I, reified O> requireNonNull(): Parser<I, Any, O> {
     return { input ->
         if (input == null) {
             Either.left(Unit)
-        } else if (input is I) {
+        } else if (input is O) {
             Either.right(input)
         } else {
             Either.left(NoConditionFulfilled)

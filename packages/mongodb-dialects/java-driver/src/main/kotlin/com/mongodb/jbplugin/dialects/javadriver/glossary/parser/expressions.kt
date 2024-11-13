@@ -1,23 +1,26 @@
 package com.mongodb.jbplugin.dialects.javadriver.glossary.parser
 
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiArrayType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiParenthesizedExpression
 import com.intellij.psi.PsiReferenceExpression
+import com.intellij.psi.PsiType
 import com.intellij.psi.PsiVariable
-import com.mongodb.jbplugin.dialects.javadriver.glossary.guessIterableContentType
-import com.mongodb.jbplugin.dialects.javadriver.glossary.inferValueReferenceFromVarArg
-import com.mongodb.jbplugin.dialects.javadriver.glossary.isJavaIterable
+import com.intellij.psi.search.GlobalSearchScope
 import com.mongodb.jbplugin.dialects.javadriver.glossary.toBsonType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstantString
 import com.mongodb.jbplugin.mql.BsonAny
+import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
+import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.flattenAnyOfReferences
 import com.mongodb.jbplugin.mql.parser.Parser
 import com.mongodb.jbplugin.mql.parser.map
 import com.mongodb.jbplugin.mql.parser.requireNonNull
@@ -54,8 +57,8 @@ fun meaningfulExpression(): Parser<PsiElement, Any, PsiElement> {
     }
 }
 
-fun variable() = requireNonNull<PsiVariable>()
-fun referenceExpression() = requireNonNull<PsiReferenceExpression>()
+fun variable() = requireNonNull<PsiElement, PsiVariable>()
+fun referenceExpression() = requireNonNull<PsiElement, PsiReferenceExpression>()
 
 fun toFieldReference(): Parser<PsiElement, Any, HasFieldReference<PsiElement>> {
     return meaningfulExpression().map { input ->
@@ -131,7 +134,66 @@ fun toValueReference(isArrayElement: Boolean = false): Parser<PsiElement, Any, H
 
 fun toValueFromArgumentList(start: Int): Parser<PsiMethodCallExpression, Any, HasValueReference<PsiElement>> {
     return { input ->
-        val result = input.argumentList.inferValueReferenceFromVarArg(start)
-        Either.right(HasValueReference(result))
+        val allConstants: List<Pair<Boolean, Any?>> = input.argumentList.expressions.slice(
+            start..<input.argumentList.expressionCount
+        ).map { it.tryToResolveAsConstant() }
+
+        if (allConstants.isEmpty()) {
+            Either.right(HasValueReference(HasValueReference.Runtime(input, BsonArray(BsonAny))))
+        } else if (allConstants.all { it.first }) {
+            val eachType = allConstants.mapNotNull {
+                it.second?.javaClass?.toBsonType(it.second)
+            }.map {
+                flattenAnyOfReferences(it)
+            }.toSet()
+
+            if (eachType.size == 1) {
+                val type = eachType.first()
+                Either.right(
+                    HasValueReference(
+                        HasValueReference.Constant(
+                            input,
+                            allConstants.map { it.second },
+                            BsonArray(type)
+                        )
+                    )
+                )
+            } else {
+                val eachType = allConstants.mapNotNull {
+                    it.second?.javaClass?.toBsonType(it.second)
+                }.toSet()
+                val schema = flattenAnyOfReferences(BsonAnyOf(eachType))
+                Either.right(
+                    HasValueReference(
+                        HasValueReference.Constant(
+                            input,
+                            allConstants.map { it.second },
+                            BsonArray(schema)
+                        )
+                    )
+                )
+            }
+        } else {
+            Either.right(HasValueReference(HasValueReference.Runtime(input, BsonArray(BsonAny))))
+        }
     }
+}
+
+fun PsiType.guessIterableContentType(project: Project): BsonType {
+    val text = canonicalText
+    val start = text.indexOf('<')
+    if (start == -1) {
+        return BsonAny
+    }
+    val end = text.indexOf('>', startIndex = start)
+    if (end == -1) {
+        return BsonAny
+    }
+
+    val typeStr = text.substring(start + 1, end)
+    return PsiType.getTypeByName(
+        typeStr,
+        project,
+        GlobalSearchScope.everythingScope(project)
+    ).toBsonType()
 }

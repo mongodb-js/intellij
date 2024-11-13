@@ -7,6 +7,12 @@ import com.intellij.psi.util.findParentOfType
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.dialects.javadriver.glossary.*
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.guessIterableContentType
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.isArray
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.isJavaIterable
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.methodCall
+import com.mongodb.jbplugin.dialects.javadriver.glossary.parser.toValueFromArgumentList
+import com.mongodb.jbplugin.dialects.javadriver.glossary.tryToResolveAsConstant
 import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.extractCollectionFromParameter
 import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.extractCollectionFromQueryChain
 import com.mongodb.jbplugin.dialects.springcriteria.QueryTargetCollectionExtractor.or
@@ -14,6 +20,8 @@ import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.parser.flatMap
+import com.mongodb.jbplugin.mql.parser.map
 import com.mongodb.jbplugin.mql.toBsonType
 
 private const val CRITERIA_CLASS_FQN = "org.springframework.data.mongodb.core.query.Criteria"
@@ -633,4 +641,14 @@ private fun PsiExpressionList.inferFromSingleVarArgElement(start: Int = 0): HasV
     } else {
         HasValueReference.Runtime(parent, BsonArray(BsonAny))
     }
+}
+
+private fun PsiExpressionList.inferValueReferenceFromVarArg(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
+    return methodCall()
+        .flatMap(toValueFromArgumentList(start))
+        .map { it.reference }
+        .parseInReadAction(parent)
+        .orElse {
+            HasValueReference.Unknown as HasValueReference.ValueReference<PsiElement>
+        }
 }

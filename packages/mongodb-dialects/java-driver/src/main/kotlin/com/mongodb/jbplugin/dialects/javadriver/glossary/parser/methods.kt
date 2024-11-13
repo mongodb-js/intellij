@@ -6,6 +6,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReturnStatement
 import com.intellij.psi.util.PsiTreeUtil
+import com.mongodb.jbplugin.dialects.javadriver.glossary.collectTypeUntil
 import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.fuzzyResolveMethod
 import com.mongodb.jbplugin.mql.adt.Either
@@ -37,8 +38,8 @@ fun resolveMethod(): Parser<PsiMethodCallExpression?, CouldNotResolveMethod, Psi
     }
 }
 
-fun method() = requireNonNull<PsiMethod>()
-fun methodCall() = requireNonNull<PsiMethodCallExpression>()
+fun method() = requireNonNull<PsiElement, PsiMethod>()
+fun methodCall() = requireNonNull<PsiElement, PsiMethodCallExpression>()
 
 data object ArgumentNotFound
 
@@ -66,6 +67,17 @@ fun argumentAt(n: Int): Parser<PsiMethodCallExpression, ArgumentNotFound, PsiEle
     return baseParser
         .flatMap(meaningfulExpression())
         .mapError { ArgumentNotFound }
+}
+
+fun allChildrenMethodCalls(): Parser<PsiElement, Any, List<PsiMethodCallExpression>> {
+    return { input ->
+        Either.right(
+            input.collectTypeUntil(
+                PsiMethodCallExpression::class.java,
+                PsiReturnStatement::class.java
+            )
+        )
+    }
 }
 
 fun methodCallChain(): Parser<PsiMethodCallExpression, Any, List<PsiMethodCallExpression>> {
