@@ -18,6 +18,17 @@ import com.mongodb.jbplugin.mql.toBsonType
 private const val SESSION_FQN = "com.mongodb.client.ClientSession"
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
+private const val AGGREGATES_FQN = "com.mongodb.client.model.Aggregates"
+private const val JAVA_LIST_FQN = "java.util.List"
+private const val JAVA_ARRAYS_FQN = "java.util.Arrays"
+private val PARSEABLE_AGGREGATION_STAGE_METHODS = listOf(
+    "match",
+    "project",
+    "sort",
+    "group",
+    "unwind",
+    "addFields"
+)
 
 object JavaDriverDialectParser : DialectParser<PsiElement> {
     override fun isCandidateForQuery(source: PsiElement) =
@@ -47,7 +58,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         if (commandCallMethod?.containingClass?.isMongoDbCollectionClass(source.project) == true) {
             val hasFilters = HasFilter(parseAllFiltersFromCurrentCall(commandCall))
             val hasUpdates = HasUpdates(parseAllUpdatesFromCurrentCall(commandCall))
-
+            val hasAggregation = HasAggregation(parseAggregationStagesFromCurrentCall(commandCall))
             return Node(
                 source,
                 listOf(
@@ -55,7 +66,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     command,
                     collectionReference,
                     hasFilters,
-                    hasUpdates
+                    hasUpdates,
+                    hasAggregation,
                 ),
             )
         } else {
@@ -96,11 +108,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         if (currentCall.argumentList.expressionCount > 0) {
             // TODO: we might want to have a component that tells this query is in a transaction
             val startIndex = if (hasMongoDbSessionReference(currentCall)) 1 else 0
-            var filterExpression = currentCall.argumentList.expressions.getOrNull(startIndex)
-
-            if (filterExpression == null) {
-                return emptyList()
-            }
+            val filterExpression = currentCall.argumentList.expressions.getOrNull(startIndex)
+                ?: return emptyList()
 
             // we have at least 1 argument in the current method call
             // try to get the relevant filter calls, or avoid parsing the query at all
@@ -116,6 +125,26 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         } else {
             return emptyList()
         }
+    }
+
+    private fun parseAggregationStagesFromCurrentCall(
+        currentCall: PsiMethodCallExpression
+    ): List<Node<PsiElement>> {
+        // Ensure current call is Aggregates.aggregate
+        val currentCallMethod = currentCall.fuzzyResolveMethod()
+        val isAggregateCall = currentCallMethod?.name == "aggregate" &&
+            currentCallMethod.containingClass?.qualifiedName == "com.mongodb.client.model.Aggregate"
+
+        if (isAggregateCall || currentCall.argumentList.expressionCount == 0) {
+            return emptyList()
+        }
+
+        // Assuming we're parsing Aggregates.aggregate(List<Bson>) variant of aggregate
+        val stageListExpression = currentCall.argumentList.expressions.getOrNull(0)
+            ?: return emptyList()
+
+        val aggregationStageCalls = resolveToAggregationStageCalls(stageListExpression)
+        return aggregationStageCalls.mapNotNull(::parseAggregationStage)
     }
 
     private fun parseAllUpdatesFromCurrentCall(currentCall: PsiMethodCallExpression): List<Node<PsiElement>> {
@@ -303,6 +332,97 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         }
     }
 
+    private fun resolveToAggregationStageCalls(element: PsiElement): List<PsiMethodCallExpression> {
+        return when (val expression = element.meaningfulExpression()) {
+            is PsiMethodCallExpression -> {
+                val method = expression.fuzzyResolveMethod() ?: return emptyList()
+
+                val isListOfCall = method.name == "of" &&
+                    method.containingClass?.qualifiedName == JAVA_LIST_FQN
+
+                val isArrayAsListCall = method.name == "asList" &&
+                    method.containingClass?.qualifiedName == JAVA_ARRAYS_FQN
+
+                if (isListOfCall || isArrayAsListCall) {
+                    if (expression.argumentList.expressionCount > 0) {
+                        expression.argumentList.expressions.flatMap(
+                            ::resolveToAggregationStageCalls
+                        )
+                    } else {
+                        emptyList()
+                    }
+                } else if (isAggregationStageMethodCall(method)) {
+                    listOf(expression)
+                } else {
+                    // Might actually be coming from a different method call
+                    val allReturns = PsiTreeUtil.findChildrenOfType(
+                        method.body,
+                        PsiReturnStatement::class.java
+                    )
+                    allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
+                        resolveToAggregationStageCalls(it)
+                    } ?: emptyList()
+                }
+            }
+
+            is PsiVariable -> {
+                if (expression.initializer != null) {
+                    resolveToAggregationStageCalls(expression.initializer!!)
+                } else {
+                    emptyList()
+                }
+            }
+
+            is PsiReferenceExpression -> {
+                val referredValue = expression.resolve()
+                if (referredValue != null) {
+                    resolveToAggregationStageCalls(referredValue)
+                } else {
+                    emptyList()
+                }
+            }
+
+            else -> emptyList()
+        }
+    }
+
+    private fun parseAggregationStage(stageCall: PsiMethodCallExpression): Node<PsiElement>? {
+        // Ensure it is a valid stage call
+        val stageCallMethod = stageCall.fuzzyResolveMethod() ?: return null
+
+        if (!isAggregationStageMethodCall(stageCallMethod)) {
+            return null
+        }
+
+        if (stageCallMethod.name == "match") {
+            // There will only be one argument to Aggregates.match and that has to be the Bson
+            // filters. We retrieve that and resolve the values.
+            val filterExpression = stageCall.argumentList.expressions.getOrNull(0)
+                ?: return null
+
+            val resolvedFilterExpression = resolveToFiltersCall(filterExpression)
+                ?: return null
+
+            val parsedFilter = parseFilterExpression(resolvedFilterExpression)
+                ?: return null
+
+            return Node(
+                source = stageCall,
+                components = listOf(
+                    Named(Name.MATCH),
+                    HasFilter(listOf(parsedFilter))
+                )
+            )
+        } else {
+            return null
+        }
+    }
+
+    private fun isAggregationStageMethodCall(callMethod: PsiMethod?): Boolean {
+        return PARSEABLE_AGGREGATION_STAGE_METHODS.contains(callMethod?.name) &&
+            callMethod?.containingClass?.qualifiedName == AGGREGATES_FQN
+    }
+
     private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
         when (val expression = element.meaningfulExpression()) {
             is PsiMethodCallExpression -> {
@@ -446,13 +566,15 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
             // FindIterable.first() translates to a valid MongoDB driver command so we need to take
             // that into account and return correct command result. Because we analysed the earlier
-            // chained call the result in this case will be FIND_MANY
+            // chained call using the lastCallExpression, the result in this case will be FIND_MANY
             if (result.type == IsCommand.CommandType.FIND_MANY && method.name == "first") {
                 return IsCommand(IsCommand.CommandType.FIND_ONE)
             }
 
-            if (result.type == IsCommand.CommandType.AGGREGATE) {
-                return result
+            // If we come across a .first() call on any iterable other than a FindIterable then for
+            // that particular MethodCallExpression we can safely say that the command is not known.
+            if (method.name == "first") {
+                return IsCommand(IsCommand.CommandType.UNKNOWN)
             }
         }
 

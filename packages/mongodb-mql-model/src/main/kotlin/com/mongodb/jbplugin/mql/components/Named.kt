@@ -48,6 +48,7 @@ enum class Name(val canonical: String) {
     TEXT("text"),
     TYPE("type"),
     UNSET("unset"),
+    MATCH("match"),
     UNKNOWN("<unknown operator>"),
     ;
 
