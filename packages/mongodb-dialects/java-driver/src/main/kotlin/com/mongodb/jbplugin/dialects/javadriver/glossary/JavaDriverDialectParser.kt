@@ -15,6 +15,7 @@ import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.flattenAnyOfReferences
 import com.mongodb.jbplugin.mql.toBsonType
 
+private const val COLLECTION_FQN = "com.mongodb.client.MongoCollection"
 private const val SESSION_FQN = "com.mongodb.client.ClientSession"
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
@@ -133,9 +134,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         // Ensure current call is Aggregates.aggregate
         val currentCallMethod = currentCall.fuzzyResolveMethod()
         val isAggregateCall = currentCallMethod?.name == "aggregate" &&
-            currentCallMethod.containingClass?.qualifiedName == "com.mongodb.client.model.Aggregate"
+            currentCallMethod.containingClass?.qualifiedName == COLLECTION_FQN
 
-        if (isAggregateCall || currentCall.argumentList.expressionCount == 0) {
+        if (!isAggregateCall || currentCall.argumentList.expressionCount == 0) {
             return emptyList()
         }
 
