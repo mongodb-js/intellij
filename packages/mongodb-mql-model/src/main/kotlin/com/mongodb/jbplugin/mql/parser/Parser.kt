@@ -174,6 +174,15 @@ inline fun <reified II, I, E, O> Parser<I, E, O>.inputAs(): Parser<II, E, O> {
     return this as Parser<II, E, O>
 }
 
+@Deprecated("Only use in development.")
+fun <I, E, O> Parser<I, E, O>.debug(message: String): Parser<I, E, O> {
+    return { input ->
+        val result = this(input)
+        println("$input > $result >> $message ")
+        result
+    }
+}
+
 /**
  * Returns a parser that maps the error of the previous parser.
  */
@@ -401,12 +410,14 @@ fun <I, E> requireNonNull(err: E): Parser<I?, E, I> {
 /**
  * Requires the input to be non null. In case it's null returns a failed parser output.
  */
-fun <I> requireNonNull(): Parser<I?, Any, I> {
+inline fun <reified I> requireNonNull(): Parser<Any?, Any, I> {
     return { input ->
         if (input == null) {
             Either.left(Unit)
-        } else {
+        } else if (input is I) {
             Either.right(input)
+        } else {
+            Either.left(NoConditionFulfilled)
         }
     }
 }

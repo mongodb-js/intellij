@@ -600,3 +600,37 @@ private val INTERFACES_WITH_QUERY_METHODS = arrayOf(
     "ExecutableRemoveOperation",
     "ExecutableUpdateOperation",
 )
+
+private fun PsiExpressionList.inferFromSingleArrayArgument(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
+    val arrayArg = expressions[start]
+    val (constant, value) = arrayArg.tryToResolveAsConstant()
+
+    return if (constant) {
+        HasValueReference.Constant(
+            arrayArg,
+            listOf(value),
+            BsonArray(value?.javaClass.toBsonType(value))
+        )
+    } else {
+        HasValueReference.Runtime(
+            arrayArg,
+            BsonArray(
+                arrayArg.type?.toBsonType() ?: BsonAny
+            )
+        )
+    }
+}
+
+private fun PsiExpressionList.inferFromSingleVarArgElement(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
+    var secondArg = expressions[start].meaningfulExpression() as PsiExpression
+    return if (secondArg.type?.isJavaIterable() == true) { // case 3
+        HasValueReference.Runtime(
+            secondArg,
+            BsonArray(
+                secondArg.type?.guessIterableContentType(secondArg.project) ?: BsonAny
+            )
+        )
+    } else {
+        HasValueReference.Runtime(parent, BsonArray(BsonAny))
+    }
+}

@@ -1150,9 +1150,9 @@ public class Repository {
 
         val combine = hasUpdate.children[0]
         assertEquals(Name.COMBINE, combine.component<Named>()!!.name)
-        assertEquals(2, combine.component<HasFilter<Unit?>>()!!.children.size)
+        assertEquals(2, combine.component<HasUpdates<Unit?>>()!!.children.size)
 
-        val updates = combine.component<HasFilter<Unit?>>()!!.children
+        val updates = combine.component<HasUpdates<Unit?>>()!!.children
         assertEquals(Name.SET, updates[0].component<Named>()!!.name)
         assertEquals(Name.UNSET, updates[1].component<Named>()!!.name)
     }

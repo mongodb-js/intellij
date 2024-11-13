@@ -446,54 +446,74 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             .acceptAnyError()
     }
 
-    private fun parseUpdatesExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
-        val method = filter.resolveMethod() ?: return null
-        if (method.isVarArgs) {
-            // Updates.combine
-            return Node(
-                filter,
-                listOf(
-                    Named(Name.from(method.name)),
-                    HasFilter(
-                        filter.argumentList.expressions
-                            .mapNotNull { resolveToUpdatesCall(it) }
-                            .mapNotNull { parseUpdatesExpression(it) },
-                    ),
-                ),
-            )
-        } else if (method.parameters.size == 2) {
-            // If it has two parameters, it's field/value.
-            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
-            val valueReference = resolveValueFromExpression(filter.argumentList.expressions[1])
+    private fun parseUpdatesExpression(updateExpression: PsiMethodCallExpression): Node<PsiElement>? {
+        val parseUpdatesExpression = lateInit<PsiElement, Any, Node<PsiElement>>()
 
-            return Node(
-                filter,
-                listOf(
-                    Named(Name.from(method.name)),
-                    HasFieldReference(
-                        fieldReference,
-                    ),
-                    HasValueReference(
-                        valueReference,
-                    ),
-                ),
+        val updatesCombine = methodCall()
+            .matches(
+                resolveMethod().filter { it.isVarArgs }.flatMap(methodName()).filter {
+                    it ==
+                        "combine"
+                }.matches()
             )
-        } else if (method.parameters.size == 1) {
-            // Updates.unset for example
-            val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
+            .zip(resolveMethod().flatMap(methodName()))
+            .zip(
+                allArguments().mapMany(
+                    resolveToCallToMongoDbQueryBuilder(UPDATES_FQN)
+                ).mapMany(parseUpdatesExpression::invoke)
+            )
+            .map {
+                Node(
+                    it.first.first as PsiElement,
+                    listOf(
+                        Named(Name.from(it.first.second)),
+                        HasUpdates(it.second)
+                    )
+                )
+            }.acceptAnyError()
 
-            return Node(
-                filter,
-                listOf(
-                    Named(Name.from(method.name)),
-                    HasFieldReference(
-                        fieldReference,
+        val fieldValueUpdate = methodCall()
+            .matches(allArguments().filter { it.size == 2 }.matches())
+            .zip(resolveMethod().flatMap(methodName()))
+            .zip(argumentAt(0).flatMap(toFieldReference()))
+            .zip(argumentAt(1).flatMap(toValueReference()))
+            .map {
+                Node(
+                    it.first.first.first as PsiElement,
+                    listOf(
+                        Named(Name.from(it.first.first.second)),
+                        it.first.second,
+                        it.second,
                     ),
-                ),
-            )
-        }
-        // here we really don't know much, so just don't attempt to parse the query
-        return null
+                )
+            }.acceptAnyError()
+
+        val fieldOnlyUpdate = methodCall()
+            .matches(allArguments().filter { it.size == 1 }.matches())
+            .zip(resolveMethod().flatMap(methodName()))
+            .zip(argumentAt(0).flatMap(toFieldReference()))
+            .map {
+                Node(
+                    it.first.first as PsiElement,
+                    listOf(
+                        Named(Name.from(it.first.second)),
+                        it.second
+                    )
+                )
+            }.acceptAnyError()
+
+        parseUpdatesExpression.init(
+            first(
+                updatesCombine,
+                fieldValueUpdate,
+                fieldOnlyUpdate
+            ).inputAs<PsiElement, _, _, _>()
+                .acceptAnyError()
+        )
+
+        return parseUpdatesExpression.asParser()
+            .parseInReadAction(updateExpression)
+            .orElseNull()
     }
 
     private fun hasMongoDbSessionReference(methodCall: PsiMethodCallExpression): Boolean {
@@ -504,38 +524,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         val typeOfFirstArg = methodCall.argumentList.expressionTypes[0]
         return typeOfFirstArg.equalsToText(SESSION_FQN)
-    }
-
-    private fun resolveFieldNameFromExpression(expression: PsiExpression): HasFieldReference.FieldReference<out Any> {
-        val fieldNameAsString = expression.tryToResolveAsConstantString()
-        val fieldReference =
-            fieldNameAsString?.let {
-                HasFieldReference.Known(expression, it)
-            } ?: HasFieldReference.Unknown
-
-        return fieldReference
-    }
-
-    private fun resolveValueFromExpression(expression: PsiExpression): HasValueReference.ValueReference<PsiElement> {
-        val (wasResolvedAtCompileTime, resolvedValue) = expression.tryToResolveAsConstant()
-
-        val valueReference =
-            if (wasResolvedAtCompileTime) {
-                HasValueReference.Constant(
-                    expression,
-                    resolvedValue,
-                    resolvedValue?.javaClass.toBsonType()
-                )
-            } else {
-                val psiTypeOfValue =
-                    expression
-                        .type
-                        ?.toBsonType()
-                psiTypeOfValue?.let {
-                    HasValueReference.Runtime(expression, it)
-                } ?: HasValueReference.Unknown
-            }
-        return valueReference as HasValueReference.ValueReference<PsiElement>
     }
 
     private fun methodCallToCommand(methodCall: PsiMethodCallExpression?): IsCommand {
@@ -596,26 +584,6 @@ fun <I, E, O> Parser<I, E, O>.parseInReadAction(input: I): Either<E, O> {
                 this@parseInReadAction(input)
             }
         }
-    }
-}
-
-fun PsiExpressionList.inferFromSingleArrayArgument(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
-    val arrayArg = expressions[start]
-    val (constant, value) = arrayArg.tryToResolveAsConstant()
-
-    return if (constant) {
-        HasValueReference.Constant(
-            arrayArg,
-            listOf(value),
-            BsonArray(value?.javaClass.toBsonType(value))
-        )
-    } else {
-        HasValueReference.Runtime(
-            arrayArg,
-            BsonArray(
-                arrayArg.type?.toBsonType() ?: BsonAny
-            )
-        )
     }
 }
 
@@ -696,19 +664,5 @@ fun PsiExpressionList.inferValueReferenceFromVarArg(start: Int = 0): HasValueRef
         }
     } else {
         return HasValueReference.Runtime(parent, BsonArray(BsonAny))
-    }
-}
-
-fun PsiExpressionList.inferFromSingleVarArgElement(start: Int = 0): HasValueReference.ValueReference<PsiElement> {
-    var secondArg = expressions[start].meaningfulExpression() as PsiExpression
-    return if (secondArg.type?.isJavaIterable() == true) { // case 3
-        HasValueReference.Runtime(
-            secondArg,
-            BsonArray(
-                secondArg.type?.guessIterableContentType(secondArg.project) ?: BsonAny
-            )
-        )
-    } else {
-        HasValueReference.Runtime(parent, BsonArray(BsonAny))
     }
 }

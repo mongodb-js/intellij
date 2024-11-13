@@ -60,10 +60,11 @@ fun referenceExpression() = requireNonNull<PsiReferenceExpression>()
 fun toFieldReference(): Parser<PsiElement, Any, HasFieldReference<PsiElement>> {
     return meaningfulExpression().map { input ->
         val fieldNameAsString = input.tryToResolveAsConstantString()
-        val fieldReference =
-            fieldNameAsString?.let {
-                HasFieldReference.Known<PsiElement>(input, it)
-            } ?: (HasFieldReference.Unknown as HasFieldReference.FieldReference<PsiElement>)
+        val fieldReference = if (fieldNameAsString != null) {
+            HasFieldReference.Known<PsiElement>(input, fieldNameAsString)
+        } else {
+            HasFieldReference.Unknown as HasFieldReference.FieldReference<PsiElement>
+        }
 
         HasFieldReference(fieldReference)
     }
