@@ -13,6 +13,7 @@ import com.intellij.psi.util.PsiTypesUtil
 import com.intellij.psi.util.childrenOfType
 import com.intellij.psi.util.parentOfType
 import com.mongodb.jbplugin.mql.*
+import com.mongodb.jbplugin.mql.components.IsCommand
 
 /**
  * Helper extension function to get the containing class of any element.
@@ -241,6 +242,30 @@ fun PsiMethodCallExpression.findMongoDbClassReference(project: Project): PsiExpr
         return method.body
             ?.collectTypeUntil(PsiMethodCallExpression::class.java, PsiMethod::class.java)
             ?.firstNotNullOfOrNull { it.findMongoDbClassReference(it.project) }
+    }
+}
+
+/**
+ * An identified command will not always map to the corresponding method call on MongoCollection
+ * class; see the mapping of FIND_ONE command for example and when we come across one such command,
+ * we might need to do a little more and find the appropriate MongoCollection method call.
+ *
+ * Returns the PsiMethodCallExpression that correctly maps to the command provided.
+ * @param identifiedCommand
+ */
+fun PsiMethodCallExpression.findMongoDbCollectionMethodCallForCommand(
+    identifiedCommand: IsCommand,
+): PsiMethodCallExpression {
+    val currentCall = this
+    return if (identifiedCommand.type == IsCommand.CommandType.FIND_ONE) {
+        val allCallExpressions = currentCall.findAllChildrenOfType(
+            PsiMethodCallExpression::class.java
+        )
+        allCallExpressions.getOrNull(
+            allCallExpressions.lastIndex - 1
+        )!!
+    } else {
+        currentCall
     }
 }
 
