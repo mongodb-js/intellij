@@ -115,8 +115,9 @@ A Node MAY contain parent nodes and children nodes, through specific **component
 doesn't contain any parent node, but contains children nodes is called the **root** node, and
 represents the whole query.
 
-Nodes MAY have additional components that contain metadata for that node. Components MAY have
-references to other Nodes and other components.
+All components in a node MUST be stored in a sorted list. The sorting criteria is left to the specific
+node and the combination of components. Nodes MAY have additional components that contain metadata for 
+that node. Components MAY have references to other Nodes and other components.
 
 Nodes with components MAY build a tree like structure, resembling an Abstract Syntax Tree. Nodes MUST
 NOT refer to themselves either directly or through one of it's children, avoiding circular references.
