@@ -69,12 +69,14 @@ We will test two different target clusters:
 In the development environment, we copy the data from the production environment once every week. For this example,
 we will consider that the data sets are exactly the same on both clusters.
 
-| Cluster Environment           	 | Is Valid 	  | Is Supported 	 | Same Results 	 | Same Dialect 	 | Same Execution Plan 	 |
-|---------------------------------|-------------|----------------|----------------|----------------|-----------------------|
-| MongoDB Development         	   | ✅         	 | ✅        	     | ✅          	   | ✅        	     | 🔴                	   |
-| MongoDB Production 	            | ✅         	 | ✅           	  | ✅         	    | ✅        	     | 🔴                	   |
+| Query                                                       | Cluster Environment           	 | Is Valid 	  | Is Supported 	 |  Results 	   | Dialect 	            | Execution Plan 	          |
+|:------------------------------------------------------------|---------------------------------|:-----------:|:--------------:|:------------:|----------------------|---------------------------|
+| `collection.find(eq("bookName", myBookName))`               | Development         	           | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | COLLSCAN                	 |
+| `collection.find(eq("bookName", myBookName))`               | Production         	            | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | IXSCAN                	   |
+| `collection.aggregate(matches(eq("bookName", myBookName)))` | Development         	           | ✅         	 |   ✅        	   | N         	  | Java Driver        	 | COLLSCAN                	 |
+| `collection.aggregate(matches(eq("bookName", myBookName)))` | Production 	                    | ✅         	 | ✅           	  | N         	  | Java Driver        	 | IXSCAN                	   |
 
-**✅ They are equivalent.**
+**✅ They are equivalent because they are valid, supported and return the same result set in all clusters.**
 
 And now, finally, let's assume the same environment, but with the query written in two dialects,
 `mongosh` and `Java Driver`:
@@ -86,12 +88,14 @@ collection.find(eq("bookName", myBookName))
 collection.find({"bookName": myBookName})
 ```
 
-| Cluster Environment           	 | Is Valid 	  | Is Supported 	 | Same Results 	 | Same Dialect 	 | Same Execution Plan 	 |
-|---------------------------------|-------------|----------------|----------------|----------------|-----------------------|
-| MongoDB Development         	   | ✅         	 | ✅        	     | ✅          	   | 🔴        	    | 🔴                	   |
-| MongoDB Production 	            | ✅         	 | ✅           	  | ✅         	    | 🔴        	    | 🔴                	   |
+| Query                                         | Cluster Environment           	 | Is Valid 	  | Is Supported 	 |  Results 	   | Dialect 	            | Execution Plan 	          |
+|:----------------------------------------------|---------------------------------|:-----------:|:--------------:|:------------:|----------------------|---------------------------|
+| `collection.find(eq("bookName", myBookName))` | Development         	           | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | COLLSCAN                	 |
+| `collection.find(eq("bookName", myBookName))` | Production         	            | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | IXSCAN                	   |
+| `collection.find({"bookName": myBookName})`   | Development         	           | ✅         	 |   ✅        	   | N         	  | mongosh        	     | COLLSCAN                	 |
+| `collection.find({"bookName": myBookName})`   | Production 	                    | ✅         	 | ✅           	  | N         	  | mongosh        	     | IXSCAN                	   |
 
-**✅ They are equivalent.**
+**✅ They are equivalent because they are valid, supported and return the same result set in all clusters even if the dialect is different.**
 
 
 ### Query Nodes
@@ -115,9 +119,8 @@ A Node MAY contain parent nodes and children nodes, through specific **component
 doesn't contain any parent node, but contains children nodes is called the **root** node, and
 represents the whole query.
 
-All components in a node MUST be stored in a sorted list. The sorting criteria is left to the specific
-node and the combination of components. Nodes MAY have additional components that contain metadata for 
-that node. Components MAY have references to other Nodes and other components. Components in a node MAY
+Components MUST be stored in an ordered list inside a Node. Nodes MAY have additional components that contain metadata for 
+that Node. Components MAY have references to other Nodes and other components. Components in a node MAY
 not be unique: the same component MAY be found in the same node more than once.
 
 Nodes with components MAY build a tree like structure, resembling an Abstract Syntax Tree. Nodes MUST
