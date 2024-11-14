@@ -119,7 +119,7 @@ Nodes MAY have additional components that contain metadata for that node. Compon
 references to other Nodes and other components.
 
 Nodes with components MAY build a tree like structure, resembling an Abstract Syntax Tree. Nodes MUST
-NOT refer to themselves either directly or through one of it's childrens, avoiding circular references.
+NOT refer to themselves either directly or through one of it's children, avoiding circular references.
 
 ### MQL Serialization
 
