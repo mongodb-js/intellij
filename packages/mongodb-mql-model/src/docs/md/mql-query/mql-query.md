@@ -16,7 +16,7 @@ and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119]
 
 A MongoDB Query (**query** from now on), is a single execution unit, written in any of the supported dialects,
 that MAY be consumed by a valid MongoDB Cluster. A query SHOULD contain all the semantics specific to the source dialect
-so it can be tailored back to the original source code. A query MAY be unsupported by a specific target MongoDB Cluster.
+so it can be tailed back to the original source code. A query MAY be unsupported by a specific target MongoDB Cluster.
 
 ### Query validation and support
 
