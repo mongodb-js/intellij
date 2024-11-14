@@ -117,7 +117,8 @@ represents the whole query.
 
 All components in a node MUST be stored in a sorted list. The sorting criteria is left to the specific
 node and the combination of components. Nodes MAY have additional components that contain metadata for 
-that node. Components MAY have references to other Nodes and other components.
+that node. Components MAY have references to other Nodes and other components. Components in a node MAY
+not be unique: the same component MAY be found in the same node more than once.
 
 Nodes with components MAY build a tree like structure, resembling an Abstract Syntax Tree. Nodes MUST
 NOT refer to themselves either directly or through one of it's children, avoiding circular references.
