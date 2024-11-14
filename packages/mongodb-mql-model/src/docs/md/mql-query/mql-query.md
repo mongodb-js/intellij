@@ -121,7 +121,7 @@ that node. Components MAY have references to other Nodes and other components. C
 not be unique: the same component MAY be found in the same node more than once.
 
 Nodes with components MAY build a tree like structure, resembling an Abstract Syntax Tree. Nodes MUST
-NOT refer to themselves either directly or through one of it's children, avoiding circular references.
+NOT refer to themselves either directly or through one of its children, avoiding circular references.
 
 ### MQL Serialization
 
