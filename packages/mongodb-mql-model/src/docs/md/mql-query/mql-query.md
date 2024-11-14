@@ -120,3 +120,26 @@ references to other Nodes and other components.
 
 Nodes with components MAY build a tree like structure, resembling an Abstract Syntax Tree. Nodes MUST
 NOT refer to themselves either directly or through one of it's childrens, avoiding circular references.
+
+### MQL Serialization
+
+A query MUST be serializable to readable text. The serialization format is independent of the
+dialects used for parsing it. A serialized query SHOULD look like this:
+
+```kt
+Node(
+    source=collection.find(eq("_id", 123456)).first(),
+    components=[
+        // list of components
+    ]
+)
+```
+
+The serialization format MAY ignore printing the source of the query, but MUST print all the components
+attached to each of the nodes of the query. In that case, a short form on the syntax MAY be used:
+
+```kt
+Node([
+    // list of components
+])
+```
