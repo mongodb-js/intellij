@@ -9,6 +9,7 @@ import com.mongodb.jbplugin.dialects.DialectParser
 import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
+import com.mongodb.jbplugin.mql.BsonBoolean
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
@@ -281,6 +282,26 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     HasValueReference(valueReference),
                 )
             )
+        } else if (method.name == "exists" && method.parameters.size == 1) {
+            if (filter.argumentList.expressionCount == 0) {
+                return null
+            }
+            val fieldExpression = filter.argumentList.expressions[0]
+            val fieldReference = resolveFieldNameFromExpression(fieldExpression)
+            val valueReference = HasValueReference.Inferred(
+                source = fieldExpression,
+                value = true,
+                type = BsonBoolean,
+            )
+
+            return Node(
+                filter,
+                listOf(
+                    Named(Name.from(method.name)),
+                    HasFieldReference(fieldReference),
+                    HasValueReference(valueReference),
+                )
+            )
         } else if (method.parameters.size == 2) {
             // If it has two parameters, it's field/value.
             val fieldReference = resolveFieldNameFromExpression(filter.argumentList.expressions[0])
@@ -290,12 +311,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 filter,
                 listOf(
                     Named(Name.from(method.name)),
-                    HasFieldReference(
-                        fieldReference,
-                    ),
-                    HasValueReference(
-                        valueReference,
-                    ),
+                    HasFieldReference(fieldReference),
+                    HasValueReference(valueReference),
                 ),
             )
         }

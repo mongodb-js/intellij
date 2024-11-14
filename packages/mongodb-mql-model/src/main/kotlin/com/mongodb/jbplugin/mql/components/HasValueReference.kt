@@ -30,6 +30,21 @@ data class HasValueReference<S>(
     ) : ValueReference<S>
 
     /**
+     * Encodes a ValueReference when the value is not mentioned statically in the user code and
+     * only implied using the method call.
+     * For Example:
+     * ```
+     * Filters.exists("year")
+     * ```
+     * Here the implied value is true and hence the ValueReference will be Inferred.
+     */
+    data class Inferred<S>(
+        val source: S,
+        val value: Any?,
+        val type: BsonType,
+    ) : ValueReference<S>
+
+    /**
      * Encodes a ValueReference when the value is mentioned as a variable in the user code and the
      * specific value can only be known at the runtime. For example:
      * ```
