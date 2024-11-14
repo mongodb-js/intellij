@@ -544,7 +544,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             )
             .flatMap(methodCallChain()).acceptAnyError()
             .firstMatching(
-                resolveFromMethodName.flatMap(equalsTo(IsCommand.CommandType.AGGREGATE)).matches()
+                resolveFromMethodName.filter { it == IsCommand.CommandType.AGGREGATE }.matches()
             ).flatMap(resolveFromMethodName)
             .acceptAnyError()
 

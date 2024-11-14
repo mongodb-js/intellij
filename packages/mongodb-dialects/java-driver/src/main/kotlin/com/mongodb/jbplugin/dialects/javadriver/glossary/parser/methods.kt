@@ -6,6 +6,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReturnStatement
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentsOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.collectTypeUntil
 import com.mongodb.jbplugin.dialects.javadriver.glossary.findAllChildrenOfType
 import com.mongodb.jbplugin.dialects.javadriver.glossary.fuzzyResolveMethod
@@ -85,7 +86,8 @@ fun methodCallChain(): Parser<PsiMethodCallExpression, Any, List<PsiMethodCallEx
         // by reversing the list, we get the "deepest" (closest) levels first
         val allCallExpressions = input.findAllChildrenOfType(
             PsiMethodCallExpression::class.java
-        ).reversed()
+        ).reversed() + input.parentsOfType<PsiMethodCallExpression>()
+
         Either.right(allCallExpressions)
     }
 }

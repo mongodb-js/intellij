@@ -178,7 +178,7 @@ inline fun <reified II, I, E, O> Parser<I, E, O>.inputAs(): Parser<II, E, O> {
 fun <I, E, O> Parser<I, E, O>.debug(message: String): Parser<I, E, O> {
     return { input ->
         val result = this(input)
-        println("$input > $result >> $message ")
+        println(":: $message -> $input > $result ")
         result
     }
 }

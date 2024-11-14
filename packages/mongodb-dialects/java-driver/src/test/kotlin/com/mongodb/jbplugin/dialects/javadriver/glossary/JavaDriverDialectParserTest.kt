@@ -136,7 +136,7 @@ public final class Repository {
         // Returns the value of the entire return expression
         val queryWithIterableCall = psiFile.getQueryAtMethod("Repository", "findBookById")
         // Now the candidate for query attaches at the top element
-        assertTrue(JavaDriverDialectParser.isCandidateForQuery(queryWithIterableCall))
+        assertFalse(JavaDriverDialectParser.isCandidateForQuery(queryWithIterableCall))
 
         val actualQuery = PsiTreeUtil
             .findChildrenOfType(queryWithIterableCall, PsiMethodCallExpression::class.java)
@@ -1651,5 +1651,40 @@ public final class Repository {
         val parsedQuery = JavaDriverDialect.parser.parse(query)
         val command = parsedQuery.component<IsCommand>()
         assertEquals(IsCommand.CommandType.FIND_ONE, command?.type)
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+    
+    private FindIterable<Document> findFantasyBooks() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of()).first();
+    }
+}
+        """,
+    )
+    fun `understands aggregate first as an AGGREGATE command`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "findFantasyBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val command = parsedQuery.component<IsCommand>()
+        assertEquals(IsCommand.CommandType.AGGREGATE, command?.type)
     }
 }
