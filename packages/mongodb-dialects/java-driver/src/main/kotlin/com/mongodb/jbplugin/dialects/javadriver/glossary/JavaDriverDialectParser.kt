@@ -58,9 +58,11 @@ import com.mongodb.jbplugin.mql.parser.mapMany
 import com.mongodb.jbplugin.mql.parser.matches
 import com.mongodb.jbplugin.mql.parser.matchesAny
 import com.mongodb.jbplugin.mql.parser.otherwiseParse
+import com.mongodb.jbplugin.mql.parser.requireNonNull
 import com.mongodb.jbplugin.mql.parser.zip
 import kotlinx.coroutines.runBlocking
 
+private const val COLLECTION_FQN = "com.mongodb.client.MongoCollection"
 private const val ITERABLE_FQN = "com.mongodb.client.MongoIterable"
 private const val SESSION_FQN = "com.mongodb.client.ClientSession"
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
@@ -509,6 +511,16 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     private fun methodCallToCommand(): Parser<PsiMethodCallExpression, Any, IsCommand> {
         val resolveFromMethodName = methodCall()
             .flatMap(resolveMethod())
+            .flatMap(
+                cond(
+                    containingClass()
+                        .flatMap(classIs(COLLECTION_FQN))
+                        .matches() to requireNonNull<PsiMethod, PsiMethod>(),
+                    containingClass()
+                        .flatMap(classIs(ITERABLE_FQN))
+                        .matches() to requireNonNull<PsiMethod, PsiMethod>(),
+                )
+            )
             .flatMap(methodName())
             .flatMap(
                 cond(
@@ -565,7 +577,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     input.findAllChildrenOfType(PsiMethodCallExpression::class.java)
 
             val result = allMethodCalls.firstOrNull {
-                isMdbCollMethod.parseInReadAction(it).map { true }.orElse { false }
+                isMdbCollMethod(it).map { true }.orElse { false }
             }
 
             if (result == null) {
