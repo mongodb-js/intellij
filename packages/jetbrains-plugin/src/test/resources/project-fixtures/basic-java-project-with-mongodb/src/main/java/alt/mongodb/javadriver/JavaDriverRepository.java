@@ -1,41 +1,56 @@
 package alt.mongodb.javadriver;
 
-import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
 import org.bson.Document;
-import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.mongodb.client.model.Filters.*;
+public class JavaDriverRepository {
+    private static final String IMDB_VOTES = "imdb.votes";
+    public static final String AWARDS_WINS = "awards.wins";
 
-public final class JavaDriverRepository {
-    private final MongoCollection<Document> collection;
+    private final MongoClient client;
 
     public JavaDriverRepository(MongoClient client) {
-        this.collection = client.getDatabase("sample_mflix").getCollection("movies");
+        this.client = client;
     }
 
-    public Document queryMovieById(ObjectId id) {
-        return collection.find(eq("_id", id)).first();
+    public Document findMovieById(String id) {
+        return client
+            .getDatabase("sample_mflix")
+            .getCollection("movies")
+            .find(Filters.eq(id))
+            .first();
     }
 
-    public List<Document> queryMoviesByName(String name) {
-        return collection.find(eq("name", name)).into(new ArrayList<>());
+    public List<Document> findMoviesByYear(String year) {
+        return client
+            .getDatabase("sample_mflix")
+            .getCollection("movies")
+            .find(Filters.eq("year", year))
+            .into(new ArrayList<>());
     }
 
-    public Document findMovieById(ObjectId id) {
-        return collection.aggregate(List.of(
-            Aggregates.match(eq("_id", id)
-        ))).first();
+    public Document queryMovieById(String id) {
+        return client
+            .getDatabase("sample_mflix")
+            .getCollection("movies")
+            .aggregate(List.of(Aggregates.match(
+                Filters.eq(id)
+            )))
+            .first();
     }
 
-    public List<Document> findMoviesByName(String name) {
-        return this.collection.aggregate(List.of(
-            Aggregates.match(eq("simple", "as"))
-        )).into(new ArrayList<Document>());
+    public List<Document> queryMoviesByYear(String year) {
+        return client
+            .getDatabase("sample_mflix")
+            .getCollection("movies")
+            .aggregate(List.of(Aggregates.match(
+                Filters.eq("year", year)
+            )))
+            .into(new ArrayList<>());
     }
 }
