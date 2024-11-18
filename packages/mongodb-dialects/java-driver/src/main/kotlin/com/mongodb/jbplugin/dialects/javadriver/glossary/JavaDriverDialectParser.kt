@@ -191,6 +191,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     override fun isReferenceToField(source: PsiElement): Boolean {
         val isInQuery = isInQuery(source)
+        val isInAggregate = isInAggregation(source)
         val isString =
             source.parentOfType<PsiLiteralExpression>()?.tryToResolveAsConstantString() != null
 
@@ -204,7 +205,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             return parentExpressionList.children.any { isReferenceToField(it) }
         }
 
-        return isInQuery && isString
+        return (isInQuery || isInAggregate) && isString
     }
 
     private fun isInQuery(element: PsiElement): Boolean {
@@ -213,6 +214,13 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         return containingClass.qualifiedName == FILTERS_FQN ||
             containingClass.qualifiedName == UPDATES_FQN
+    }
+
+    private fun isInAggregation(element: PsiElement): Boolean {
+        val methodCall = element.parentOfType<PsiMethodCallExpression>(false) ?: return false
+        val containingClass = methodCall.resolveMethod()?.containingClass ?: return false
+
+        return containingClass.qualifiedName == AGGREGATES_FQN
     }
 
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {

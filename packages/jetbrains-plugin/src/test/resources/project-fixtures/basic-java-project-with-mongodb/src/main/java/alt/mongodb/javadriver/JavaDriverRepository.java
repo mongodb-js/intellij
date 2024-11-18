@@ -16,24 +16,24 @@ public final class JavaDriverRepository {
     private final MongoCollection<Document> collection;
 
     public JavaDriverRepository(MongoClient client) {
-        this.collection = client.getDatabase("simple").getCollection("books");
+        this.collection = client.getDatabase("sample_mflix").getCollection("movies");
     }
 
-    public Document queryBookById(ObjectId id) {
+    public Document queryMovieById(ObjectId id) {
         return collection.find(eq("_id", id)).first();
     }
 
-    public List<Document> queryBooksByName(String name) {
+    public List<Document> queryMoviesByName(String name) {
         return collection.find(eq("name", name)).into(new ArrayList<>());
     }
 
-    public Document findById(ObjectId id) {
+    public Document findMovieById(ObjectId id) {
         return collection.aggregate(List.of(
             Aggregates.match(eq("_id", id)
         ))).first();
     }
 
-    public List<Document> findBooksByName(String name) {
+    public List<Document> findMoviesByName(String name) {
         return this.collection.aggregate(List.of(
             Aggregates.match(eq("simple", "as"))
         )).into(new ArrayList<Document>());

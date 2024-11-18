@@ -16,7 +16,6 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 
-@Suppress("TOO_LONG_FUNCTION")
 @CodeInsightTest
 class JavaDriverCompletionContributorTest {
     @ParsingTest(
@@ -260,6 +259,69 @@ public class Repository {
         """,
     )
     fun `should autocomplete fields from the current namespace in the updates of an update`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        fixture.specifyDialect(JavaDriverDialect)
+
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        val namespace = Namespace("myDatabase", "myCollection")
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    namespace,
+                    BsonObject(
+                        mapOf(
+                            "myField" to BsonString,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val elements = fixture.completeBasic()
+
+        assertTrue(
+            elements.containsElements {
+                it.lookupString == "myField"
+            },
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public void exampleFind() {
+        client.getDatabase("myDatabase").getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.match(
+                        eq("<caret>")
+                    )                
+                ));
+    }
+}
+        """,
+    )
+    fun `should autocomplete fields from the current namespace in the filters of an Aggregates#match stage`(
         fixture: CodeInsightTestFixture,
     ) {
         fixture.specifyDialect(JavaDriverDialect)
