@@ -25,6 +25,18 @@ import com.mongodb.jbplugin.mql.components.HasTargetCluster
 interface Component
 
 /**
+ * HasChildren component encapsulates the idea that a Component has children. For example:
+ * ```java
+ * Filters.and(Filters.eq("year", 1994), Filters.eq("name", "something"))
+ * ```
+ * The above query has a filter that have nested filters within it hence the Node that represents
+ * `Filters.and` implements `HasChildren` interface.
+ */
+interface HasChildren<S> : Component {
+    val children: List<Node<S>>
+}
+
+/**
  * Represents the building block of a query in this model. Nodes don't have any semantic per se, but they can
  * hold Components that will give them specific meaning.
  *

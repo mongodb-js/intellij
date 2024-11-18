@@ -193,7 +193,7 @@ class DataGripMongoDbDriverTest {
                         Node(
                             Unit,
                             listOf(
-                                HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                HasFieldReference(HasFieldReference.FromSchema(Unit, "myField")),
                                 HasValueReference(
                                     HasValueReference.Constant(Unit, "myVal", BsonString)
                                 ),
@@ -255,7 +255,7 @@ class DataGripMongoDbDriverTest {
                         Node(
                             Unit,
                             listOf(
-                                HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                HasFieldReference(HasFieldReference.FromSchema(Unit, "myField")),
                                 HasValueReference(
                                     HasValueReference.Constant(Unit, "myVal", BsonString)
                                 ),

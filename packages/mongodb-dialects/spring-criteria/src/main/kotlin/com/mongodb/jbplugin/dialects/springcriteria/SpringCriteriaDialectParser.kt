@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.dialects.springcriteria
 
-import com.intellij.database.dialects.base.introspector.listOf
 import com.intellij.psi.*
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.findParentOfType
@@ -285,7 +284,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
                 valueFilterExpression,
                 listOf(
                     Named(Name.EQ),
-                    HasFieldReference(HasFieldReference.Known(valueFilterExpression, "_id")),
+                    HasFieldReference(HasFieldReference.FromSchema(valueFilterExpression, "_id")),
                     psiExpressionToValueReference(valueFilterExpression as? PsiExpression)
                 )
             )
@@ -504,7 +503,7 @@ object SpringCriteriaDialectParser : DialectParser<PsiElement> {
             null -> HasFieldReference(
                 HasFieldReference.Unknown as HasFieldReference.FieldReference<PsiElement>
             )
-            else -> HasFieldReference(HasFieldReference.Known<PsiElement>(fieldPsi, field))
+            else -> HasFieldReference(HasFieldReference.FromSchema<PsiElement>(fieldPsi, field))
         }
 
         return fieldReference

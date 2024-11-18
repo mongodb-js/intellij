@@ -18,7 +18,7 @@ import com.mongodb.jbplugin.mql.parser.components.ParsedValueReference
 import com.mongodb.jbplugin.mql.parser.components.allFiltersRecursively
 import com.mongodb.jbplugin.mql.parser.components.extractValueReference
 import com.mongodb.jbplugin.mql.parser.components.knownCollection
-import com.mongodb.jbplugin.mql.parser.components.knownFieldReference
+import com.mongodb.jbplugin.mql.parser.components.schemaFieldReference
 import com.mongodb.jbplugin.mql.parser.filter
 import com.mongodb.jbplugin.mql.parser.first
 import com.mongodb.jbplugin.mql.parser.map
@@ -102,10 +102,10 @@ object FieldCheckingLinter {
                 is Either.Left -> emptyList()
                 is Either.Right -> {
                     val collectionSchema = querySchema.value
-                    val extractFieldExistenceWarning = knownFieldReference<S>()
+                    val extractFieldExistenceWarning = schemaFieldReference<S>()
                         .map { toFieldNotExistingWarning(collectionSchema, it) }
 
-                    val extractTypeMismatchWarning = knownFieldReference<S>()
+                    val extractTypeMismatchWarning = schemaFieldReference<S>()
                         .filter { collectionSchema.typeOf(it.fieldName) != BsonNull }
                         .zip(extractValueReference())
                         .map { toValueMismatchWarning(collectionSchema, it) }
@@ -127,7 +127,7 @@ object FieldCheckingLinter {
 
     private fun <S> toFieldNotExistingWarning(
         collectionSchema: CollectionSchema,
-        known: HasFieldReference.Known<S>
+        known: HasFieldReference.FromSchema<S>
     ): FieldCheckWarning<S>? {
         val fieldType = collectionSchema.typeOf(known.fieldName)
         return FieldCheckWarning.FieldDoesNotExist(
@@ -139,7 +139,7 @@ object FieldCheckingLinter {
 
     private fun <S> toValueMismatchWarning(
         collectionSchema: CollectionSchema,
-        pair: Pair<HasFieldReference.Known<S>, ParsedValueReference<S, out Any>>
+        pair: Pair<HasFieldReference.FromSchema<S>, ParsedValueReference<S, out Any>>
     ): FieldCheckWarning<S>? {
         val fieldType = collectionSchema.typeOf(pair.first.fieldName)
         val fieldName = pair.first.fieldName

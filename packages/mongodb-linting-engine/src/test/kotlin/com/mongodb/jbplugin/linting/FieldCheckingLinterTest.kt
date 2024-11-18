@@ -49,14 +49,16 @@ class FieldCheckingLinterTest {
                                 Node(
                                     null,
                                     listOf(
-                                        HasFieldReference(HasFieldReference.Known(null, "myString"))
+                                        HasFieldReference(
+                                            HasFieldReference.FromSchema(null, "myString")
+                                        )
                                     )
                                 ),
                                 Node(
                                     null,
                                     listOf(
                                         HasFieldReference(
-                                            HasFieldReference.Known(null, "myBoolean")
+                                            HasFieldReference.FromSchema(null, "myBoolean")
                                         )
                                     )
                                 ),
@@ -106,14 +108,16 @@ class FieldCheckingLinterTest {
                                 Node(
                                     null,
                                     listOf(
-                                        HasFieldReference(HasFieldReference.Known(null, "myString"))
+                                        HasFieldReference(
+                                            HasFieldReference.FromSchema(null, "myString")
+                                        )
                                     )
                                 ),
                                 Node(
                                     null,
                                     listOf(
                                         HasFieldReference(
-                                            HasFieldReference.Known(null, "myBoolean")
+                                            HasFieldReference.FromSchema(null, "myBoolean")
                                         ),
                                         HasValueReference(
                                             HasValueReference.Constant(null, true, BsonBoolean)
@@ -167,7 +171,7 @@ class FieldCheckingLinterTest {
                                     null,
                                     listOf(
                                         HasFieldReference(
-                                            HasFieldReference.Known(null, "myInt")
+                                            HasFieldReference.FromSchema(null, "myInt")
                                         ),
                                         HasValueReference(
                                             HasValueReference.Constant(null, null, BsonNull)
