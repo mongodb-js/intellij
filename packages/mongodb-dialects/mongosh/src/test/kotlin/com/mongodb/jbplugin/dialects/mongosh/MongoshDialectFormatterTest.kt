@@ -32,7 +32,9 @@ class MongoshDialectFormatterTest {
                             Node(
                                 Unit,
                                 listOf(
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
                                     )
@@ -64,7 +66,9 @@ class MongoshDialectFormatterTest {
                                 Unit,
                                 listOf(
                                     Named(Name.EQ),
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
                                     )
@@ -96,7 +100,9 @@ class MongoshDialectFormatterTest {
                             Node(
                                 Unit,
                                 listOf(
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
                                     )
@@ -129,7 +135,9 @@ class MongoshDialectFormatterTest {
                             Node(
                                 Unit,
                                 listOf(
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
                                     )
@@ -168,7 +176,10 @@ class MongoshDialectFormatterTest {
                                                 listOf(
                                                     Named(Name.EQ),
                                                     HasFieldReference(
-                                                        HasFieldReference.Known(Unit, "myField")
+                                                        HasFieldReference.FromSchema(
+                                                            Unit,
+                                                            "myField"
+                                                        )
                                                     ),
                                                     HasValueReference(
                                                         HasValueReference.Constant(
@@ -210,7 +221,9 @@ class MongoshDialectFormatterTest {
                                 Unit,
                                 listOf(
                                     Named(Name.from(operator)),
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
                                     )
@@ -243,7 +256,9 @@ class MongoshDialectFormatterTest {
                                 Unit,
                                 listOf(
                                     Named(Name.from(operator)),
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(
                                             Unit,
@@ -281,7 +296,9 @@ class MongoshDialectFormatterTest {
                             Node(
                                 Unit,
                                 listOf(
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal", BsonString)
                                     )
@@ -290,7 +307,9 @@ class MongoshDialectFormatterTest {
                             Node(
                                 Unit,
                                 listOf(
-                                    HasFieldReference(HasFieldReference.Known(Unit, "myField2")),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField2")
+                                    ),
                                     HasValueReference(
                                         HasValueReference.Constant(Unit, "myVal2", BsonString)
                                     )

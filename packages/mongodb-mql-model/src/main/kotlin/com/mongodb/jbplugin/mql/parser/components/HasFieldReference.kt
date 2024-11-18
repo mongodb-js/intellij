@@ -17,4 +17,4 @@ inline fun <reified T : HasFieldReference.FieldReference<S>, S> fieldReference()
     }
 }
 
-fun <S> knownFieldReference() = fieldReference<HasFieldReference.Known<S>, S>()
+fun <S> schemaFieldReference() = fieldReference<HasFieldReference.FromSchema<S>, S>()

@@ -294,7 +294,7 @@ public final class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName
         )
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
@@ -336,7 +336,7 @@ public final class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName
         )
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
@@ -376,7 +376,7 @@ public final class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName
         )
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
@@ -416,7 +416,7 @@ public final class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName
         )
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
@@ -459,7 +459,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "myField",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -504,7 +504,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "myField",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonNull,
@@ -551,7 +551,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "myField",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonNull,
@@ -599,7 +599,7 @@ public class Repository {
         val firstEq = andChildren.children[0]
         assertEquals(
             "released",
-            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -613,7 +613,7 @@ public class Repository {
         val secondEq = andChildren.children[1]
         assertEquals(
             "hidden",
-            (secondEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (secondEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -666,7 +666,7 @@ public class Repository {
         val firstEq = andChildren.children[0]
         assertEquals(
             "released",
-            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -680,7 +680,7 @@ public class Repository {
         val secondEq = andChildren.children[1]
         assertEquals(
             "hidden",
-            (secondEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (secondEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -728,7 +728,7 @@ public class Repository {
         val firstEq = andChildren.children[0]
         assertEquals(
             "released",
-            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -774,7 +774,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -823,7 +823,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -872,7 +872,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonBoolean,
@@ -924,7 +924,7 @@ public class Repository {
         val firstEq = andChildren.children[0]
         assertEquals(
             "released",
-            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (firstEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -938,7 +938,7 @@ public class Repository {
         val secondEq = andChildren.children[1]
         assertEquals(
             "hidden",
-            (secondEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (secondEq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonAnyOf(BsonNull, BsonBoolean),
@@ -994,7 +994,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonBoolean,
@@ -1005,7 +1005,7 @@ public class Repository {
         assertEquals(Name.UNSET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
-            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
     }
 
@@ -1050,7 +1050,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonBoolean,
@@ -1061,7 +1061,7 @@ public class Repository {
         assertEquals(Name.UNSET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
-            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
     }
 
@@ -1106,7 +1106,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonBoolean,
@@ -1117,7 +1117,7 @@ public class Repository {
         assertEquals(Name.UNSET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
-            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
     }
 
@@ -1162,7 +1162,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonBoolean,
@@ -1173,7 +1173,7 @@ public class Repository {
         assertEquals(Name.SET, unset.component<Named>()!!.name)
         assertEquals(
             "field",
-            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (unset.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             1,
@@ -1220,7 +1220,7 @@ public class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "released",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonBoolean,
@@ -1270,7 +1270,7 @@ public class Repository {
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonArray(BsonAnyOf(BsonNull, BsonString)),
@@ -1312,7 +1312,7 @@ public class Repository {
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonArray(BsonAnyOf(BsonNull, BsonString)),
@@ -1355,7 +1355,7 @@ public class Repository {
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonArray(BsonAnyOf(BsonNull, BsonString)),
@@ -1398,7 +1398,7 @@ public class Repository {
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonArray(BsonAnyOf(BsonNull, BsonString)),
@@ -1447,7 +1447,7 @@ public class Repository {
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonArray(BsonAnyOf(BsonNull, BsonString)),
@@ -1496,7 +1496,7 @@ public class Repository {
         assertEquals(Name.IN, eq.component<Named>()!!.name)
         assertEquals(
             "genre",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName,
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
         )
         assertEquals(
             BsonArray(BsonAnyOf(BsonNull, BsonString, BsonInt32)),

@@ -43,7 +43,7 @@ object IndexAnalyzer {
         val otherRefs = hasFilter?.children?.flatMap { it.allFieldReferences() } ?: emptyList()
         val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
         val valueRef = component<HasValueReference<S>>()?.reference
-        return if (fieldRef is HasFieldReference.Known) {
+        return if (fieldRef is HasFieldReference.FromSchema) {
             otherRefs + (
                 valueRef?.let { reference ->
                     when (reference) {

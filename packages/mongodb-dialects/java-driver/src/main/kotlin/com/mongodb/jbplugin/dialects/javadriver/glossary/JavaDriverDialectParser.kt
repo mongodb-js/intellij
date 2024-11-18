@@ -122,11 +122,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         if (currentCall.argumentList.expressionCount > 1) {
             // TODO: we might want to have a component that tells this query is in a transaction
             val startIndex = if (hasMongoDbSessionReference(currentCall)) 2 else 1
-            var updateExpression = currentCall.argumentList.expressions.getOrNull(startIndex)
-
-            if (updateExpression == null) {
-                return emptyList()
-            }
+            val updateExpression = currentCall.argumentList.expressions.getOrNull(startIndex)
+                ?: return emptyList()
 
             val argumentAsUpdates = resolveToUpdatesCall(updateExpression)
             // parse only if it's a call to `updates` methods
@@ -200,7 +197,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             // - in(field, array) -> valid because of varargs
             // - in(field, iterable) -> valid because of overload
             val valueReference = if (filter.argumentList.expressionCount == 2) {
-                var secondArg = filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
+                val secondArg = filter.argumentList.expressions[1].meaningfulExpression() as PsiExpression
                 if (secondArg.type?.isJavaIterable() == true) { // case 3
                     filter.argumentList.inferFromSingleVarArgElement(start = 1)
                 } else if (secondArg.type?.isArray() == false) { // case 1
@@ -244,7 +241,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             }
             val valueExpression = filter.argumentList.expressions[0]
             val valueReference = resolveValueFromExpression(valueExpression)
-            val fieldReference = HasFieldReference.Known(valueExpression, "_id")
+            val fieldReference = HasFieldReference.FromSchema(valueExpression, "_id")
 
             return Node(
                 filter,
@@ -400,7 +397,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val fieldNameAsString = expression.tryToResolveAsConstantString()
         val fieldReference =
             fieldNameAsString?.let {
-                HasFieldReference.Known(expression, it)
+                HasFieldReference.FromSchema(expression, it)
             } ?: HasFieldReference.Unknown
 
         return fieldReference
