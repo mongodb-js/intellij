@@ -1508,6 +1508,104 @@ public class Repository {
         )
     }
 
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+    
+    private FindIterable<Document> findFantasyBooks() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(exists("genre"));
+    }
+}
+        """,
+    )
+    fun `supports the exists operator with single param call`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "findFantasyBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+
+        val eq = hasFilter.children[0]
+        assertEquals(Name.EXISTS, eq.component<Named>()!!.name)
+        assertEquals(
+            "genre",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
+        )
+        assertEquals(
+            BsonBoolean,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Inferred).type,
+        )
+        assertEquals(
+            true,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Inferred).value,
+        )
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import org.bson.Document;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Updates.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+    
+    private FindIterable<Document> findFantasyBooks() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(exists("genre", false));
+    }
+}
+        """,
+    )
+    fun `supports the exists operator with double param call`(
+        psiFile: PsiFile
+    ) {
+        val query = psiFile.getQueryAtMethod("Repository", "findFantasyBooks")
+        val parsedQuery = JavaDriverDialect.parser.parse(query)
+
+        val hasFilter = parsedQuery.component<HasFilter<Unit?>>()!!
+
+        val eq = hasFilter.children[0]
+        assertEquals(Name.EXISTS, eq.component<Named>()!!.name)
+        assertEquals(
+            "genre",
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName,
+        )
+        assertEquals(
+            BsonAnyOf(BsonNull, BsonBoolean),
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).type,
+        )
+        assertEquals(
+            false,
+            (eq.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant).value,
+        )
+    }
+
     @WithFile(
         fileName = "Repository.java",
         value = """
