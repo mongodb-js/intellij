@@ -40,6 +40,12 @@ public class JavaDriverRepository {
     private Document findBooks(String[] validGenres) {
         return client.getDatabase("myDatabase")
             .getCollection("myCollection")
-            .aggregate(Aggregates.match(Filters.eq("genre", validGenres))).first();
+            .aggregate(
+                List.of(
+                    Aggregates.match(
+                        Filters.eq("genres", validGenres)
+                    )
+                )
+            ).first();
     }
 }
