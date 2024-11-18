@@ -64,7 +64,7 @@ fun toFieldReference(): Parser<PsiElement, Any, HasFieldReference<PsiElement>> {
     return meaningfulExpression().map { input ->
         val fieldNameAsString = input.tryToResolveAsConstantString()
         val fieldReference = if (fieldNameAsString != null) {
-            HasFieldReference.Known<PsiElement>(input, fieldNameAsString)
+            HasFieldReference.FromSchema<PsiElement>(input, fieldNameAsString)
         } else {
             HasFieldReference.Unknown as HasFieldReference.FieldReference<PsiElement>
         }

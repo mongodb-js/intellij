@@ -342,7 +342,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     it.first as PsiElement,
                     listOf(
                         Named(Name.EQ),
-                        HasFieldReference(HasFieldReference.Known(it.first, "_id")),
+                        HasFieldReference(HasFieldReference.FromSchema(it.first, "_id")),
                         it.second,
                     )
                 )

@@ -340,7 +340,7 @@ public final class Repository {
         assertEquals(Name.EQ, eq.component<Named>()!!.name)
         assertEquals(
             "_id",
-            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.Known).fieldName
+            (eq.component<HasFieldReference<Unit?>>()!!.reference as HasFieldReference.FromSchema).fieldName
         )
         assertEquals(
             BsonAnyOf(BsonObjectId, BsonNull),
