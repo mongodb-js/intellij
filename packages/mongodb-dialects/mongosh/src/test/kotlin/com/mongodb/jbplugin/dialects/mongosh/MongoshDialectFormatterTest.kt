@@ -82,13 +82,48 @@ class MongoshDialectFormatterTest {
     }
 
     @Test
+    fun `can format a simple delete query`() {
+        val namespace = Namespace("myDb", "myColl")
+
+        assertGeneratedQuery(
+            """
+            db.getSiblingDB("myDb").getCollection("myColl").deleteMany({ "myField": "myVal", })
+            """.trimIndent()
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    IsCommand(IsCommand.CommandType.DELETE_MANY),
+                    HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
+                    HasFilter(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.EQ),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
     fun `can format a query with an explain plan`() {
         assertGeneratedQuery(
             """
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": "myVal", }).explain()
+            db.getSiblingDB(database).getCollection(collection).explain().find({ "myField": "myVal", })
             """.trimIndent(),
             explain = true
         ) {

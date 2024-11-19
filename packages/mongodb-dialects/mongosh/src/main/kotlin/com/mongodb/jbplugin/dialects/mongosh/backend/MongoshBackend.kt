@@ -104,6 +104,11 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
         return this
     }
 
+    fun emitComment(comment: String): MongoshBackend {
+        output.append("/* $comment */")
+        return this
+    }
+
     fun emitContextValue(value: ContextValue): MongoshBackend {
         when (value) {
             is ContextValue.Constant -> emitPrimitive(value.value, false)

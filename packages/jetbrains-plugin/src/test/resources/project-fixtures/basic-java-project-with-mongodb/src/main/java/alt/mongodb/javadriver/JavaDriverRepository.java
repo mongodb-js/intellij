@@ -49,7 +49,7 @@ public class JavaDriverRepository {
             .getDatabase("sample_mflix")
             .getCollection("movies")
             .aggregate(List.of(Aggregates.match(
-                Filters.eq("year", year)
+                Filters.eq("_id", year)
             )))
             .into(new ArrayList<>());
     }

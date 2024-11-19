@@ -110,6 +110,32 @@ fun <I, E, O, EE> Parser<I, E, O>.mapError(mapFn: (E) -> EE): Parser<I, EE, O> {
 }
 
 /**
+ * Returns a parser that maps the error of the previous parser.
+ */
+data object IndexOutOfBounds
+fun <I, E, O> Parser<I, E, List<O>>.nth(index: Int): Parser<I, Either<E, IndexOutOfBounds>, O> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> {
+                val element = result.value.getOrNull(index)
+                if (element == null) {
+                    Either.left(Either.right(IndexOutOfBounds))
+                } else {
+                    Either.right(element)
+                }
+            }
+        }
+    }
+}
+
+fun <I> count(): Parser<List<I>, Any, Int> {
+    return { input ->
+        Either.right(input.size)
+    }
+}
+
+/**
  * Returns a parser that runs both this, and the parameter parser, in parallel, and aggregates
  * the results.
  */
@@ -185,6 +211,20 @@ fun <I, E> not(parser: Parser<I, E, Boolean>): Parser<I, E, Boolean> {
 fun <I, E, O> otherwise(defaultValue: () -> O): Parser<I, E, O> {
     val thenDefaultValue: Parser<I, E, O> = { input: I -> Either.right(defaultValue()) }
     return thenDefaultValue
+}
+
+fun <I, E, O> Parser<I, E, O>.matches(
+    filterFn: Parser<O, E, Boolean>
+): Parser<I, Either<E, ElementDoesNotMatchFilter>, O> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> when (filterFn(result.value).orElse { false }) {
+                true -> Either.right(result.value)
+                false -> Either.left(Either.right(ElementDoesNotMatchFilter))
+            }
+        }
+    }
 }
 
 /**
