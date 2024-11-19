@@ -2,6 +2,7 @@ package com.mongodb.jbplugin.mql.parser.components
 
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.adt.Either
+import com.mongodb.jbplugin.mql.components.HasAggregation
 import com.mongodb.jbplugin.mql.components.HasFilter
 import com.mongodb.jbplugin.mql.parser.Parser
 
@@ -29,7 +30,9 @@ fun <S> allFiltersRecursively(): Parser<Node<S>, NoFilters, List<Node<S>>> {
             }
         }
 
-        val result = gather(input)
+        val aggregation = input.component<HasAggregation<S>>()
+        val aggregationStages = aggregation?.children ?: emptyList()
+        val result = gather(input) + aggregationStages.flatMap(::gather)
         if (result.isEmpty()) {
             Either.left(NoFilters)
         } else {

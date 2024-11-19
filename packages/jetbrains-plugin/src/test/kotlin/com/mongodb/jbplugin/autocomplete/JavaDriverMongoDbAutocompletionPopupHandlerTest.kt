@@ -297,4 +297,65 @@ public class Repository {
             },
         )
     }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public AggregateIterable<Document> exampleFind() {
+        return client.getDatabase("myDatabase").getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.match(eq(<caret>)
+                )));
+    }
+}
+        """,
+    )
+    fun `should autocomplete fields from the current namespace in the filters of an Aggregates#match stage`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        fixture.specifyDialect(JavaDriverDialect)
+
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        val namespace = Namespace("myDatabase", "myCollection")
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), eq(GetCollectionSchema.Slice(namespace)))
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    namespace,
+                    BsonObject(
+                        mapOf(
+                            "myField" to BsonString,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        fixture.type('"')
+        val elements = fixture.completeBasic()
+
+        assertTrue(
+            elements.containsElements {
+                it.lookupString == "myField"
+            },
+        )
+    }
 }

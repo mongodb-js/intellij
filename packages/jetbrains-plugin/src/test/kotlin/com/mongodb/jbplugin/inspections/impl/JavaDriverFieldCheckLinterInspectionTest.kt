@@ -139,4 +139,105 @@ public class Repository {
         fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public AggregateIterable<Document> exampleAggregate() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.match(
+                        eq(<warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"nonExistingField"</warning>, "123")
+                    )
+                ));
+    }
+}
+        """,
+    )
+    fun `shows an inspection for Aggregates#match call when the field does not exist in the current namespace`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(Namespace("myDatabase", "myCollection"), BsonObject(emptyMap()))
+            ),
+        )
+
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
+        fixture.testHighlighting()
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public AggregateIterable<Document> exampleFind() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.match(
+                        eq("thisIsDouble", <warning descr="A \"String\"(type of provided value) cannot be assigned to \"double\"(type of \"thisIsDouble\")">"123"</warning>)
+                    )
+                ));
+    }
+}
+        """,
+    )
+    fun `shows an inspection for Aggregates#match call when a provided value cannot be assigned to a field because of detected type mismatch`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    Namespace("myDatabase", "myCollection"),
+                    BsonObject(mapOf("thisIsDouble" to BsonDouble))
+                )
+            ),
+        )
+
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
+        fixture.testHighlighting()
+    }
 }
