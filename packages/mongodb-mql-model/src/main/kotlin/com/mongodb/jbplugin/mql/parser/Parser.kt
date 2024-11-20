@@ -110,7 +110,7 @@ fun <I, E, O, EE> Parser<I, E, O>.mapError(mapFn: (E) -> EE): Parser<I, EE, O> {
 }
 
 /**
- * Returns a parser that maps the error of the previous parser.
+ * Parser that returns the element <index> in the input list.
  */
 data object IndexOutOfBounds
 fun <I, E, O> Parser<I, E, List<O>>.nth(index: Int): Parser<I, Either<E, IndexOutOfBounds>, O> {
@@ -129,6 +129,9 @@ fun <I, E, O> Parser<I, E, List<O>>.nth(index: Int): Parser<I, Either<E, IndexOu
     }
 }
 
+/**
+ * Parser that returns the number of elements in a list.
+ */
 fun <I> count(): Parser<List<I>, Any, Int> {
     return { input ->
         Either.right(input.size)

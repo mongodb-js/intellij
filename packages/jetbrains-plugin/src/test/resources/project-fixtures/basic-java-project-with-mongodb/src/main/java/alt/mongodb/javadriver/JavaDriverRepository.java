@@ -30,7 +30,19 @@ public class JavaDriverRepository {
         return client
             .getDatabase("sample_mflix")
             .getCollection("movies")
-            .find(Filters.eq("year", year))
+            .find(
+                Filters.and(
+                    Filters.eq("f1", year),
+                    Filters.gte("f2", year),
+                    Filters.lte("f3", year),
+                    Filters.not(
+                        Filters.and(
+                            Filters.eq("f4", year),
+                            Filters.eq("f5", year)
+                        )
+                    )
+                )
+            )
             .into(new ArrayList<>());
     }
 
