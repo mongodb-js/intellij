@@ -150,6 +150,110 @@ class MongoshDialectFormatterTest {
         }
     }
 
+    @Test
+    fun `can format an aggregate query with a match expression at the beginning`() {
+        assertGeneratedQuery(
+            """
+            var collection = ""
+            var database = ""
+
+            db.getSiblingDB(database).getCollection(collection).aggregate([ { "${"$"}match": { "myField": "myVal"}}])
+            """.trimIndent(),
+            explain = false
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    IsCommand(IsCommand.CommandType.AGGREGATE),
+                    HasAggregation(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.MATCH),
+                                    HasFilter(
+                                        listOf(
+                                            Node(
+                                                Unit,
+                                                listOf(
+                                                    HasFieldReference(
+                                                        HasFieldReference.FromSchema(
+                                                            Unit,
+                                                            "myField"
+                                                        )
+                                                    ),
+                                                    HasValueReference(
+                                                        HasValueReference.Constant(
+                                                            Unit,
+                                                            "myVal",
+                                                            BsonString
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `can format an explain command for a valid aggregate query`() {
+        assertGeneratedQuery(
+            """
+            var collection = ""
+            var database = ""
+
+            db.getSiblingDB(database).getCollection(collection).explain().aggregate([ { "${"$"}match": { "myField": "myVal"}}])
+            """.trimIndent(),
+            explain = true
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    IsCommand(IsCommand.CommandType.AGGREGATE),
+                    HasAggregation(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.MATCH),
+                                    HasFilter(
+                                        listOf(
+                                            Node(
+                                                Unit,
+                                                listOf(
+                                                    HasFieldReference(
+                                                        HasFieldReference.FromSchema(
+                                                            Unit,
+                                                            "myField"
+                                                        )
+                                                    ),
+                                                    HasValueReference(
+                                                        HasValueReference.Constant(
+                                                            Unit,
+                                                            "myVal",
+                                                            BsonString
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(strings = ["and", "or", "nor"])
     fun `can format a query with subquery operators`(operator: String) {
@@ -367,7 +471,10 @@ private fun assertGeneratedQuery(
     assertEquals(js, generated.query)
 }
 
-private fun assertGeneratedIndex(@Language("js") js: String, script: () -> Node<Unit>) {
+private fun assertGeneratedIndex(
+    @Language("js") js: String,
+    script: () -> Node<Unit>
+) {
     val generated = MongoshDialectFormatter.indexCommandForQuery(script())
     assertEquals(js, generated)
 }

@@ -311,7 +311,6 @@ private fun <S> canEmitAggregate(node: Node<S>): Boolean {
     return aggregationStages<S>()
         .matches(count<Node<S>>().filter { it >= 1 }.matches().anyError())
         .nth(0)
-        .anyError()
         .matches(hasName(Name.MATCH))
         .map { true }
         .parse(node).orElse { false }

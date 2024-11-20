@@ -213,8 +213,8 @@ fun <I, E, O> otherwise(defaultValue: () -> O): Parser<I, E, O> {
     return thenDefaultValue
 }
 
-fun <I, E, O> Parser<I, E, O>.matches(
-    filterFn: Parser<O, E, Boolean>
+fun <I, E, EA, O> Parser<I, E, O>.matches(
+    filterFn: Parser<O, EA, Boolean>
 ): Parser<I, Either<E, ElementDoesNotMatchFilter>, O> {
     return { input ->
         when (val result = this(input)) {
