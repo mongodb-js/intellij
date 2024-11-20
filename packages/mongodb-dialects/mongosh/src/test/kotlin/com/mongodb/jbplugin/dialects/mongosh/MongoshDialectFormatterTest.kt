@@ -21,7 +21,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": "myVal", })
+            db.getSiblingDB(database).getCollection(collection).find({"myField": "myVal", })
             """.trimIndent()
         ) {
             Node(
@@ -53,7 +53,7 @@ class MongoshDialectFormatterTest {
 
         assertGeneratedQuery(
             """
-            db.getSiblingDB("myDb").getCollection("myColl").find({ "myField": "myVal", })
+            db.getSiblingDB("myDb").getCollection("myColl").find({"myField": "myVal", })
             """.trimIndent()
         ) {
             Node(
@@ -87,7 +87,7 @@ class MongoshDialectFormatterTest {
 
         assertGeneratedQuery(
             """
-            db.getSiblingDB("myDb").getCollection("myColl").deleteMany({ "myField": "myVal", })
+            db.getSiblingDB("myDb").getCollection("myColl").deleteMany({"myField": "myVal", })
             """.trimIndent()
         ) {
             Node(
@@ -122,8 +122,12 @@ class MongoshDialectFormatterTest {
             """
             var collection = ""
             var database = ""
-
-            db.getSiblingDB(database).getCollection(collection).explain().find({ "myField": "myVal", })
+            
+            db.getSiblingDB(database)
+              .getCollection(collection)
+              .explain().find(
+                            {"myField": "myVal", }
+              )
             """.trimIndent(),
             explain = true
         ) {
@@ -157,7 +161,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).aggregate([ { "${"$"}match": { "myField": "myVal"}}])
+            db.getSiblingDB(database).getCollection(collection).aggregate([{"${"$"}match": {"myField": "myVal"}}])
             """.trimIndent(),
             explain = false
         ) {
@@ -208,8 +212,14 @@ class MongoshDialectFormatterTest {
             """
             var collection = ""
             var database = ""
-
-            db.getSiblingDB(database).getCollection(collection).explain().aggregate([ { "${"$"}match": { "myField": "myVal"}}])
+            
+            db.getSiblingDB(database)
+              .getCollection(collection)
+              .explain().aggregate(
+                                 [
+                                   {"${'$'}match": {"myField": "myVal"}}
+                                 ]
+              )
             """.trimIndent(),
             explain = true
         ) {
@@ -262,7 +272,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "${"$"}$operator": [ { "myField": "myVal"}, ]})
+            db.getSiblingDB(database).getCollection(collection).find({"${"$"}$operator": [{"myField": "myVal"}, ]})
             """.trimIndent()
         ) {
             Node(
@@ -295,7 +305,7 @@ class MongoshDialectFormatterTest {
 
         assertGeneratedQuery(
             """
-            db.getSiblingDB("myDb").getCollection("myColl").find({ "myField": { "${"$"}not": "myVal"}, })
+            db.getSiblingDB("myDb").getCollection("myColl").find({"myField": {"${"$"}not": "myVal"}, })
             """.trimIndent()
         ) {
             Node(
@@ -348,7 +358,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": { "${"$"}$operator": "myVal"}, })
+            db.getSiblingDB(database).getCollection(collection).find({"myField": {"${"$"}$operator": "myVal"}, })
             """.trimIndent()
         ) {
             Node(
@@ -383,7 +393,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": { "${"$"}$operator": [1, 2]}, })
+            db.getSiblingDB(database).getCollection(collection).find({"myField": {"${"$"}$operator": [1, 2]}, })
             """.trimIndent()
         ) {
             Node(

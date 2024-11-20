@@ -24,12 +24,12 @@ import org.owasp.encoder.Encode
 object MongoshDialectFormatter : DialectFormatter {
     override fun <S> formatQuery(
         query: Node<S>,
-        explain: Boolean
+        explain: Boolean,
     ): OutputQuery {
         val isAggregate = isAggregate(query)
         val canEmitAggregate = canEmitAggregate(query)
 
-        val outputString = MongoshBackend(prettyPrint = !explain).apply {
+        val outputString = MongoshBackend(prettyPrint = explain).apply {
             if (isAggregate && !canEmitAggregate) {
                 emitComment("Only aggregates with a single match stage can be converted.")
                 return@apply
