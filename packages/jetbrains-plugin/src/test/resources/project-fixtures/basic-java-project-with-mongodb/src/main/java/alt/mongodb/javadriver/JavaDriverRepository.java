@@ -30,19 +30,7 @@ public class JavaDriverRepository {
         return client
             .getDatabase("sample_mflix")
             .getCollection("movies")
-            .find(
-                Filters.and(
-                    Filters.eq("f1", year),
-                    Filters.gte("f2", year),
-                    Filters.lte("f3", year),
-                    Filters.not(
-                        Filters.and(
-                            Filters.eq("f4", year),
-                            Filters.eq("f5", year)
-                        )
-                    )
-                )
-            )
+            .find(Filters.eq("year", year))
             .into(new ArrayList<>());
     }
 
@@ -61,7 +49,7 @@ public class JavaDriverRepository {
             .getDatabase("sample_mflix")
             .getCollection("movies")
             .aggregate(List.of(Aggregates.match(
-                Filters.eq("_id", year)
+                Filters.eq("year", year)
             )))
             .into(new ArrayList<>());
     }
