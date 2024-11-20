@@ -18,14 +18,14 @@ class MongoshBackendTest {
     fun `generates a valid find query`() {
         assertGeneratedJs(
             """
-            db.getSiblingDB("myDb").getCollection("myColl").find({ "field": 1})
+            db.getSiblingDB("myDb").getCollection("myColl").find({"field": 1})
             """.trimIndent()
         ) {
             emitDbAccess()
             emitDatabaseAccess(registerConstant("myDb"))
             emitCollectionAccess(registerConstant("myColl"))
             emitFunctionName("find")
-            emitFunctionCall({
+            emitFunctionCall(long = false, {
                 emitObjectStart()
                 emitObjectKey(registerConstant("field"))
                 emitContextValue(registerConstant(1))
@@ -42,14 +42,14 @@ class MongoshBackendTest {
             var myDb = ""
             var myValue = ""
 
-            db.getSiblingDB(myDb).getCollection(myColl).find({ "field": myValue})
+            db.getSiblingDB(myDb).getCollection(myColl).find({"field": myValue})
             """.trimIndent()
         ) {
             emitDbAccess()
             emitDatabaseAccess(registerVariable("myDb", BsonString))
             emitCollectionAccess(registerVariable("myColl", BsonString))
             emitFunctionName("find")
-            emitFunctionCall({
+            emitFunctionCall(long = false, {
                 emitObjectStart()
                 emitObjectKey(registerConstant("field"))
                 emitContextValue(registerVariable("myValue", BsonString))
@@ -66,14 +66,14 @@ class MongoshBackendTest {
             var myDb = ""
             var myValue = ""
 
-            db.getSiblingDB(myDb).getCollection(myColl).update({ "field": myValue}, { "myUpdate": 1})
+            db.getSiblingDB(myDb).getCollection(myColl).update({"field": myValue}, {"myUpdate": 1})
             """.trimIndent()
         ) {
             emitDbAccess()
             emitDatabaseAccess(registerVariable("myDb", BsonString))
             emitCollectionAccess(registerVariable("myColl", BsonString))
             emitFunctionName("update")
-            emitFunctionCall({
+            emitFunctionCall(long = false, {
                 emitObjectStart()
                 emitObjectKey(registerConstant("field"))
                 emitContextValue(registerVariable("myValue", BsonString))
