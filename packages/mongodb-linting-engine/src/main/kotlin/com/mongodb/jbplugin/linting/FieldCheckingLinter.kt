@@ -24,6 +24,7 @@ import com.mongodb.jbplugin.mql.parser.first
 import com.mongodb.jbplugin.mql.parser.map
 import com.mongodb.jbplugin.mql.parser.mapError
 import com.mongodb.jbplugin.mql.parser.mapMany
+import com.mongodb.jbplugin.mql.parser.otherwise
 import com.mongodb.jbplugin.mql.parser.parse
 import com.mongodb.jbplugin.mql.parser.zip
 
@@ -114,7 +115,8 @@ object FieldCheckingLinter {
                     val allFieldAndValueReferencesParser = allFiltersRecursively<S>().mapMany(
                         first(
                             extractTypeMismatchWarning,
-                            extractFieldExistenceWarning
+                            extractFieldExistenceWarning,
+                            otherwise { null },
                         )
                     )
 

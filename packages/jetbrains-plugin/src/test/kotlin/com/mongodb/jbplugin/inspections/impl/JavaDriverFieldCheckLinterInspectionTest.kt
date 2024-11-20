@@ -143,6 +143,53 @@ public class Repository {
     @ParsingTest(
         fileName = "Repository.java",
         value = """
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public FindIterable<Document> exampleFind() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .find(
+                    and(
+                        eq(<warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"nonExistingField"</warning>, "123")
+                    )
+                );
+    }
+}
+        """,
+    )
+    fun `shows an inspection when a field, referenced in a nested $and query, does not exists in the current namespace`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(Namespace("myDatabase", "myCollection"), BsonObject(emptyMap()))
+            ),
+        )
+
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
+        fixture.testHighlighting()
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
