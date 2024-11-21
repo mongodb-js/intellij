@@ -15,7 +15,7 @@ import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.parser.components.NoFieldReference
 import com.mongodb.jbplugin.mql.parser.components.ParsedValueReference
-import com.mongodb.jbplugin.mql.parser.components.allFiltersRecursively
+import com.mongodb.jbplugin.mql.parser.components.allNodesWithSchemaFieldReferences
 import com.mongodb.jbplugin.mql.parser.components.extractValueReference
 import com.mongodb.jbplugin.mql.parser.components.knownCollection
 import com.mongodb.jbplugin.mql.parser.components.schemaFieldReference
@@ -112,7 +112,7 @@ object FieldCheckingLinter {
                         .map { toValueMismatchWarning(collectionSchema, it) }
                         .mapError { NoFieldReference }
 
-                    val allFieldAndValueReferencesParser = allFiltersRecursively<S>().mapMany(
+                    val allFieldAndValueReferencesParser = allNodesWithSchemaFieldReferences<S>().mapMany(
                         first(
                             extractTypeMismatchWarning,
                             extractFieldExistenceWarning,

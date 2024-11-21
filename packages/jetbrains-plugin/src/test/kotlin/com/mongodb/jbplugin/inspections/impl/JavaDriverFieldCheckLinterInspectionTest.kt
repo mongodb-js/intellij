@@ -287,4 +287,84 @@ public class Repository {
         fixture.enableInspections(FieldCheckInspectionBridge::class.java)
         fixture.testHighlighting()
     }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Projections;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public AggregateIterable<Document> exampleAggregateInclude() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.project(
+                        Projections.include(<warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"nonExistingField"</warning>)
+                    )
+                ));
+    }
+    
+    public AggregateIterable<Document> exampleAggregateExclude() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.project(
+                        Projections.exclude(<warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"nonExistingField"</warning>)
+                    )
+                ));
+    }
+    
+    private Bson getAnotherProjection() {
+        return Projections.exclude(<warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"nonExistingField"</warning>);
+    }
+    
+    public AggregateIterable<Document> exampleAggregateFields() {
+        Bson includeProject = Projections.include(<warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"nonExistingField"</warning>);
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.project(
+                        Projections.fields(
+                            Projections.exclude(<warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"nonExistingField"</warning>),
+                            includeProject,
+                            getAnotherProjection()
+                        )
+                    )
+                ));
+    }
+}
+        """,
+    )
+    fun `shows an inspection for Aggregates#project call when the field does not exist in the current namespace`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(Namespace("myDatabase", "myCollection"), BsonObject(emptyMap()))
+            ),
+        )
+
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
+        fixture.testHighlighting()
+    }
 }

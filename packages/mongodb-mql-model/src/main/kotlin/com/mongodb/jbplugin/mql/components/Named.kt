@@ -49,6 +49,9 @@ enum class Name(val canonical: String) {
     TYPE("type"),
     UNSET("unset"),
     MATCH("match"),
+    PROJECT("project"),
+    INCLUDE("include"),
+    EXCLUDE("exclude"),
     UNKNOWN("<unknown operator>"),
     ;
 
