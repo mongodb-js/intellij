@@ -17,7 +17,8 @@ and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119]
 
 [BSON](https://bsonspec.org/spec.html) is a binary format that is used to communicate between the
 MongoDB Client (through a driver) and a MongoDB Cluster. MQL BSON (from now on we will just say BSON) 
-is a superset of the original BSON types.
+is a superset of the original BSON types. For example some semantics, like BsonAnyOf, are not part
+of the original BSON.
 
 A BSON Type represents the data type inferred from the original source code or from a MongoDB sample
 of documents. A BSON Type MUST be consumable by a MongoDB Cluster and its serialization MUST be
