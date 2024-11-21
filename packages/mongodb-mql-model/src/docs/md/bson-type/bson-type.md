@@ -119,3 +119,33 @@ Type assignability MAY NOT be commutative.
 * 🟠$^3$: $BsonObject A$ is assignable to $B$ if $A$ is a subset of $B$.
 * 🟠$^4$: $A$ is assignable to $BsonArray(B)$ only if $A$ is assignable to $B$.
 * 🟠$^5$: $BsonArray(A)$ is assignable to $BsonArray(B)$ only if $A$ is assignable to $B$.
+
+### Type mapping
+
+#### Java
+
+| Java Type     | Bson Type                           |
+|:--------------|:------------------------------------|
+| null          | BsonNull                            |
+| float         | BsonDouble                          |
+| Float         | BsonAnyOf(BsonNull, BsonDouble)     |
+| double        | BsonDouble                          |
+| Double        | BsonAnyOf(BsonNull, BsonDouble)     |
+| BigDecimal    | BsonAnyOf(BsonNull, BsonDecimal128) |
+| boolean       | BsonBoolean                         |
+| short         | BsonInt32                           |
+| Short         | BsonAnyOf(BsonNull, BsonInt32)      |
+| int           | BsonInt32                           |
+| Integer       | BsonAnyOf(BsonNull, BsonInt32)      |
+| BigInteger    | BsonAnyOf(BsonNull, BsonInt64)      |
+| long          | BsonInt64                           |
+| Long          | BsonAnyOf(BsonNull, BsonInt64)      |
+| CharSequence  | BsonAnyOf(BsonNull, BsonString)     |
+| String        | BsonAnyOf(BsonNull, BsonString)     |
+| Date          | BsonAnyOf(BsonNull, BsonDate)       |
+| Instant       | BsonAnyOf(BsonNull, BsonDate)       |
+| LocalDate     | BsonAnyOf(BsonNull, BsonDate)       |
+| LocalDateTime | BsonAnyOf(BsonNull, BsonDate)       |
+| Collection<T> | BsonAnyOf(BsonNull, BsonArray(T))   |
+| Map<K, V>     | BsonAnyOf(BsonNull, BsonObject)     |
+| Object        | BsonAnyOf(BsonNull, BsonObject)     |
