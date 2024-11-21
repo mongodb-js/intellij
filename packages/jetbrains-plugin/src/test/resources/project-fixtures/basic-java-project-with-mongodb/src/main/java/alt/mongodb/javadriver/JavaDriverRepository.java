@@ -1,6 +1,7 @@
 package alt.mongodb.javadriver;
 
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
@@ -52,7 +53,10 @@ public class JavaDriverRepository {
             .aggregate(
                 List.of(
                     Aggregates.match(
-                        Filters.eq("year", year)
+                        Filters.eq("_id", year)
+                    ),
+                    Aggregates.group(
+                        "newField", Accumulators.avg("test", "$year")
                     ),
                     Aggregates.project(
                         Projections.fields(

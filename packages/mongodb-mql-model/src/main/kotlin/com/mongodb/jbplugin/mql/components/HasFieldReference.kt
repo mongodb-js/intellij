@@ -23,4 +23,24 @@ data class HasFieldReference<S>(
         val fieldName: String,
         val displayName: String = fieldName,
     ) : FieldReference<S>
+
+    /**
+     * Encodes a FieldReference that is part of a schema, but it's not defined
+     * in code. For example, the _id field that is created on { $group: "$expr" }.
+     */
+    data class Inferred<S>(
+        val source: S,
+        val fieldName: String,
+        val displayName: String = fieldName,
+    ) : FieldReference<S>
+
+    /**
+     * Encodes a FieldReference that is part of a schema, but it's not defined
+     * in code. For example, the _id field that is created on { $group: "$expr" }.
+     */
+    data class Computed<S>(
+        val source: S,
+        val fieldName: String,
+        val displayName: String = fieldName,
+    ) : FieldReference<S>
 }

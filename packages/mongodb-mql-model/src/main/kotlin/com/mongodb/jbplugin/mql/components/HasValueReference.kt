@@ -1,11 +1,14 @@
 package com.mongodb.jbplugin.mql.components
 
+import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Component
+import com.mongodb.jbplugin.mql.HasChildren
+import com.mongodb.jbplugin.mql.Node
 
 data class HasValueReference<S>(
     val reference: ValueReference<S>,
-) : Component {
+) : Component, HasChildren<S> {
 
     sealed interface ValueReference<S>
 
@@ -56,4 +59,28 @@ data class HasValueReference<S>(
         val source: S,
         val type: BsonType,
     ) : ValueReference<S>
+
+    /**
+     * Encodes a ValueReference when the value is computed on the server side. For example
+     * for $group stages in an aggregation pipeline:
+     * ```
+     * Aggregates.group("$year") //-> Computed(Node(HasFieldReference(...)))
+     * ```
+     * The computedExpression can not be known, so we don't have a BsonType attached to it.
+     *
+     * Unless it can be inferred from the expression (not implemented), we will assume it's
+     * BsonAny
+     */
+    data class Computed<S>(
+        val source: S,
+        val expression: Node<S>,
+    ) : ValueReference<S> {
+        val type: BsonType = BsonAny
+    }
+
+    override val children: List<Node<S>>
+        get() = when (reference) {
+            is Computed -> listOf(reference.expression)
+            else -> emptyList()
+        }
 }

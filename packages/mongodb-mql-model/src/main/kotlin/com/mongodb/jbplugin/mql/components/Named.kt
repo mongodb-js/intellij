@@ -52,6 +52,16 @@ enum class Name(val canonical: String) {
     PROJECT("project"),
     INCLUDE("include"),
     EXCLUDE("exclude"),
+    SUM("sum"),
+    AVG("avg"),
+    FIRST("first"),
+    LAST("last"),
+    TOP("top"),
+    BOTTOM("bottom"),
+    MAX("max"),
+    MIN("min"),
+    PUSH("push"),
+    ADD_TO_SET("addToSet"),
     UNKNOWN("<unknown operator>"),
     ;
 

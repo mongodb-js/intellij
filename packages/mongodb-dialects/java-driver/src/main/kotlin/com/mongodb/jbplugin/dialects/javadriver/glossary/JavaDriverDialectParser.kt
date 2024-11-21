@@ -14,6 +14,8 @@ import com.mongodb.jbplugin.mql.BsonInt32
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.components.HasFieldReference.Computed
+import com.mongodb.jbplugin.mql.components.HasFieldReference.FromSchema
 import com.mongodb.jbplugin.mql.flattenAnyOfReferences
 import com.mongodb.jbplugin.mql.toBsonType
 
@@ -23,6 +25,7 @@ private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 private const val AGGREGATES_FQN = "com.mongodb.client.model.Aggregates"
 private const val PROJECTIONS_FQN = "com.mongodb.client.model.Projections"
+private const val ACCUMULATORS_FQN = "com.mongodb.client.model.Accumulators"
 private const val JAVA_LIST_FQN = "java.util.List"
 private const val JAVA_ARRAYS_FQN = "java.util.Arrays"
 private val PARSEABLE_AGGREGATION_STAGE_METHODS = listOf(
@@ -458,6 +461,32 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
                 return nodeWithProjections(parsedProjections)
             }
+            "group" -> {
+                // the first parameter of group is going to be a string expression
+                val groupArgument = stageCall.argumentList.expressions.getOrNull(0)
+                    ?: return null
+
+                val groupFieldValueExpression = parseComputedExpression(groupArgument)
+
+                val nodeWithAccumulators: (List<Node<PsiElement>>) -> Node<PsiElement> = { accFields: List<Node<PsiElement>> ->
+                    Node(
+                        stageCall,
+                        listOf(
+                            HasFieldReference(
+                                HasFieldReference.Inferred(groupArgument, "_id", "_id")
+                            ),
+                            groupFieldValueExpression,
+                            HasAccumulatedFields(accFields)
+                        )
+                    )
+                }
+
+                val accumulators = stageCall.getVarArgsOrIterableArgs().drop(1)
+                    .mapNotNull { resolveToAccumulatorCall(it) }
+
+                val parsedAccumulators = accumulators.mapNotNull { parseAccumulatorExpression(it) }
+                return nodeWithAccumulators(parsedAccumulators)
+            }
 
             else -> return null
         }
@@ -467,6 +496,37 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return element.resolveToMethodCallExpression { _, methodCall ->
             methodCall.containingClass?.qualifiedName == PROJECTIONS_FQN
         }
+    }
+
+    private fun resolveToAccumulatorCall(element: PsiElement): PsiMethodCallExpression? {
+        return element.resolveToMethodCallExpression { _, methodCall ->
+            methodCall.containingClass?.qualifiedName == ACCUMULATORS_FQN
+        }
+    }
+
+    private fun parseComputedExpression(element: PsiElement, createsNewField: Boolean = true): HasValueReference<PsiElement> {
+        return HasValueReference(
+            when (val expression = element.tryToResolveAsConstantString()) {
+                null -> HasValueReference.Unknown as HasValueReference.ValueReference<PsiElement>
+                else -> HasValueReference.Computed(
+                    element,
+                    Node(
+                        element,
+                        listOf(
+                            if (createsNewField) {
+                                HasFieldReference(
+                                    Computed(element, expression.trim('$'), expression)
+                                )
+                            } else {
+                                HasFieldReference(
+                                    FromSchema(element, expression.trim('$'), expression)
+                                )
+                            }
+                        )
+                    )
+                )
+            }
+        )
     }
 
     private fun parseProjectionExpression(expression: PsiMethodCallExpression): List<Node<PsiElement>> {
@@ -482,8 +542,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     val fieldReference = resolveFieldNameFromExpression(it)
                     val methodName = Name.from(methodCall.name)
                     when (fieldReference) {
-                        is HasFieldReference.Unknown -> null
-                        is HasFieldReference.FromSchema -> Node(
+                        is FromSchema -> Node(
                             source = it,
                             components = listOf(
                                 Named(methodName),
@@ -496,12 +555,53 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                                     )
                                 )
                             )
-                        )
+                        ) else -> null
                     }
                 }
 
             else -> emptyList()
         }
+    }
+
+    private fun parseAccumulatorExpression(expression: PsiMethodCallExpression): Node<PsiElement>? {
+        val methodCall = expression.fuzzyResolveMethod() ?: return null
+
+        return when (methodCall.name) {
+            "sum" -> parseKeyValAccumulator(expression, Name.SUM)
+            "avg" -> parseKeyValAccumulator(expression, Name.AVG)
+            "first" -> parseKeyValAccumulator(expression, Name.FIRST)
+            "last" -> parseKeyValAccumulator(expression, Name.LAST)
+            "top" -> null
+            "bottom" -> null
+            "max" -> parseKeyValAccumulator(expression, Name.MAX)
+            "min" -> parseKeyValAccumulator(expression, Name.MIN)
+            "push" -> parseKeyValAccumulator(expression, Name.PUSH)
+            "addToSet" -> parseKeyValAccumulator(expression, Name.ADD_TO_SET)
+            else -> null
+        }
+    }
+
+    private fun parseKeyValAccumulator(expression: PsiMethodCallExpression, name: Name): Node<PsiElement>? {
+        val keyExpr = expression.argumentList.expressions.getOrNull(0) ?: return null
+        val valueExpr = expression.argumentList.expressions.getOrNull(1) ?: return null
+
+        val fieldName = keyExpr.tryToResolveAsConstantString()
+        val accumulatorExpr = parseComputedExpression(valueExpr, createsNewField = false)
+
+        return Node(
+            expression,
+            listOf(
+                Named(name),
+                HasFieldReference(
+                    if (fieldName != null) {
+                        Computed(keyExpr, fieldName, fieldName)
+                    } else {
+                        HasFieldReference.Unknown as HasFieldReference.FieldReference<PsiElement>
+                    }
+                ),
+                accumulatorExpr
+            )
+        )
     }
 
     private fun hasMongoDbSessionReference(methodCall: PsiMethodCallExpression): Boolean {
