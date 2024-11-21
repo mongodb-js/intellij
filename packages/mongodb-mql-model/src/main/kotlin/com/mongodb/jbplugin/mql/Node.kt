@@ -58,6 +58,8 @@ data class Node<S>(
 
     inline fun <reified C : Component> components(): List<C> = components.filterIsInstance<C>()
 
+    fun componentsWithChildren(): List<HasChildren<*>> = components.filterIsInstance<HasChildren<*>>()
+
     inline fun <reified C : Component> hasComponent(): Boolean = component<C>() != null
 
     fun withTargetCluster(cluster: HasTargetCluster): Node<S> = copy(

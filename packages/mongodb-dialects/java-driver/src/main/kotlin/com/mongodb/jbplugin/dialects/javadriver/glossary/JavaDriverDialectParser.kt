@@ -456,8 +456,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
                 val parsedProjections = parseProjectionExpression(resolvedProjectionExpression)
 
-                println(":: $parsedProjections")
-
                 return nodeWithProjections(parsedProjections)
             }
 
