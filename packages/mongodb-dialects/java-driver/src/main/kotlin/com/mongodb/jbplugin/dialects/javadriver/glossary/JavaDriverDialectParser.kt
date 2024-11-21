@@ -414,16 +414,26 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         when (stageCallMethod.name) {
             "match" -> {
+                val nodeWithFilters: (List<Node<PsiElement>>) -> Node<PsiElement> =
+                    { filter ->
+                        Node(
+                            source = stageCall,
+                            components = listOf(
+                                Named(Name.MATCH),
+                                HasFilter(filter)
+                            )
+                        )
+                    }
                 // There will only be one argument to Aggregates.match and that has to be the Bson
                 // filters. We retrieve that and resolve the values.
                 val filterExpression = stageCall.argumentList.expressions.getOrNull(0)
-                    ?: return null
+                    ?: return nodeWithFilters(emptyList())
 
                 val resolvedFilterExpression = resolveToFiltersCall(filterExpression)
-                    ?: return null
+                    ?: return nodeWithFilters(emptyList())
 
                 val parsedFilter = parseFilterExpression(resolvedFilterExpression)
-                    ?: return null
+                    ?: return nodeWithFilters(emptyList())
 
                 return Node(
                     source = stageCall,
