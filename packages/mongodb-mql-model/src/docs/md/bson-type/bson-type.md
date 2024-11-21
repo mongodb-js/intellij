@@ -4,7 +4,7 @@
 ## Abstract
 
 This specification documents the different kinds of BSON types and how they are related to the
-original source code of a [MQL Query](../mql-query/mql-query.md). This document aims to provide
+original source code of an [MQL Query](../mql-query/mql-query.md). This document aims to provide
 information about the behaviour of dialects and linters on the computation of the original
 expression BSON type.
 
@@ -91,10 +91,10 @@ Assignable types MUST not change the semantics of a query when they are swapped.
 we have a query $Q$, and two variants, $Q_A$ and $Q_B$, where $Q_A$ and $Q_B$ differ on the specified type
 in either a field or a value reference.
 
-We will say that $A$ is assignable to $B$ if $Q_A$ and $Q_B$ are 
+We will say that type $A$ is assignable to type $B$ if $Q_A$ and $Q_B$ are 
 [equivalent queries](/main/packages/mongodb-mql-model/src/docs/md/mql-query/mql-query.md#query-equivalence).
 
-Type assignability **MAY not be commutative**.
+Type assignability MAY NOT be commutative.
 
 #### Assignability table
 
