@@ -3,6 +3,7 @@ package alt.mongodb.javadriver;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import org.bson.Document;
 
 import java.util.ArrayList;
@@ -48,9 +49,18 @@ public class JavaDriverRepository {
         return client
             .getDatabase("sample_mflix")
             .getCollection("movies")
-            .aggregate(List.of(Aggregates.match(
-                Filters.eq("year", year)
-            )))
+            .aggregate(
+                List.of(
+                    Aggregates.match(
+                        Filters.eq("year", year)
+                    ),
+                    Aggregates.project(
+                        Projections.fields(
+                            Projections.include("year", "plot")
+                        )
+                    )
+                )
+            )
             .into(new ArrayList<>());
     }
 }

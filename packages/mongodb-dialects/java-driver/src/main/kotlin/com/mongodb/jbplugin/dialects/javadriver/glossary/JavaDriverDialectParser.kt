@@ -222,7 +222,8 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val methodCall = element.parentOfType<PsiMethodCallExpression>(false) ?: return false
         val containingClass = methodCall.resolveMethod()?.containingClass ?: return false
 
-        return containingClass.qualifiedName == AGGREGATES_FQN
+        return containingClass.qualifiedName == AGGREGATES_FQN ||
+            containingClass.qualifiedName == PROJECTIONS_FQN
     }
 
     private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
