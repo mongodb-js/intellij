@@ -20,7 +20,7 @@ MongoDB Client (through a driver) and a MongoDB Cluster. MQL BSON (from now on w
 is a superset of the original BSON types.
 
 A BSON Type represents the data type inferred from the original source code or from a MongoDB sample
-of documents. A BSON Type MUST be consumable by a MongoDB Cluster and it's serialization MUST be
+of documents. A BSON Type MUST be consumable by a MongoDB Cluster and its serialization MUST be
 BSON 1.1 compliant.
 
 ### Primitive BSON Types
