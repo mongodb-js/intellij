@@ -239,3 +239,12 @@ fun <I, E, O> Parser<I, E, O>.parse(input: I): Either<E, O> {
         this@parse(input)
     }
 }
+
+@Deprecated("Only use in development.")
+fun <I, E, O> Parser<I, E, O>.debug(message: String): Parser<I, E, O> {
+    return { input ->
+        val result = this(input)
+        println(":: $message -> $input > $result ")
+        result
+    }
+}
