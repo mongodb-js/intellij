@@ -77,7 +77,7 @@ Represents any possible type. Essentially, all type is a subtype of BsonAny.
 
 #### [BsonAnyOf](/main/packages/mongodb-mql-model/src/main/kotlin/com/mongodb/jbplugin/mql/BsonType.kt#L132)
 
-Represents an intersection of types. For example, BsonAnyOf([BsonString, BsonInt32]). 
+Represents an union of types. For example, BsonAnyOf([BsonString, BsonInt32]). 
 
 #### [BsonObject](/main/packages/mongodb-mql-model/src/main/kotlin/com/mongodb/jbplugin/mql/BsonType.kt#L149)
 
