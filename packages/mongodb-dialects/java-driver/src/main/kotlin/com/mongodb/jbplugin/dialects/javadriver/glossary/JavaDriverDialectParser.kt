@@ -10,6 +10,7 @@ import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonBoolean
+import com.mongodb.jbplugin.mql.BsonInt32
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
@@ -21,6 +22,7 @@ private const val SESSION_FQN = "com.mongodb.client.ClientSession"
 private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 private const val AGGREGATES_FQN = "com.mongodb.client.model.Aggregates"
+private const val PROJECTIONS_FQN = "com.mongodb.client.model.Projections"
 private const val JAVA_LIST_FQN = "java.util.List"
 private const val JAVA_ARRAYS_FQN = "java.util.Arrays"
 private val PARSEABLE_AGGREGATION_STAGE_METHODS = listOf(
@@ -223,6 +225,12 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return containingClass.qualifiedName == AGGREGATES_FQN
     }
 
+    private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
+        return element.resolveToMethodCallExpression { _, methodCall ->
+            methodCall.containingClass?.qualifiedName == FILTERS_FQN
+        }
+    }
+
     private fun parseFilterExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
         val method = filter.fuzzyResolveMethod() ?: return null
         if (method.name == "in" || method.name == "nin") {
@@ -328,154 +336,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return null
     }
 
-    private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
-        when (val expression = element.meaningfulExpression()) {
-            is PsiMethodCallExpression -> {
-                val method = expression.fuzzyResolveMethod() ?: return null
-                if (method.containingClass?.qualifiedName == FILTERS_FQN) {
-                    return expression
-                }
-                val allReturns = PsiTreeUtil.findChildrenOfType(
-                    method.body,
-                    PsiReturnStatement::class.java
-                )
-                return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
-                    resolveToFiltersCall(it)
-                }
-            }
-
-            is PsiVariable -> {
-                expression.initializer ?: return null
-                return resolveToFiltersCall(expression.initializer!!)
-            }
-
-            is PsiReferenceExpression -> {
-                val referredValue = expression.resolve() ?: return null
-                return resolveToFiltersCall(referredValue)
-            }
-
-            else -> return null
-        }
-    }
-
-    private fun resolveToAggregationStageCalls(element: PsiElement): List<PsiMethodCallExpression> {
-        return when (val expression = element.meaningfulExpression()) {
-            is PsiMethodCallExpression -> {
-                val method = expression.fuzzyResolveMethod() ?: return emptyList()
-
-                val isListOfCall = method.name == "of" &&
-                    method.containingClass?.qualifiedName == JAVA_LIST_FQN
-
-                val isArrayAsListCall = method.name == "asList" &&
-                    method.containingClass?.qualifiedName == JAVA_ARRAYS_FQN
-
-                if (isListOfCall || isArrayAsListCall) {
-                    if (expression.argumentList.expressionCount > 0) {
-                        expression.argumentList.expressions.flatMap(
-                            ::resolveToAggregationStageCalls
-                        )
-                    } else {
-                        emptyList()
-                    }
-                } else if (isAggregationStageMethodCall(method)) {
-                    listOf(expression)
-                } else {
-                    // Might actually be coming from a different method call
-                    val allReturns = PsiTreeUtil.findChildrenOfType(
-                        method.body,
-                        PsiReturnStatement::class.java
-                    )
-                    allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
-                        resolveToAggregationStageCalls(it)
-                    } ?: emptyList()
-                }
-            }
-
-            is PsiVariable -> {
-                if (expression.initializer != null) {
-                    resolveToAggregationStageCalls(expression.initializer!!)
-                } else {
-                    emptyList()
-                }
-            }
-
-            is PsiReferenceExpression -> {
-                val referredValue = expression.resolve()
-                if (referredValue != null) {
-                    resolveToAggregationStageCalls(referredValue)
-                } else {
-                    emptyList()
-                }
-            }
-
-            else -> emptyList()
-        }
-    }
-
-    private fun parseAggregationStage(stageCall: PsiMethodCallExpression): Node<PsiElement>? {
-        // Ensure it is a valid stage call
-        val stageCallMethod = stageCall.fuzzyResolveMethod() ?: return null
-
-        if (!isAggregationStageMethodCall(stageCallMethod)) {
-            return null
-        }
-
-        if (stageCallMethod.name == "match") {
-            // There will only be one argument to Aggregates.match and that has to be the Bson
-            // filters. We retrieve that and resolve the values.
-            val filterExpression = stageCall.argumentList.expressions.getOrNull(0)
-                ?: return null
-
-            val resolvedFilterExpression = resolveToFiltersCall(filterExpression)
-                ?: return null
-
-            val parsedFilter = parseFilterExpression(resolvedFilterExpression)
-                ?: return null
-
-            return Node(
-                source = stageCall,
-                components = listOf(
-                    Named(Name.MATCH),
-                    HasFilter(listOf(parsedFilter))
-                )
-            )
-        } else {
-            return null
-        }
-    }
-
-    private fun isAggregationStageMethodCall(callMethod: PsiMethod?): Boolean {
-        return PARSEABLE_AGGREGATION_STAGE_METHODS.contains(callMethod?.name) &&
-            callMethod?.containingClass?.qualifiedName == AGGREGATES_FQN
-    }
-
     private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
-        when (val expression = element.meaningfulExpression()) {
-            is PsiMethodCallExpression -> {
-                val method = expression.resolveMethod() ?: return null
-                if (method.containingClass?.qualifiedName == UPDATES_FQN) {
-                    return expression
-                }
-                val allReturns = PsiTreeUtil.findChildrenOfType(
-                    method.body,
-                    PsiReturnStatement::class.java
-                )
-                return allReturns.mapNotNull { it.returnValue }.firstNotNullOfOrNull {
-                    resolveToUpdatesCall(it)
-                }
-            }
-
-            is PsiVariable -> {
-                expression.initializer ?: return null
-                return resolveToUpdatesCall(expression.initializer!!)
-            }
-
-            is PsiReferenceExpression -> {
-                val referredValue = expression.resolve() ?: return null
-                return resolveToUpdatesCall(referredValue)
-            }
-
-            else -> return null
+        return element.resolveToMethodCallExpression { _, methodCall ->
+            methodCall.containingClass?.qualifiedName == UPDATES_FQN
         }
     }
 
@@ -529,6 +392,119 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return null
     }
 
+    private fun resolveToAggregationStageCalls(maybeIterableElement: PsiElement): List<PsiMethodCallExpression> {
+        val iterableCallExpression = maybeIterableElement.resolveToIterableCallExpression()
+            ?: return emptyList()
+
+        return iterableCallExpression.argumentList.expressions.mapNotNull {
+            it.resolveToMethodCallExpression { _, methodCall ->
+                isAggregationStageMethodCall(methodCall)
+            }
+        }
+    }
+
+    private fun parseAggregationStage(stageCall: PsiMethodCallExpression): Node<PsiElement>? {
+        // Ensure it is a valid stage call
+        val stageCallMethod = stageCall.fuzzyResolveMethod() ?: return null
+
+        if (!isAggregationStageMethodCall(stageCallMethod)) {
+            return null
+        }
+
+        when (stageCallMethod.name) {
+            "match" -> {
+                // There will only be one argument to Aggregates.match and that has to be the Bson
+                // filters. We retrieve that and resolve the values.
+                val filterExpression = stageCall.argumentList.expressions.getOrNull(0)
+                    ?: return null
+
+                val resolvedFilterExpression = resolveToFiltersCall(filterExpression)
+                    ?: return null
+
+                val parsedFilter = parseFilterExpression(resolvedFilterExpression)
+                    ?: return null
+
+                return Node(
+                    source = stageCall,
+                    components = listOf(
+                        Named(Name.MATCH),
+                        HasFilter(listOf(parsedFilter))
+                    )
+                )
+            }
+
+            "project" -> {
+                val nodeWithProjections: (List<Node<PsiElement>>) -> Node<PsiElement> =
+                    { projections ->
+                        Node(
+                            source = stageCall,
+                            components = listOf(
+                                Named(Name.PROJECT),
+                                HasProjections(projections)
+                            )
+                        )
+                    }
+
+                // There will only be one argument to Aggregates.project and that has to be the Bson
+                // projections. We retrieve that and resolve the values.
+                val projectionExpression = stageCall.argumentList.expressions.getOrNull(0)
+                    ?: return nodeWithProjections(emptyList())
+
+                val resolvedProjectionExpression = resolveToProjectionCall(projectionExpression)
+                    ?: return nodeWithProjections(emptyList())
+
+                val parsedProjections = parseProjectionExpression(resolvedProjectionExpression)
+
+                println(":: $parsedProjections")
+
+                return nodeWithProjections(parsedProjections)
+            }
+
+            else -> return null
+        }
+    }
+
+    private fun resolveToProjectionCall(element: PsiElement): PsiMethodCallExpression? {
+        return element.resolveToMethodCallExpression { _, methodCall ->
+            methodCall.containingClass?.qualifiedName == PROJECTIONS_FQN
+        }
+    }
+
+    private fun parseProjectionExpression(expression: PsiMethodCallExpression): List<Node<PsiElement>> {
+        val methodCall = expression.resolveMethod() ?: return emptyList()
+        return when (methodCall.name) {
+            "fields" -> expression.getVarArgsOrIterableArgs()
+                .mapNotNull(::resolveToProjectionCall)
+                .flatMap(::parseProjectionExpression)
+
+            "include",
+            "exclude" -> expression.getVarArgsOrIterableArgs()
+                .mapNotNull {
+                    val fieldReference = resolveFieldNameFromExpression(it)
+                    val methodName = Name.from(methodCall.name)
+                    when (fieldReference) {
+                        is HasFieldReference.Unknown -> null
+                        is HasFieldReference.FromSchema -> Node(
+                            source = it,
+                            components = listOf(
+                                Named(methodName),
+                                HasFieldReference(fieldReference),
+                                HasValueReference(
+                                    reference = HasValueReference.Inferred(
+                                        source = it,
+                                        value = if (methodName == Name.INCLUDE) 1 else -1,
+                                        type = BsonInt32,
+                                    )
+                                )
+                            )
+                        )
+                    }
+                }
+
+            else -> emptyList()
+        }
+    }
+
     private fun hasMongoDbSessionReference(methodCall: PsiMethodCallExpression): Boolean {
         val hasEnoughArgs = methodCall.argumentList.expressionCount > 0
         if (!hasEnoughArgs) {
@@ -536,7 +512,12 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         }
 
         val typeOfFirstArg = methodCall.argumentList.expressionTypes[0]
-        return typeOfFirstArg.equalsToText(SESSION_FQN)
+        return typeOfFirstArg != null && typeOfFirstArg.equalsToText(SESSION_FQN)
+    }
+
+    private fun isAggregationStageMethodCall(callMethod: PsiMethod?): Boolean {
+        return PARSEABLE_AGGREGATION_STAGE_METHODS.contains(callMethod?.name) &&
+            callMethod?.containingClass?.qualifiedName == AGGREGATES_FQN
     }
 
     private fun resolveFieldNameFromExpression(expression: PsiExpression): HasFieldReference.FieldReference<out Any> {
@@ -739,5 +720,84 @@ fun PsiExpressionList.inferFromSingleVarArgElement(start: Int = 0): HasValueRefe
         )
     } else {
         HasValueReference.Runtime(parent, BsonArray(BsonAny))
+    }
+}
+
+/**
+ * Helper method to retrieve the actual arguments passed to a method call that can receive both
+ * var-args and also the iterable args created using List.of, Arrays.asList. Example:
+ * ```
+ * Projections.project(projection1, projection2)
+ * ```
+ * and
+ * ```
+ * Projections.project(List.of(projection1, projection2))
+ * ```
+ * Arguments passed to both the overloads can be retrieved using this method
+ */
+fun PsiMethodCallExpression.getVarArgsOrIterableArgs(): List<PsiExpression> {
+    val methodCall = resolveMethod() ?: return emptyList()
+    if (methodCall.isVarArgs) {
+        return argumentList.expressions.asList()
+    } else {
+        val maybeIterableExpression = argumentList.expressions.getOrNull(0)
+            ?: return emptyList()
+
+        val iterableCallExpression = maybeIterableExpression.resolveToIterableCallExpression()
+            ?: return emptyList()
+
+        return iterableCallExpression.argumentList.expressions.asList()
+    }
+}
+
+/**
+ * Helper method to resolve an expression that points to an iterable, to its actual
+ * MethodCallExpression that was used to create iterable. Particularly it targets iterables created
+ * using `List.of` and `Arrays.asList` methods.
+ */
+fun PsiElement.resolveToIterableCallExpression(): PsiMethodCallExpression? {
+    return resolveToMethodCallExpression { _, method ->
+        val isListOfCall = method.name == "of" &&
+            method.containingClass?.qualifiedName == JAVA_LIST_FQN
+
+        val isArrayAsListCall = method.name == "asList" &&
+            method.containingClass?.qualifiedName == JAVA_ARRAYS_FQN
+
+        isListOfCall || isArrayAsListCall
+    }
+}
+
+/**
+ * Helper method to resolve an expression to its original MethodCallExpression using the predicate
+ * provided at the call site.
+ */
+fun PsiElement.resolveToMethodCallExpression(
+    isCorrectMethodCall: (PsiMethodCallExpression, PsiMethod) -> Boolean
+): PsiMethodCallExpression? {
+    when (val expression = meaningfulExpression()) {
+        is PsiMethodCallExpression -> {
+            val methodCall = expression.fuzzyResolveMethod() ?: return null
+
+            return if (isCorrectMethodCall(expression, methodCall)) {
+                return expression
+            } else {
+                PsiTreeUtil.findChildrenOfType(
+                    methodCall.body,
+                    PsiReturnStatement::class.java
+                )
+                    .mapNotNull { it.returnValue }
+                    .firstNotNullOfOrNull { it.resolveToMethodCallExpression(isCorrectMethodCall) }
+            }
+        }
+
+        is PsiVariable -> {
+            return expression.initializer?.resolveToMethodCallExpression(isCorrectMethodCall)
+        }
+
+        is PsiReferenceExpression -> {
+            return expression.resolve()?.resolveToMethodCallExpression(isCorrectMethodCall)
+        }
+
+        else -> return null
     }
 }
