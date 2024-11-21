@@ -32,10 +32,10 @@ collection.aggregate(AtlasSearch(text().eq("baby one more time")))
 
 | Cluster 	                      | Is Valid 	 | Is Supported 	 |
 |--------------------------------|------------|----------------|
-| MongoDB Community 7.0          | ✅          | 	       🔴     |
-| MongoDB Enterprise 8.0	        | ✅	         | 	🔴            |
-| MongoDB Atlas 8.0 w/o Search	  | 	✅         | 	   🔴         |
-| MongoDB Atlas 8.0 with Search	 | 	✅         | 	   ✅          |
+| MongoDB Community 7.0          | 🟢         | 	       🔴     |
+| MongoDB Enterprise 8.0	        | 🟢	        | 	🔴            |
+| MongoDB Atlas 8.0 w/o Search	  | 	🟢        | 	   🔴         |
+| MongoDB Atlas 8.0 with Search	 | 	🟢        | 	   🟢         |
 
 For the purpose of this specification and project, we will only allow the `mongosh` dialect as a
 consumable dialect for a MongoDB Cluster.
@@ -71,12 +71,12 @@ we will consider that the data sets are exactly the same on both clusters.
 
 | Query                                                       | Cluster Environment           	 | Is Valid 	  | Is Supported 	 |  Results 	   | Dialect 	            | Execution Plan 	          |
 |:------------------------------------------------------------|---------------------------------|:-----------:|:--------------:|:------------:|----------------------|---------------------------|
-| `collection.find(eq("bookName", myBookName))`               | Development         	           | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | COLLSCAN                	 |
-| `collection.find(eq("bookName", myBookName))`               | Production         	            | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | IXSCAN                	   |
-| `collection.aggregate(matches(eq("bookName", myBookName)))` | Development         	           | ✅         	 |   ✅        	   | N         	  | Java Driver        	 | COLLSCAN                	 |
-| `collection.aggregate(matches(eq("bookName", myBookName)))` | Production 	                    | ✅         	 | ✅           	  | N         	  | Java Driver        	 | IXSCAN                	   |
+| `collection.find(eq("bookName", myBookName))`               | Development         	           | 🟢         	 |   🟢        	   | N          	 | Java Driver        	 | COLLSCAN                	 |
+| `collection.find(eq("bookName", myBookName))`               | Production         	            | 🟢         	 |   🟢        	   | N          	 | Java Driver        	 | IXSCAN                	   |
+| `collection.aggregate(matches(eq("bookName", myBookName)))` | Development         	           | 🟢         	 |   🟢        	   | N         	  | Java Driver        	 | COLLSCAN                	 |
+| `collection.aggregate(matches(eq("bookName", myBookName)))` | Production 	                    | 🟢         	 | 🟢           	  | N         	  | Java Driver        	 | IXSCAN                	   |
 
-**✅ They are equivalent because they are valid, supported and return the same result set in all clusters.**
+**🟢 They are equivalent because they are valid, supported and return the same result set in all clusters.**
 
 And now, finally, let's assume the same environment, but with the query written in two dialects,
 `mongosh` and `Java Driver`:
@@ -88,14 +88,14 @@ collection.find(eq("bookName", myBookName))
 collection.find({"bookName": myBookName})
 ```
 
-| Query                                         | Cluster Environment           	 | Is Valid 	  | Is Supported 	 |  Results 	   | Dialect 	            | Execution Plan 	          |
-|:----------------------------------------------|---------------------------------|:-----------:|:--------------:|:------------:|----------------------|---------------------------|
-| `collection.find(eq("bookName", myBookName))` | Development         	           | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | COLLSCAN                	 |
-| `collection.find(eq("bookName", myBookName))` | Production         	            | ✅         	 |   ✅        	   | N          	 | Java Driver        	 | IXSCAN                	   |
-| `collection.find({"bookName": myBookName})`   | Development         	           | ✅         	 |   ✅        	   | N         	  | mongosh        	     | COLLSCAN                	 |
-| `collection.find({"bookName": myBookName})`   | Production 	                    | ✅         	 | ✅           	  | N         	  | mongosh        	     | IXSCAN                	   |
+| Query                                         | Cluster Environment           	 |  Is Valid 	  | Is Supported 	 |  Results 	   | Dialect 	            | Execution Plan 	          |
+|:----------------------------------------------|---------------------------------|:------------:|:--------------:|:------------:|----------------------|---------------------------|
+| `collection.find(eq("bookName", myBookName))` | Development         	           | 🟢         	 |  🟢        	   | N          	 | Java Driver        	 | COLLSCAN                	 |
+| `collection.find(eq("bookName", myBookName))` | Production         	            | 🟢         	 |  🟢        	   | N          	 | Java Driver        	 | IXSCAN                	   |
+| `collection.find({"bookName": myBookName})`   | Development         	           | 🟢         	 |  🟢        	   | N         	  | mongosh        	     | COLLSCAN                	 |
+| `collection.find({"bookName": myBookName})`   | Production 	                    | 🟢         	 | 🟢           	 | N         	  | mongosh        	     | IXSCAN                	   |
 
-**✅ They are equivalent because they are valid, supported and return the same result set in all clusters even if the dialect is different.**
+**🟢 They are equivalent because they are valid, supported and return the same result set in all clusters even if the dialect is different.**
 
 
 ### Query Nodes
