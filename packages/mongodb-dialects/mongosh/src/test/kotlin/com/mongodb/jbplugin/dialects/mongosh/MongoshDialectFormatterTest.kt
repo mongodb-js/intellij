@@ -21,7 +21,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": "myVal", })
+            db.getSiblingDB(database).getCollection(collection).find({"myField": "myVal", })
             """.trimIndent()
         ) {
             Node(
@@ -53,7 +53,7 @@ class MongoshDialectFormatterTest {
 
         assertGeneratedQuery(
             """
-            db.getSiblingDB("myDb").getCollection("myColl").find({ "myField": "myVal", })
+            db.getSiblingDB("myDb").getCollection("myColl").find({"myField": "myVal", })
             """.trimIndent()
         ) {
             Node(
@@ -82,13 +82,52 @@ class MongoshDialectFormatterTest {
     }
 
     @Test
+    fun `can format a simple delete query`() {
+        val namespace = Namespace("myDb", "myColl")
+
+        assertGeneratedQuery(
+            """
+            db.getSiblingDB("myDb").getCollection("myColl").deleteMany({"myField": "myVal", })
+            """.trimIndent()
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    IsCommand(IsCommand.CommandType.DELETE_MANY),
+                    HasCollectionReference(HasCollectionReference.Known(Unit, Unit, namespace)),
+                    HasFilter(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.EQ),
+                                    HasFieldReference(
+                                        HasFieldReference.FromSchema(Unit, "myField")
+                                    ),
+                                    HasValueReference(
+                                        HasValueReference.Constant(Unit, "myVal", BsonString)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
     fun `can format a query with an explain plan`() {
         assertGeneratedQuery(
             """
             var collection = ""
             var database = ""
-
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": "myVal", }).explain()
+            
+            db.getSiblingDB(database)
+              .getCollection(collection)
+              .explain().find(
+                            {"myField": "myVal", }
+              )
             """.trimIndent(),
             explain = true
         ) {
@@ -115,6 +154,116 @@ class MongoshDialectFormatterTest {
         }
     }
 
+    @Test
+    fun `can format an aggregate query with a match expression at the beginning`() {
+        assertGeneratedQuery(
+            """
+            var collection = ""
+            var database = ""
+
+            db.getSiblingDB(database).getCollection(collection).aggregate([{"${"$"}match": {"myField": "myVal"}}])
+            """.trimIndent(),
+            explain = false
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    IsCommand(IsCommand.CommandType.AGGREGATE),
+                    HasAggregation(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.MATCH),
+                                    HasFilter(
+                                        listOf(
+                                            Node(
+                                                Unit,
+                                                listOf(
+                                                    HasFieldReference(
+                                                        HasFieldReference.FromSchema(
+                                                            Unit,
+                                                            "myField"
+                                                        )
+                                                    ),
+                                                    HasValueReference(
+                                                        HasValueReference.Constant(
+                                                            Unit,
+                                                            "myVal",
+                                                            BsonString
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `can format an explain command for a valid aggregate query`() {
+        assertGeneratedQuery(
+            """
+            var collection = ""
+            var database = ""
+            
+            db.getSiblingDB(database)
+              .getCollection(collection)
+              .explain().aggregate(
+                                 [
+                                   {"${'$'}match": {"myField": "myVal"}}
+                                 ]
+              )
+            """.trimIndent(),
+            explain = true
+        ) {
+            Node(
+                Unit,
+                listOf(
+                    IsCommand(IsCommand.CommandType.AGGREGATE),
+                    HasAggregation(
+                        listOf(
+                            Node(
+                                Unit,
+                                listOf(
+                                    Named(Name.MATCH),
+                                    HasFilter(
+                                        listOf(
+                                            Node(
+                                                Unit,
+                                                listOf(
+                                                    HasFieldReference(
+                                                        HasFieldReference.FromSchema(
+                                                            Unit,
+                                                            "myField"
+                                                        )
+                                                    ),
+                                                    HasValueReference(
+                                                        HasValueReference.Constant(
+                                                            Unit,
+                                                            "myVal",
+                                                            BsonString
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(strings = ["and", "or", "nor"])
     fun `can format a query with subquery operators`(operator: String) {
@@ -123,7 +272,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "${"$"}$operator": [ { "myField": "myVal"}, ]})
+            db.getSiblingDB(database).getCollection(collection).find({"${"$"}$operator": [{"myField": "myVal"}, ]})
             """.trimIndent()
         ) {
             Node(
@@ -156,7 +305,7 @@ class MongoshDialectFormatterTest {
 
         assertGeneratedQuery(
             """
-            db.getSiblingDB("myDb").getCollection("myColl").find({ "myField": { "${"$"}not": "myVal"}, })
+            db.getSiblingDB("myDb").getCollection("myColl").find({"myField": {"${"$"}not": "myVal"}, })
             """.trimIndent()
         ) {
             Node(
@@ -209,7 +358,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": { "${"$"}$operator": "myVal"}, })
+            db.getSiblingDB(database).getCollection(collection).find({"myField": {"${"$"}$operator": "myVal"}, })
             """.trimIndent()
         ) {
             Node(
@@ -244,7 +393,7 @@ class MongoshDialectFormatterTest {
             var collection = ""
             var database = ""
 
-            db.getSiblingDB(database).getCollection(collection).find({ "myField": { "${"$"}$operator": [1, 2]}, })
+            db.getSiblingDB(database).getCollection(collection).find({"myField": {"${"$"}$operator": [1, 2]}, })
             """.trimIndent()
         ) {
             Node(
@@ -332,7 +481,10 @@ private fun assertGeneratedQuery(
     assertEquals(js, generated.query)
 }
 
-private fun assertGeneratedIndex(@Language("js") js: String, script: () -> Node<Unit>) {
+private fun assertGeneratedIndex(
+    @Language("js") js: String,
+    script: () -> Node<Unit>
+) {
     val generated = MongoshDialectFormatter.indexCommandForQuery(script())
     assertEquals(js, generated)
 }
