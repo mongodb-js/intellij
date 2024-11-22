@@ -54,10 +54,13 @@ public class JavaDriverRepository {
             .aggregate(
                 List.of(
                     Aggregates.match(
-                        Filters.eq("_id", year)
+                        Filters.eq("year", year)
                     ),
                     Aggregates.group(
-                        "newField", Accumulators.avg("test", "$year")
+                        "newField",
+                        Accumulators.avg("test", "$xxx"),
+                        Accumulators.sum("test2", "$year"),
+                        Accumulators.bottom("field", Sorts.ascending("year"), "$year")
                     ),
                     Aggregates.project(
                         Projections.fields(
