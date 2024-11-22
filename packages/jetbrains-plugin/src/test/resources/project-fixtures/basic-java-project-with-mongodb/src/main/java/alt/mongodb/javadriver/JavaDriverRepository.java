@@ -5,6 +5,7 @@ import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 
 import java.util.ArrayList;
@@ -61,6 +62,11 @@ public class JavaDriverRepository {
                     Aggregates.project(
                         Projections.fields(
                             Projections.include("year", "plot")
+                        )
+                    ),
+                    Aggregates.sort(
+                        Sorts.orderBy(
+                            Sorts.ascending("asd", "qwe")
                         )
                     )
                 )

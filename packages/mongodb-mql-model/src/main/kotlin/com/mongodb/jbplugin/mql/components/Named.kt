@@ -62,6 +62,9 @@ enum class Name(val canonical: String) {
     MIN("min"),
     PUSH("push"),
     ADD_TO_SET("addToSet"),
+    SORT("sort"),
+    ASCENDING("ascending"),
+    DESCENDING("descending"),
     UNKNOWN("<unknown operator>"),
     ;
 

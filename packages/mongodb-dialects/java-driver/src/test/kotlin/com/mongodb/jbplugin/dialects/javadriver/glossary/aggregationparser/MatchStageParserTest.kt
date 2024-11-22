@@ -43,6 +43,45 @@ public final class Aggregation {
 
     public AggregateIterable<Document> findBookById(ObjectId id) {
         return this.collection.aggregate(List.of(
+            Aggregates.match()
+        ));
+    }
+}
+        """,
+    )
+    fun `(Aggregates#match call) should be able to parse an empty call`(psiFile: PsiFile) {
+        val aggregate = psiFile.getQueryAtMethod("Aggregation", "findBookById")
+        val parsedAggregate = JavaDriverDialect.parser.parse(aggregate)
+        val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
+        assertEquals(hasAggregation?.children?.size, 1)
+        val matchStageNode = hasAggregation?.children?.first()!!
+        assertEquals(Name.MATCH, matchStageNode.component<Named>()!!.name)
+    }
+
+    @ParsingTest(
+        fileName = "Aggregation.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.*;
+
+public final class Aggregation {
+    private final MongoCollection<Document> collection;
+
+    public Aggregation(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+
+    public AggregateIterable<Document> findBookById(ObjectId id) {
+        return this.collection.aggregate(List.of(
             Aggregates.match(
                 Filters.eq("name", "MongoDB")
             )
