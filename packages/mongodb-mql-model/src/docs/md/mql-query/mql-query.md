@@ -51,7 +51,7 @@ apply:
 * They MAY be sourced from the same dialect.
 * They MAY lead to equivalent **execution plans** for the same target cluster.
 
-We will consider two execution plans equivalent if the cluster query planner lead to the same list
+We will consider two execution plans equivalent if the cluster query planner leads to the same list
 of operations.
 
 Let's consider a different use case. For the following two queries in the `Java Driver` dialect:
@@ -115,8 +115,8 @@ of the Node. For example, let's consider this query, written in the **Java Drive
 //            Node(source)
 ```
 
-A Node MAY contain parent nodes and children nodes, through specific **components**. A Node that
-doesn't contain any parent node, but contains children nodes is called the **root** node, and
+A Node MAY contain parent nodes and child nodes, through specific **components**. A Node that
+doesn't contain any parent node, but contains child nodes is called the **root** node, and
 represents the whole query.
 
 Components MUST be stored in an ordered list inside a Node. Nodes MAY have additional components that contain metadata for 

@@ -73,7 +73,7 @@ Represents the absence of a value.
 
 #### BsonAny
 
-Represents any possible type. Essentially, all type is a subtype of BsonAny.
+Represents any possible type. Essentially, every type is a subtype of BsonAny.
 
 #### BsonAnyOf
 
@@ -84,6 +84,8 @@ Represents an union of types. For example, BsonAnyOf([BsonString, BsonInt32]).
 Represents the shape of a BSON document.
 
 #### BsonArray
+
+Represents a list of elements of a single type. For example: [ 1, 2, 3 ] is a BsonArray.
 
 ### Type Assignability
 
