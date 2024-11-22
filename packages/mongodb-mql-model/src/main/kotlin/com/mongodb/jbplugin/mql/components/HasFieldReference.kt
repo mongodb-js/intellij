@@ -23,4 +23,13 @@ data class HasFieldReference<S>(
         val fieldName: String,
         val displayName: String = fieldName,
     ) : FieldReference<S>
+
+    /**
+     * Encodes a FieldReference that does not exist in the original schema and the value of which
+     * is computed using some expression.
+     */
+    data class Computed<S>(
+        val source: S,
+        val fieldName: String,
+    ) : FieldReference<S>
 }
