@@ -12,6 +12,7 @@ import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonBoolean
 import com.mongodb.jbplugin.mql.BsonInt32
 import com.mongodb.jbplugin.mql.BsonType
+import com.mongodb.jbplugin.mql.ComputedBsonType
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.*
 import com.mongodb.jbplugin.mql.components.HasFieldReference.Computed
@@ -650,18 +651,21 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 null -> HasValueReference.Unknown as HasValueReference.ValueReference<PsiElement>
                 else -> HasValueReference.Computed(
                     element,
-                    Node(
-                        element,
-                        listOf(
-                            if (createsNewField) {
-                                HasFieldReference(
-                                    Computed(element, expression.trim('$'), expression)
-                                )
-                            } else {
-                                HasFieldReference(
-                                    FromSchema(element, expression.trim('$'), expression)
-                                )
-                            }
+                    type = ComputedBsonType(
+                        BsonAny,
+                        Node(
+                            element,
+                            listOf(
+                                if (createsNewField) {
+                                    HasFieldReference(
+                                        Computed(element, expression.trim('$'), expression)
+                                    )
+                                } else {
+                                    HasFieldReference(
+                                        FromSchema(element, expression.trim('$'), expression)
+                                    )
+                                }
+                            )
                         )
                     )
                 )

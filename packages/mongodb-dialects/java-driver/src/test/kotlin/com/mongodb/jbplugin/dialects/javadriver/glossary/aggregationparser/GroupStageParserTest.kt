@@ -72,7 +72,7 @@ public final class Aggregation {
         assertEquals("_id", idFieldRef.fieldName)
         assertEquals(0, accumulatedFields.children.size)
 
-        val computedExpression = computedValueRef.expression
+        val computedExpression = computedValueRef.type.expression
         val fieldUsedForComputation = computedExpression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.Computed<PsiElement>
 
         assertEquals("myField", fieldUsedForComputation.fieldName)
@@ -156,7 +156,7 @@ public final class Aggregation {
             assertEquals("myKey", accumulatorField.fieldName)
 
             val accumulatorComputed = accumulator.component<HasValueReference<PsiElement>>()?.reference as HasValueReference.Computed<PsiElement>
-            val accumulatorComputedFieldValue = accumulatorComputed.expression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            val accumulatorComputedFieldValue = accumulatorComputed.type.expression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
             assertEquals("myVal", accumulatorComputedFieldValue.fieldName)
         }
     }
@@ -232,7 +232,7 @@ public final class Aggregation {
             assertEquals("myKey", accumulatorField.fieldName)
 
             val accumulatorComputed = accumulator.component<HasValueReference<PsiElement>>()?.reference as HasValueReference.Computed<PsiElement>
-            val accumulatorComputedFieldValue = accumulatorComputed.expression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            val accumulatorComputedFieldValue = accumulatorComputed.type.expression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
             assertEquals("myVal", accumulatorComputedFieldValue.fieldName)
 
             val accumulatorSorting = accumulator.component<HasSorts<PsiElement>>()!!.children[0]

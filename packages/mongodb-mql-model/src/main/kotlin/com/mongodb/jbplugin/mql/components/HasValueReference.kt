@@ -1,8 +1,8 @@
 package com.mongodb.jbplugin.mql.components
 
-import com.mongodb.jbplugin.mql.BsonAny
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.Component
+import com.mongodb.jbplugin.mql.ComputedBsonType
 import com.mongodb.jbplugin.mql.HasChildren
 import com.mongodb.jbplugin.mql.Node
 
@@ -73,14 +73,12 @@ data class HasValueReference<S>(
      */
     data class Computed<S>(
         val source: S,
-        val expression: Node<S>,
-    ) : ValueReference<S> {
-        val type: BsonType = BsonAny
-    }
+        val type: ComputedBsonType<S>,
+    ) : ValueReference<S>
 
     override val children: List<Node<S>>
         get() = when (reference) {
-            is Computed -> listOf(reference.expression)
+            is Computed -> listOf(reference.type.expression)
             else -> emptyList()
         }
 }

@@ -58,7 +58,7 @@ public class JavaDriverRepository {
                     ),
                     Aggregates.group(
                         "newField",
-                        Accumulators.avg("test", "$xxx"),
+                        Accumulators.avg("test", "$year"),
                         Accumulators.sum("test2", "$year"),
                         Accumulators.bottom("field", Sorts.ascending("year"), "$year")
                     ),
