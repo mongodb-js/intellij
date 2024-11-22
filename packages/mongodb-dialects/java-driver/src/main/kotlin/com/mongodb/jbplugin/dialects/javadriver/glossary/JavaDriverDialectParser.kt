@@ -892,7 +892,7 @@ fun <T : PsiElement>PsiElement.resolveElementUntil(
 ): T? {
     val expression = meaningfulExpression()
     if (isCorrectResolution(expression)) {
-        return this as T
+        return expression as T
     }
     when (expression) {
         is PsiMethodCallExpression -> {
