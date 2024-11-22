@@ -514,13 +514,12 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                                 HasValueReference(
                                     reference = HasValueReference.Inferred(
                                         source = it,
-                                        value = if (
-                                            methodName == Name.INCLUDE ||
-                                            methodName == Name.ASCENDING
-                                        ) {
-                                            1
-                                        } else {
-                                            -1
+                                        value = when (methodName) {
+                                            Name.INCLUDE,
+                                            Name.ASCENDING -> 1
+                                            Name.EXCLUDE -> 0
+                                            // Else is just the descending case
+                                            else -> -1
                                         },
                                         type = BsonInt32,
                                     )

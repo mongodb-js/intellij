@@ -1202,7 +1202,7 @@ public final class Aggregation {
             val titleProjectionValueRef =
                 (titleProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                -1,
+                0,
                 titleProjectionValueRef.value
             )
 
@@ -1219,7 +1219,7 @@ public final class Aggregation {
             val yearProjectionValueRef =
                 (yearProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                -1,
+                0,
                 yearProjectionValueRef.value
             )
 
@@ -1236,7 +1236,7 @@ public final class Aggregation {
             val authorProjectionValueRef =
                 (authorProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                -1,
+                0,
                 authorProjectionValueRef.value
             )
         }
@@ -1295,7 +1295,7 @@ public final class Aggregation {
             val publishedProjectionValueRef =
                 (publishedProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                -1,
+                0,
                 publishedProjectionValueRef.value
             )
 
@@ -1312,7 +1312,7 @@ public final class Aggregation {
             val authorProjectionValueRef =
                 (authorProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                -1,
+                0,
                 authorProjectionValueRef.value
             )
         }
