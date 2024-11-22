@@ -195,7 +195,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     override fun isReferenceToField(source: PsiElement): Boolean {
         val isInQuery = isInQuery(source)
-        val isInAggregate = isInAggregation(source)
+        val isInAggregate = isInAutoCompletableAggregation(source)
         val isString =
             source.parentOfType<PsiLiteralExpression>()?.tryToResolveAsConstantString() != null
 
@@ -220,13 +220,20 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             containingClass.qualifiedName == UPDATES_FQN
     }
 
-    private fun isInAggregation(element: PsiElement): Boolean {
+    private fun isInAutoCompletableAggregation(element: PsiElement): Boolean {
         val methodCall = element.parentOfType<PsiMethodCallExpression>(false) ?: return false
         val containingClass = methodCall.resolveMethod()?.containingClass ?: return false
-
-        return containingClass.qualifiedName == AGGREGATES_FQN ||
+        if (
             containingClass.qualifiedName == PROJECTIONS_FQN ||
             containingClass.qualifiedName == SORTS_FQN
+        ) {
+            return isInAutoCompletableAggregation(methodCall)
+        }
+
+        return containingClass.qualifiedName == AGGREGATES_FQN &&
+            // AddFields does not benefit from autocomplete of fields. We might to change this when
+            // we start parsing Value expressions as well.
+            methodCall.fuzzyResolveMethod()?.name != "addFields"
     }
 
     private fun resolveBsonBuilderCall(
