@@ -52,6 +52,7 @@ enum class Name(val canonical: String) {
     PROJECT("project"),
     INCLUDE("include"),
     EXCLUDE("exclude"),
+    GROUP("group"),
     SUM("sum"),
     AVG("avg"),
     FIRST("first"),

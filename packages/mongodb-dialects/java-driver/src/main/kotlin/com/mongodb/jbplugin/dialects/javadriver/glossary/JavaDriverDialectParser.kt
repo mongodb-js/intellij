@@ -497,6 +497,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     Node(
                         stageCall,
                         listOf(
+                            Named(Name.GROUP),
                             HasFieldReference(
                                 HasFieldReference.Inferred(groupArgument, "_id", "_id")
                             ),
