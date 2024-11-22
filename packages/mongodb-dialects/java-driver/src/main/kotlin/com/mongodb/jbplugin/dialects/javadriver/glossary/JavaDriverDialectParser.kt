@@ -646,10 +646,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     }
 
     private fun parseComputedExpression(element: PsiElement, createsNewField: Boolean = true): HasValueReference<PsiElement> {
+        val (constant, value) = element.tryToResolveAsConstant()
         return HasValueReference(
-            when (val expression = element.tryToResolveAsConstantString()) {
-                null -> HasValueReference.Unknown as HasValueReference.ValueReference<PsiElement>
-                else -> HasValueReference.Computed(
+            when {
+                constant && value is String -> HasValueReference.Computed(
                     element,
                     type = ComputedBsonType(
                         BsonAny,
@@ -658,17 +658,27 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                             listOf(
                                 if (createsNewField) {
                                     HasFieldReference(
-                                        Computed(element, expression.trim('$'), expression)
+                                        Computed(element, value.trim('$'), value)
                                     )
                                 } else {
                                     HasFieldReference(
-                                        FromSchema(element, expression.trim('$'), expression)
+                                        FromSchema(element, value.trim('$'), value)
                                     )
                                 }
                             )
                         )
                     )
                 )
+                constant && value != null -> HasValueReference.Constant(
+                    element,
+                    value,
+                    value.javaClass.toBsonType(value)
+                )
+                !constant && element is PsiExpression -> HasValueReference.Runtime(
+                    element,
+                    element.type?.toBsonType() ?: BsonAny
+                )
+                else -> HasValueReference.Unknown as HasValueReference.ValueReference<PsiElement>
             }
         )
     }
