@@ -10,7 +10,7 @@ import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.components.HasAggregation
 import com.mongodb.jbplugin.mql.components.HasFieldReference
 import com.mongodb.jbplugin.mql.components.HasFieldReference.FromSchema
-import com.mongodb.jbplugin.mql.components.HasProjections
+import com.mongodb.jbplugin.mql.components.HasSorts
 import com.mongodb.jbplugin.mql.components.HasValueReference
 import com.mongodb.jbplugin.mql.components.HasValueReference.Inferred
 import com.mongodb.jbplugin.mql.components.Name
@@ -18,7 +18,7 @@ import com.mongodb.jbplugin.mql.components.Named
 import org.junit.jupiter.api.Assertions.assertEquals
 
 @IntegrationTest
-class ProjectStageParserTest {
+class SortStageParserTest {
     @ParsingTest(
         fileName = "Aggregation.java",
         value = """
@@ -43,24 +43,24 @@ public final class Aggregation {
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         return this.collection.aggregate(List.of(
-            Aggregates.project()
+            Aggregates.sort()
         ));
     }
 }
       """
     )
-    fun `should be able to parse an empty project call`(psiFile: PsiFile) {
+    fun `should be able to parse an empty sort call`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod("Aggregation", "getAllBookTitles")
         val parsedAggregate = JavaDriverDialect.parser.parse(aggregate)
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        val named = projectStageNode.component<Named>()!!
-        assertEquals(Name.PROJECT, named.name)
+        val named = sortStageNode.component<Named>()!!
+        assertEquals(Name.SORT, named.name)
 
-        assertEquals(0, projectStageNode.component<HasProjections<PsiElement>>()!!.children.size)
+        assertEquals(0, sortStageNode.component<HasSorts<PsiElement>>()!!.children.size)
     }
 
     @ParsingTest(
@@ -71,7 +71,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -93,15 +93,15 @@ public final class Aggregation {
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year"; 
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.include("title", yearField, getAuthorField())
+            Aggregates.sort(
+                Sorts.ascending("title", yearField, getAuthorField())
             )
         ));
     }
 }
       """
     )
-    fun `Projection#include - should be able to parse with varargs`(psiFile: PsiFile) {
+    fun `Sorts#ascending - should be able to parse with varargs`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -110,9 +110,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForIncludeProjection(projectStageNode)
+        commonAssertionsForAscendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -123,7 +123,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -145,8 +145,8 @@ public final class Aggregation {
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year";
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.include(
+            Aggregates.sort(
+                Sorts.ascending(
                     List.of("title", yearField, getAuthorField())
                 )
             )
@@ -155,7 +155,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#include - should be able to parse with List#of`(psiFile: PsiFile) {
+    fun `Sorts#ascending - should be able to parse with List#of`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -164,9 +164,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForIncludeProjection(projectStageNode)
+        commonAssertionsForAscendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -177,7 +177,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -200,8 +200,8 @@ public final class Aggregation {
         String yearField = "year";
         List<String> projectedFields = List.of("title", yearField, getAuthorField());
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.include(
+            Aggregates.sort(
+                Sorts.ascending(
                     projectedFields
                 )
             )
@@ -210,7 +210,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#include - should be able to parse with List#of when the list is a variable`(
+    fun `Sorts#ascending - should be able to parse with List#of when the list is a variable`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -221,9 +221,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForIncludeProjection(projectStageNode)
+        commonAssertionsForAscendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -234,7 +234,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -260,8 +260,8 @@ public final class Aggregation {
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.include(
+            Aggregates.sort(
+                Sorts.ascending(
                     getProjectedFields()
                 )
             )
@@ -270,7 +270,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#include - should be able to parse with List#of when the list is from a method call`(
+    fun `Sorts#ascending - should be able to parse with List#of when the list is from a method call`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -281,9 +281,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForIncludeProjection(projectStageNode)
+        commonAssertionsForAscendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -294,7 +294,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -317,8 +317,8 @@ public final class Aggregation {
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year";
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.include(
+            Aggregates.sort(
+                Sorts.ascending(
                     Arrays.asList("title", yearField, getAuthorField())
                 )
             )
@@ -327,7 +327,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#include - should be able to parse with Arrays#asList`(psiFile: PsiFile) {
+    fun `Sorts#ascending - should be able to parse with Arrays#asList`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -336,9 +336,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForIncludeProjection(projectStageNode)
+        commonAssertionsForAscendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -349,7 +349,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -373,8 +373,8 @@ public final class Aggregation {
         String yearField = "year";
         List<String> projectedFields = Arrays.asList("title", yearField, getAuthorField());
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.include(
+            Aggregates.sort(
+                Sorts.ascending(
                     projectedFields
                 )
             )
@@ -383,7 +383,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#include - should be able to parse with Arrays#asList when the list is a variable`(
+    fun `Sorts#ascending - should be able to parse with Arrays#asList when the list is a variable`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -394,9 +394,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForIncludeProjection(projectStageNode)
+        commonAssertionsForAscendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -407,7 +407,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -434,8 +434,8 @@ public final class Aggregation {
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.include(
+            Aggregates.sort(
+                Sorts.ascending(
                     getProjectedFields()
                 )
             )
@@ -444,7 +444,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#include - should be able to parse with Arrays#asList when the list is from a method call`(
+    fun `Sorts#ascending - should be able to parse with Arrays#asList when the list is from a method call`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -455,10 +455,12 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForIncludeProjection(projectStageNode)
+        commonAssertionsForAscendingSort(sortStageNode)
     }
+
+    // ////////////////////////////////////////////////////////////////////////
 
     @ParsingTest(
         fileName = "Aggregation.java",
@@ -468,7 +470,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -490,15 +492,15 @@ public final class Aggregation {
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year"; 
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.exclude("title", yearField, getAuthorField())
+            Aggregates.sort(
+                Sorts.descending("title", yearField, getAuthorField())
             )
         ));
     }
 }
       """
     )
-    fun `Projection#exclude - should be able to parse with varargs`(psiFile: PsiFile) {
+    fun `Sorts#descending - should be able to parse with varargs`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -507,9 +509,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForExcludeProjection(projectStageNode)
+        commonAssertionsForDescendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -520,7 +522,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -542,8 +544,8 @@ public final class Aggregation {
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year";
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.exclude(
+            Aggregates.sort(
+                Sorts.descending(
                     List.of("title", yearField, getAuthorField())
                 )
             )
@@ -552,7 +554,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#exclude - should be able to parse with List#of`(psiFile: PsiFile) {
+    fun `Sorts#descending - should be able to parse with List#of`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -561,9 +563,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForExcludeProjection(projectStageNode)
+        commonAssertionsForDescendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -574,7 +576,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -597,8 +599,8 @@ public final class Aggregation {
         String yearField = "year";
         List<String> projectedFields = List.of("title", yearField, getAuthorField());
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.exclude(
+            Aggregates.sort(
+                Sorts.descending(
                     projectedFields
                 )
             )
@@ -607,7 +609,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#exclude - should be able to parse with List#of when the list is a variable`(
+    fun `Sorts#descending - should be able to parse with List#of when the list is a variable`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -618,9 +620,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForExcludeProjection(projectStageNode)
+        commonAssertionsForDescendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -631,7 +633,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -657,8 +659,8 @@ public final class Aggregation {
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.exclude(
+            Aggregates.sort(
+                Sorts.descending(
                     getProjectedFields()
                 )
             )
@@ -667,7 +669,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#exclude - should be able to parse with List#of when the list is from a method call`(
+    fun `Sorts#descending - should be able to parse with List#of when the list is from a method call`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -678,9 +680,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForExcludeProjection(projectStageNode)
+        commonAssertionsForDescendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -691,7 +693,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -714,8 +716,8 @@ public final class Aggregation {
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year";
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.exclude(
+            Aggregates.sort(
+                Sorts.descending(
                     Arrays.asList("title", yearField, getAuthorField())
                 )
             )
@@ -724,7 +726,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#exclude - should be able to parse with Arrays#asList`(psiFile: PsiFile) {
+    fun `Sorts#descending - should be able to parse with Arrays#asList`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -733,9 +735,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForExcludeProjection(projectStageNode)
+        commonAssertionsForDescendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -746,7 +748,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -770,8 +772,8 @@ public final class Aggregation {
         String yearField = "year";
         List<String> projectedFields = Arrays.asList("title", yearField, getAuthorField());
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.exclude(
+            Aggregates.sort(
+                Sorts.descending(
                     projectedFields
                 )
             )
@@ -780,7 +782,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#exclude - should be able to parse with Arrays#asList when the list is a variable`(
+    fun `Sorts#descending - should be able to parse with Arrays#asList when the list is a variable`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -791,9 +793,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForExcludeProjection(projectStageNode)
+        commonAssertionsForDescendingSort(sortStageNode)
     }
 
     @ParsingTest(
@@ -804,7 +806,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -831,8 +833,8 @@ public final class Aggregation {
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.exclude(
+            Aggregates.sort(
+                Sorts.descending(
                     getProjectedFields()
                 )
             )
@@ -841,7 +843,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#exclude - should be able to parse with Arrays#asList when the list is from a method call`(
+    fun `Sorts#descending - should be able to parse with Arrays#asList when the list is from a method call`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -852,10 +854,12 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForExcludeProjection(projectStageNode)
+        commonAssertionsForDescendingSort(sortStageNode)
     }
+
+    // ////////////////////////////////////////////////////
 
     @ParsingTest(
         fileName = "Aggregation.java",
@@ -865,7 +869,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -885,19 +889,19 @@ public final class Aggregation {
         return "author";
     }
     
-    private Bson getThirdProjection() {
-        return Projections.exclude(Arrays.asList("published", getAuthorField()));
+    private Bson getThirdSort() {
+        return Sorts.descending(Arrays.asList("published", getAuthorField()));
     }
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year";
-        Bson secondProjection = Projections.include(List.of(yearField));
+        Bson secondSort = Sorts.ascending(List.of(yearField));
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.fields(
-                    Projections.include("title"),
-                    secondProjection,
-                    getThirdProjection()
+            Aggregates.sort(
+                Sorts.orderBy(
+                    Sorts.ascending("title"),
+                    secondSort,
+                    getThirdSort()
                 )
             )
         ));
@@ -905,7 +909,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#fields - should be able to parse with varargs`(psiFile: PsiFile) {
+    fun `Sort#orderBy - should be able to parse with varargs`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -914,9 +918,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForFieldsProjection(projectStageNode)
+        commonAssertionsForOrderBySort(sortStageNode)
     }
 
     @ParsingTest(
@@ -927,7 +931,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -947,20 +951,20 @@ public final class Aggregation {
         return "author";
     }
     
-    private Bson getThirdProjection() {
-        return Projections.exclude(Arrays.asList("published", getAuthorField()));
+    private Bson getThirdSort() {
+        return Sorts.descending(Arrays.asList("published", getAuthorField()));
     }
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year";
-        Bson secondProjection = Projections.include(List.of(yearField));
+        Bson secondSort = Sorts.ascending(List.of(yearField));
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.fields(
+            Aggregates.sort(
+                Sorts.orderBy(
                     List.of(
-                        Projections.include("title"),
-                        secondProjection,
-                        getThirdProjection()
+                        Sorts.ascending("title"),
+                        secondSort,
+                        getThirdSort()
                     )
                 )
             )
@@ -969,7 +973,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#fields - should be able to parse with List#of`(psiFile: PsiFile) {
+    fun `Sort#orderBy - should be able to parse with List#of`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod(
             "Aggregation",
             "getAllBookTitles"
@@ -978,9 +982,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForFieldsProjection(projectStageNode)
+        commonAssertionsForOrderBySort(sortStageNode)
     }
 
     @ParsingTest(
@@ -991,7 +995,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.bson.conversions.Bson;
@@ -1012,22 +1016,22 @@ public final class Aggregation {
         return "author";
     }
     
-    private Bson getThirdProjection() {
-        return Projections.exclude(Arrays.asList("published", getAuthorField()));
+    private Bson getThirdSort() {
+        return Sorts.descending(Arrays.asList("published", getAuthorField()));
     }
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         String yearField = "year";
-        Bson secondProjection = Projections.include(List.of(yearField));
-        List<Bson> projections = List.of(
-            Projections.include("title"),
-            secondProjection,
-            getThirdProjection()
+        Bson secondSort = Sorts.ascending(List.of(yearField));
+        List<Bson> sorts = List.of(
+            Sorts.ascending("title"),
+            secondSort,
+            getThirdSort()
         );
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.fields(
-                    projections
+            Aggregates.sort(
+                Sorts.orderBy(
+                    sorts
                 )
             )
         ));
@@ -1035,7 +1039,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#fields - should be able to parse with List#of when the list is a variable`(
+    fun `Sort#orderBy - should be able to parse with List#of when the list is a variable`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -1046,9 +1050,9 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForFieldsProjection(projectStageNode)
+        commonAssertionsForOrderBySort(sortStageNode)
     }
 
     @ParsingTest(
@@ -1059,7 +1063,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.bson.conversions.Bson;
@@ -1080,25 +1084,25 @@ public final class Aggregation {
         return "author";
     }
     
-    private Bson getThirdProjection() {
-        return Projections.exclude(Arrays.asList("published", getAuthorField()));
+    private Bson getThirdSort() {
+        return Sorts.descending(Arrays.asList("published", getAuthorField()));
     }
     
-    private List<Bson> getProjections() {
+    private List<Bson> getSorts() {
         String yearField = "year";
-        Bson secondProjection = Projections.include(List.of(yearField));
+        Bson secondSort = Sorts.ascending(List.of(yearField));
         return List.of(
-            Projections.include("title"),
-            secondProjection,
-            getThirdProjection()
+            Sorts.ascending("title"),
+            secondSort,
+            getThirdSort()
         );
     }
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         return this.collection.aggregate(List.of(
-            Aggregates.project(
-                Projections.fields(
-                    getProjections()
+            Aggregates.sort(
+                Sorts.orderBy(
+                    getSorts()
                 )
             )
         ));
@@ -1106,7 +1110,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `Projection#fields - should be able to parse with List#of when the list comes from a method call`(
+    fun `Sort#orderBy - should be able to parse with List#of when the list comes from a method call`(
         psiFile: PsiFile
     ) {
         val aggregate = psiFile.getQueryAtMethod(
@@ -1117,203 +1121,203 @@ public final class Aggregation {
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
         assertEquals(1, hasAggregation?.children?.size)
 
-        val projectStageNode = hasAggregation?.children?.get(0)!!
+        val sortStageNode = hasAggregation?.children?.get(0)!!
 
-        commonAssertionsForFieldsProjection(projectStageNode)
+        commonAssertionsForOrderBySort(sortStageNode)
     }
 
     companion object {
-        fun commonAssertionsForIncludeProjection(projectStageNode: Node<PsiElement>) {
-            val named = projectStageNode.component<Named>()!!
-            assertEquals(Name.PROJECT, named.name)
+        fun commonAssertionsForAscendingSort(sortStageNode: Node<PsiElement>) {
+            val named = sortStageNode.component<Named>()!!
+            assertEquals(Name.SORT, named.name)
 
-            val projections = projectStageNode.component<HasProjections<PsiElement>>()!!
-            assertEquals(3, projections.children.size)
+            val sorts = sortStageNode.component<HasSorts<PsiElement>>()!!
+            assertEquals(3, sorts.children.size)
 
-            val titleProjection = projections.children[0]
-            assertEquals(Name.INCLUDE, titleProjection.component<Named>()!!.name)
+            val titleSort = sorts.children[0]
+            assertEquals(Name.ASCENDING, titleSort.component<Named>()!!.name)
 
-            val titleProjectionFieldRef =
-                (titleProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val titleSortFieldRef =
+                (titleSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "title",
-                titleProjectionFieldRef.fieldName
+                titleSortFieldRef.fieldName
             )
 
-            val titleProjectionValueRef =
-                (titleProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val titleSortValueRef =
+                (titleSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
                 1,
-                titleProjectionValueRef.value
+                titleSortValueRef.value
             )
 
-            val yearProjection = projections.children[1]
-            assertEquals(Name.INCLUDE, yearProjection.component<Named>()!!.name)
+            val yearSort = sorts.children[1]
+            assertEquals(Name.ASCENDING, yearSort.component<Named>()!!.name)
 
-            val yearProjectionFieldRef =
-                (yearProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val yearSortFieldRef =
+                (yearSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "year",
-                yearProjectionFieldRef.fieldName
+                yearSortFieldRef.fieldName
             )
 
-            val yearProjectionValueRef =
-                (yearProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val yearSortValueRef =
+                (yearSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
                 1,
-                yearProjectionValueRef.value
+                yearSortValueRef.value
             )
 
-            val authorProjection = projections.children[2]
-            assertEquals(Name.INCLUDE, authorProjection.component<Named>()!!.name)
+            val authorSort = sorts.children[2]
+            assertEquals(Name.ASCENDING, authorSort.component<Named>()!!.name)
 
-            val authorProjectionFieldRef =
-                (authorProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val authorSortFieldRef =
+                (authorSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "author",
-                authorProjectionFieldRef.fieldName
+                authorSortFieldRef.fieldName
             )
 
-            val authorProjectionValueRef =
-                (authorProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val authorSortValueRef =
+                (authorSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
                 1,
-                authorProjectionValueRef.value
+                authorSortValueRef.value
             )
         }
 
-        fun commonAssertionsForExcludeProjection(projectStageNode: Node<PsiElement>) {
-            val named = projectStageNode.component<Named>()!!
-            assertEquals(Name.PROJECT, named.name)
+        fun commonAssertionsForDescendingSort(sortStageNode: Node<PsiElement>) {
+            val named = sortStageNode.component<Named>()!!
+            assertEquals(Name.SORT, named.name)
 
-            val projections = projectStageNode.component<HasProjections<PsiElement>>()!!
-            assertEquals(3, projections.children.size)
+            val sorts = sortStageNode.component<HasSorts<PsiElement>>()!!
+            assertEquals(3, sorts.children.size)
 
-            val titleProjection = projections.children[0]
-            assertEquals(Name.EXCLUDE, titleProjection.component<Named>()!!.name)
+            val titleSort = sorts.children[0]
+            assertEquals(Name.DESCENDING, titleSort.component<Named>()!!.name)
 
-            val titleProjectionFieldRef =
-                (titleProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val titleSortFieldRef =
+                (titleSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "title",
-                titleProjectionFieldRef.fieldName
+                titleSortFieldRef.fieldName
             )
 
-            val titleProjectionValueRef =
-                (titleProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val titleSortValueRef =
+                (titleSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                0,
-                titleProjectionValueRef.value
+                -1,
+                titleSortValueRef.value
             )
 
-            val yearProjection = projections.children[1]
-            assertEquals(Name.EXCLUDE, yearProjection.component<Named>()!!.name)
+            val yearSort = sorts.children[1]
+            assertEquals(Name.DESCENDING, yearSort.component<Named>()!!.name)
 
-            val yearProjectionFieldRef =
-                (yearProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val yearSortFieldRef =
+                (yearSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "year",
-                yearProjectionFieldRef.fieldName
+                yearSortFieldRef.fieldName
             )
 
-            val yearProjectionValueRef =
-                (yearProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val yearSortValueRef =
+                (yearSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                0,
-                yearProjectionValueRef.value
+                -1,
+                yearSortValueRef.value
             )
 
-            val authorProjection = projections.children[2]
-            assertEquals(Name.EXCLUDE, authorProjection.component<Named>()!!.name)
+            val authorSort = sorts.children[2]
+            assertEquals(Name.DESCENDING, authorSort.component<Named>()!!.name)
 
-            val authorProjectionFieldRef =
-                (authorProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val authorSortFieldRef =
+                (authorSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "author",
-                authorProjectionFieldRef.fieldName
+                authorSortFieldRef.fieldName
             )
 
-            val authorProjectionValueRef =
-                (authorProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val authorSortValueRef =
+                (authorSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                0,
-                authorProjectionValueRef.value
+                -1,
+                authorSortValueRef.value
             )
         }
 
-        fun commonAssertionsForFieldsProjection(projectStageNode: Node<PsiElement>) {
-            val named = projectStageNode.component<Named>()!!
-            assertEquals(Name.PROJECT, named.name)
+        fun commonAssertionsForOrderBySort(sortStageNode: Node<PsiElement>) {
+            val named = sortStageNode.component<Named>()!!
+            assertEquals(Name.SORT, named.name)
 
-            val projections = projectStageNode.component<HasProjections<PsiElement>>()!!
-            assertEquals(4, projections.children.size)
+            val sorts = sortStageNode.component<HasSorts<PsiElement>>()!!
+            assertEquals(4, sorts.children.size)
 
-            val titleProjection = projections.children[0]
-            assertEquals(Name.INCLUDE, titleProjection.component<Named>()!!.name)
+            val titleSort = sorts.children[0]
+            assertEquals(Name.ASCENDING, titleSort.component<Named>()!!.name)
 
-            val titleProjectionFieldRef =
-                (titleProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val titleSortFieldRef =
+                (titleSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "title",
-                titleProjectionFieldRef.fieldName
+                titleSortFieldRef.fieldName
             )
 
-            val titleProjectionValueRef =
-                (titleProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val titleSortValueRef =
+                (titleSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
                 1,
-                titleProjectionValueRef.value
+                titleSortValueRef.value
             )
 
-            val yearProjection = projections.children[1]
-            assertEquals(Name.INCLUDE, yearProjection.component<Named>()!!.name)
+            val yearSort = sorts.children[1]
+            assertEquals(Name.ASCENDING, yearSort.component<Named>()!!.name)
 
-            val yearProjectionFieldRef =
-                (yearProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val yearSortFieldRef =
+                (yearSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "year",
-                yearProjectionFieldRef.fieldName
+                yearSortFieldRef.fieldName
             )
 
-            val yearProjectionValueRef =
-                (yearProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val yearSortValueRef =
+                (yearSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
                 1,
-                yearProjectionValueRef.value
+                yearSortValueRef.value
             )
 
-            val publishedProjection = projections.children[2]
-            assertEquals(Name.EXCLUDE, publishedProjection.component<Named>()!!.name)
+            val publishedSort = sorts.children[2]
+            assertEquals(Name.DESCENDING, publishedSort.component<Named>()!!.name)
 
-            val publishedProjectionFieldRef =
-                (publishedProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val publishedSortFieldRef =
+                (publishedSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "published",
-                publishedProjectionFieldRef.fieldName
+                publishedSortFieldRef.fieldName
             )
 
-            val publishedProjectionValueRef =
-                (publishedProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val publishedSortValueRef =
+                (publishedSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                0,
-                publishedProjectionValueRef.value
+                -1,
+                publishedSortValueRef.value
             )
 
-            val authorProjection = projections.children[3]
-            assertEquals(Name.EXCLUDE, authorProjection.component<Named>()!!.name)
+            val authorSort = sorts.children[3]
+            assertEquals(Name.DESCENDING, authorSort.component<Named>()!!.name)
 
-            val authorProjectionFieldRef =
-                (authorProjection.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
+            val authorSortFieldRef =
+                (authorSort.component<HasFieldReference<PsiElement>>()!!.reference) as FromSchema
             assertEquals(
                 "author",
-                authorProjectionFieldRef.fieldName
+                authorSortFieldRef.fieldName
             )
 
-            val authorProjectionValueRef =
-                (authorProjection.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
+            val authorSortValueRef =
+                (authorSort.component<HasValueReference<PsiElement>>()!!.reference) as Inferred
             assertEquals(
-                0,
-                authorProjectionValueRef.value
+                -1,
+                authorSortValueRef.value
             )
         }
     }

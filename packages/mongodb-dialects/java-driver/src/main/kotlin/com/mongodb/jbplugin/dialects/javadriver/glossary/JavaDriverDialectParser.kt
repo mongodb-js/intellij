@@ -23,6 +23,7 @@ private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 private const val AGGREGATES_FQN = "com.mongodb.client.model.Aggregates"
 private const val PROJECTIONS_FQN = "com.mongodb.client.model.Projections"
+private const val SORTS_FQN = "com.mongodb.client.model.Sorts"
 private const val JAVA_LIST_FQN = "java.util.List"
 private const val JAVA_ARRAYS_FQN = "java.util.Arrays"
 private val PARSEABLE_AGGREGATION_STAGE_METHODS = listOf(
@@ -117,7 +118,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
             // we have at least 1 argument in the current method call
             // try to get the relevant filter calls, or avoid parsing the query at all
-            val argumentAsFilters = resolveToFiltersCall(filterExpression)
+            val argumentAsFilters = resolveBsonBuilderCall(filterExpression, FILTERS_FQN)
             return argumentAsFilters?.let {
                 val parsedQuery = parseFilterExpression(argumentAsFilters)
                 parsedQuery?.let {
@@ -158,7 +159,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             val updateExpression = currentCall.argumentList.expressions.getOrNull(startIndex)
                 ?: return emptyList()
 
-            val argumentAsUpdates = resolveToUpdatesCall(updateExpression)
+            val argumentAsUpdates = resolveBsonBuilderCall(updateExpression, UPDATES_FQN)
             // parse only if it's a call to `updates` methods
             return argumentAsUpdates?.let {
                 val parsedQuery = parseUpdatesExpression(argumentAsUpdates)
@@ -223,12 +224,16 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val containingClass = methodCall.resolveMethod()?.containingClass ?: return false
 
         return containingClass.qualifiedName == AGGREGATES_FQN ||
-            containingClass.qualifiedName == PROJECTIONS_FQN
+            containingClass.qualifiedName == PROJECTIONS_FQN ||
+            containingClass.qualifiedName == SORTS_FQN
     }
 
-    private fun resolveToFiltersCall(element: PsiElement): PsiMethodCallExpression? {
+    private fun resolveBsonBuilderCall(
+        element: PsiElement,
+        classQualifiedName: String
+    ): PsiMethodCallExpression? {
         return element.resolveToMethodCallExpression { _, methodCall ->
-            methodCall.containingClass?.qualifiedName == FILTERS_FQN
+            methodCall.containingClass?.qualifiedName == classQualifiedName
         }
     }
 
@@ -278,7 +283,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     Named(Name.from(method.name)),
                     HasFilter(
                         filter.argumentList.expressions
-                            .mapNotNull { resolveToFiltersCall(it) }
+                            .mapNotNull { resolveBsonBuilderCall(it, FILTERS_FQN) }
                             .mapNotNull { parseFilterExpression(it) },
                     ),
                 ),
@@ -337,12 +342,6 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return null
     }
 
-    private fun resolveToUpdatesCall(element: PsiElement): PsiMethodCallExpression? {
-        return element.resolveToMethodCallExpression { _, methodCall ->
-            methodCall.containingClass?.qualifiedName == UPDATES_FQN
-        }
-    }
-
     private fun parseUpdatesExpression(filter: PsiMethodCallExpression): Node<PsiElement>? {
         val method = filter.resolveMethod() ?: return null
         if (method.isVarArgs) {
@@ -353,7 +352,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                     Named(Name.from(method.name)),
                     HasFilter(
                         filter.argumentList.expressions
-                            .mapNotNull { resolveToUpdatesCall(it) }
+                            .mapNotNull { resolveBsonBuilderCall(it, UPDATES_FQN) }
                             .mapNotNull { parseUpdatesExpression(it) },
                     ),
                 ),
@@ -414,16 +413,28 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         when (stageCallMethod.name) {
             "match" -> {
+                val nodeWithFilters: (List<Node<PsiElement>>) -> Node<PsiElement> =
+                    { filter ->
+                        Node(
+                            source = stageCall,
+                            components = listOf(
+                                Named(Name.MATCH),
+                                HasFilter(filter)
+                            )
+                        )
+                    }
                 // There will only be one argument to Aggregates.match and that has to be the Bson
                 // filters. We retrieve that and resolve the values.
                 val filterExpression = stageCall.argumentList.expressions.getOrNull(0)
-                    ?: return null
+                    ?: return nodeWithFilters(emptyList())
 
-                val resolvedFilterExpression = resolveToFiltersCall(filterExpression)
-                    ?: return null
+                val resolvedFilterExpression = resolveBsonBuilderCall(
+                    filterExpression,
+                    FILTERS_FQN,
+                ) ?: return nodeWithFilters(emptyList())
 
                 val parsedFilter = parseFilterExpression(resolvedFilterExpression)
-                    ?: return null
+                    ?: return nodeWithFilters(emptyList())
 
                 return Node(
                     source = stageCall,
@@ -434,50 +445,62 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 )
             }
 
-            "project" -> {
-                val nodeWithProjections: (List<Node<PsiElement>>) -> Node<PsiElement> =
-                    { projections ->
+            "project",
+            "sort" -> {
+                val stageName = Name.from(stageCallMethod.name)
+                val nodeWithParsedComponents: (List<Node<PsiElement>>) -> Node<PsiElement> =
+                    { components ->
                         Node(
                             source = stageCall,
                             components = listOf(
-                                Named(Name.PROJECT),
-                                HasProjections(projections)
+                                Named(stageName),
+                                if (stageName == Name.PROJECT) {
+                                    HasProjections(components)
+                                } else {
+                                    HasSorts(components)
+                                }
                             )
                         )
                     }
 
-                // There will only be one argument to Aggregates.project and that has to be the Bson
-                // projections. We retrieve that and resolve the values.
-                val projectionExpression = stageCall.argumentList.expressions.getOrNull(0)
-                    ?: return nodeWithProjections(emptyList())
+                // There will only be one argument to Aggregates.project and Aggregates.sort and
+                // that has to be the Bson projections or sorts. We retrieve that and resolve the
+                // values.
+                val bsonBuilderExpression = stageCall.argumentList.expressions.getOrNull(0)
+                    ?: return nodeWithParsedComponents(emptyList())
 
-                val resolvedProjectionExpression = resolveToProjectionCall(projectionExpression)
-                    ?: return nodeWithProjections(emptyList())
+                val resolvedBsonBuilderExpression = resolveBsonBuilderCall(
+                    bsonBuilderExpression,
+                    if (stageName == Name.PROJECT) PROJECTIONS_FQN else SORTS_FQN,
+                ) ?: return nodeWithParsedComponents(emptyList())
 
-                val parsedProjections = parseProjectionExpression(resolvedProjectionExpression)
+                val parsedComponents = parseBsonBuilderCallsSimilarToProjections(
+                    resolvedBsonBuilderExpression,
+                    if (stageName == Name.PROJECT) PROJECTIONS_FQN else SORTS_FQN,
+                )
 
-                return nodeWithProjections(parsedProjections)
+                return nodeWithParsedComponents(parsedComponents)
             }
 
             else -> return null
         }
     }
 
-    private fun resolveToProjectionCall(element: PsiElement): PsiMethodCallExpression? {
-        return element.resolveToMethodCallExpression { _, methodCall ->
-            methodCall.containingClass?.qualifiedName == PROJECTIONS_FQN
-        }
-    }
-
-    private fun parseProjectionExpression(expression: PsiMethodCallExpression): List<Node<PsiElement>> {
+    private fun parseBsonBuilderCallsSimilarToProjections(
+        expression: PsiMethodCallExpression,
+        classQualifiedName: String
+    ): List<Node<PsiElement>> {
         val methodCall = expression.resolveMethod() ?: return emptyList()
         return when (methodCall.name) {
-            "fields" -> expression.getVarArgsOrIterableArgs()
-                .mapNotNull(::resolveToProjectionCall)
-                .flatMap(::parseProjectionExpression)
+            "fields",
+            "orderBy" -> expression.getVarArgsOrIterableArgs()
+                .mapNotNull { resolveBsonBuilderCall(it, classQualifiedName) }
+                .flatMap { parseBsonBuilderCallsSimilarToProjections(it, classQualifiedName) }
 
             "include",
-            "exclude" -> expression.getVarArgsOrIterableArgs()
+            "exclude",
+            "ascending",
+            "descending" -> expression.getVarArgsOrIterableArgs()
                 .mapNotNull {
                     val fieldReference = resolveFieldNameFromExpression(it)
                     val methodName = Name.from(methodCall.name)
@@ -491,7 +514,13 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                                 HasValueReference(
                                     reference = HasValueReference.Inferred(
                                         source = it,
-                                        value = if (methodName == Name.INCLUDE) 1 else -1,
+                                        value = when (methodName) {
+                                            Name.INCLUDE,
+                                            Name.ASCENDING -> 1
+                                            Name.EXCLUDE -> 0
+                                            // Else is just the descending case
+                                            else -> -1
+                                        },
                                         type = BsonInt32,
                                     )
                                 )

@@ -52,6 +52,9 @@ enum class Name(val canonical: String) {
     PROJECT("project"),
     INCLUDE("include"),
     EXCLUDE("exclude"),
+    SORT("sort"),
+    ASCENDING("ascending"),
+    DESCENDING("descending"),
     UNKNOWN("<unknown operator>"),
     ;
 
