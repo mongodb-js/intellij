@@ -16,6 +16,7 @@ import com.mongodb.jbplugin.mql.components.HasValueReference
 import com.mongodb.jbplugin.mql.components.Name
 import com.mongodb.jbplugin.mql.components.Named
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 
 @IntegrationTest
 class AddFieldsParserTest {
@@ -602,7 +603,7 @@ public final class Aggregation {
 }
       """
     )
-    fun `should skip parsing fields where value is an expression`(psiFile: PsiFile) {
+    fun `should parse Fields call with an expression as an Unknown value`(psiFile: PsiFile) {
         val aggregate = psiFile.getQueryAtMethod("Aggregation", "getAllBookTitles")
         val parsedAggregate = JavaDriverDialect.parser.parse(aggregate)
         val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
@@ -614,7 +615,7 @@ public final class Aggregation {
         assertEquals(Name.ADD_FIELDS, named.name)
 
         val addedFields = addFieldsStageNode.component<HasAddedFields<PsiElement>>()!!
-        assertEquals(2, addedFields.children.size)
+        assertEquals(3, addedFields.children.size)
 
         val field1Node = addedFields.children[0]
         val field1FieldReference = (field1Node.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.Computed)
@@ -625,10 +626,16 @@ public final class Aggregation {
 
         val field2Node = addedFields.children[1]
         val field2FieldReference = (field2Node.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.Computed)
-        assertEquals("field3", field2FieldReference.fieldName)
-        val field2ValueReference = (field2Node.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant)
-        assertEquals("Value3", field2ValueReference.value)
-        assertEquals(BsonAnyOf(BsonString, BsonNull), field2ValueReference.type)
+        assertEquals("field2", field2FieldReference.fieldName)
+        val field2ValueReference = field2Node.component<HasValueReference<PsiElement>>()!!.reference
+        assertNotNull(field2ValueReference as? HasValueReference.Unknown)
+
+        val field3Node = addedFields.children[2]
+        val field3FieldReference = (field3Node.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.Computed)
+        assertEquals("field3", field3FieldReference.fieldName)
+        val field3ValueReference = (field3Node.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant)
+        assertEquals("Value3", field3ValueReference.value)
+        assertEquals(BsonAnyOf(BsonString, BsonNull), field3ValueReference.type)
     }
 
     companion object {

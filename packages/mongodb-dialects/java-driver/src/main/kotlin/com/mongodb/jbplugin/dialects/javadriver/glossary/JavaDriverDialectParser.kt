@@ -577,34 +577,29 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
     private fun parseAddFieldsArgument(fieldExpression: PsiNewExpression): Node<PsiElement>? {
         val expressionArguments = fieldExpression.argumentList?.expressions
         val fieldNameExpression = expressionArguments?.getOrNull(0)
-            ?: return null
-        val fieldName = fieldNameExpression.tryToResolveAsConstantString()
-            ?: return null
+        val fieldReference = fieldNameExpression?.tryToResolveAsConstantString()?.let {
+            HasFieldReference.Computed(
+                source = fieldNameExpression,
+                fieldName = it,
+            )
+        } ?: HasFieldReference.Unknown
 
-        val valueExpression = expressionArguments.getOrNull(1)
-            ?: return null
-        // This needs to be changed when we start parsing also the expression
-        // driven values
-        val constantValue = valueExpression.tryToResolveAsConstant().takeIf {
-            it.first
-        }?.second ?: return null
+        val valueExpression = expressionArguments?.getOrNull(1)
+        val valueReference = valueExpression?.tryToResolveAsConstantString()?.let {
+            // We currently only support parsing a constant value which is why we will encode
+            // anything else, not parseable, as an Unknown.
+            HasValueReference.Constant(
+                source = valueExpression,
+                value = it,
+                type = it.javaClass.toBsonType(),
+            )
+        } ?: HasValueReference.Unknown
 
         return Node(
             source = fieldExpression,
             components = listOf(
-                HasFieldReference(
-                    reference = HasFieldReference.Computed(
-                        source = fieldNameExpression,
-                        fieldName = fieldName,
-                    )
-                ),
-                HasValueReference(
-                    reference = HasValueReference.Constant(
-                        source = valueExpression,
-                        value = constantValue,
-                        type = constantValue.javaClass.toBsonType()
-                    )
-                )
+                HasFieldReference(fieldReference),
+                HasValueReference(valueReference)
             )
         )
     }
