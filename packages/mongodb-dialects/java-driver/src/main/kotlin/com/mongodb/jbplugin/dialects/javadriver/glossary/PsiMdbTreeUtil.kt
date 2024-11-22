@@ -353,7 +353,7 @@ fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
  * @return
  */
 fun PsiElement.tryToResolveAsConstantString(): String? =
-    tryToResolveAsConstant().takeIf { it.first }?.second?.toString()
+    tryToResolveAsConstant().takeIf { it.first }?.second as? String
 
 /**
  * Maps a PsiType to its BSON counterpart.
