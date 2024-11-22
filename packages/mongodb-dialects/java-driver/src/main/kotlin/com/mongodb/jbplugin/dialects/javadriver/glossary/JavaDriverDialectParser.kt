@@ -23,6 +23,7 @@ private const val FILTERS_FQN = "com.mongodb.client.model.Filters"
 private const val UPDATES_FQN = "com.mongodb.client.model.Updates"
 private const val AGGREGATES_FQN = "com.mongodb.client.model.Aggregates"
 private const val PROJECTIONS_FQN = "com.mongodb.client.model.Projections"
+private const val SORTS_FQN = "com.mongodb.client.model.Sorts"
 private const val JAVA_LIST_FQN = "java.util.List"
 private const val JAVA_ARRAYS_FQN = "java.util.Arrays"
 private val PARSEABLE_AGGREGATION_STAGE_METHODS = listOf(
@@ -469,6 +470,31 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 return nodeWithProjections(parsedProjections)
             }
 
+            "sort" -> {
+                val nodeWithSorts: (List<Node<PsiElement>>) -> Node<PsiElement> =
+                    { sorts ->
+                        Node(
+                            source = stageCall,
+                            components = listOf(
+                                Named(Name.SORT),
+                                HasSorts(sorts)
+                            )
+                        )
+                    }
+
+                // There will only be one argument to Aggregates.project and that has to be the Bson
+                // projections. We retrieve that and resolve the values.
+                val sortBsonExpression = stageCall.argumentList.expressions.getOrNull(0)
+                    ?: return nodeWithSorts(emptyList())
+
+                val resolvedSortsCallExpression = resolveToSortsCall(sortBsonExpression)
+                    ?: return nodeWithSorts(emptyList())
+
+                val parsedSorts = parseSortsExpression(resolvedSortsCallExpression)
+
+                return nodeWithSorts(parsedSorts)
+            }
+
             else -> return null
         }
     }
@@ -502,6 +528,47 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                                     reference = HasValueReference.Inferred(
                                         source = it,
                                         value = if (methodName == Name.INCLUDE) 1 else -1,
+                                        type = BsonInt32,
+                                    )
+                                )
+                            )
+                        )
+                    }
+                }
+
+            else -> emptyList()
+        }
+    }
+
+    private fun resolveToSortsCall(element: PsiElement): PsiMethodCallExpression? {
+        return element.resolveToMethodCallExpression { _, methodCall ->
+            methodCall.containingClass?.qualifiedName == SORTS_FQN
+        }
+    }
+
+    private fun parseSortsExpression(expression: PsiMethodCallExpression): List<Node<PsiElement>> {
+        val methodCall = expression.resolveMethod() ?: return emptyList()
+        return when (methodCall.name) {
+            "orderBy" -> expression.getVarArgsOrIterableArgs()
+                .mapNotNull(::resolveToSortsCall)
+                .flatMap(::parseSortsExpression)
+
+            "ascending",
+            "descending" -> expression.getVarArgsOrIterableArgs()
+                .mapNotNull {
+                    val fieldReference = resolveFieldNameFromExpression(it)
+                    val methodName = Name.from(methodCall.name)
+                    when (fieldReference) {
+                        is HasFieldReference.Unknown -> null
+                        is HasFieldReference.FromSchema -> Node(
+                            source = it,
+                            components = listOf(
+                                Named(methodName),
+                                HasFieldReference(fieldReference),
+                                HasValueReference(
+                                    reference = HasValueReference.Inferred(
+                                        source = it,
+                                        value = if (methodName == Name.ASCENDING) 1 else -1,
                                         type = BsonInt32,
                                     )
                                 )
