@@ -613,4 +613,56 @@ class FieldCheckingLinterTest {
 
         assertEquals(0, result.warnings.size)
     }
+
+    @Test
+    fun `should not warn about the referenced fields in an Aggregation#unwind`() {
+        val readModelProvider = mock<MongoDbReadModelProvider<Unit>>()
+        val collectionNamespace = Namespace("database", "collection")
+
+        `when`(readModelProvider.slice(any(), any<GetCollectionSchema.Slice>())).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    collectionNamespace,
+                    BsonObject(
+                        mapOf(
+                            "myInt" to BsonInt32,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val result =
+            FieldCheckingLinter.lintQuery(
+                Unit,
+                readModelProvider,
+                Node(
+                    null,
+                    listOf(
+                        HasCollectionReference(
+                            HasCollectionReference.Known(null, null, collectionNamespace)
+                        ),
+                        HasAggregation(
+                            children = listOf(
+                                Node(
+                                    null,
+                                    listOf(
+                                        Named(Name.UNWIND),
+                                        HasFieldReference(
+                                            HasFieldReference.FromSchema(
+                                                null,
+                                                "myBoolean",
+                                                "${'$'}myBoolean"
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                ),
+            )
+
+        assertEquals(1, result.warnings.size)
+    }
 }

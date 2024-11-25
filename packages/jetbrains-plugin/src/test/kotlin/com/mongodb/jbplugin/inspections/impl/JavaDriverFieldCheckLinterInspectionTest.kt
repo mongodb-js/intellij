@@ -9,6 +9,7 @@ import com.mongodb.jbplugin.fixtures.setupConnection
 import com.mongodb.jbplugin.fixtures.specifyDialect
 import com.mongodb.jbplugin.mql.BsonDouble
 import com.mongodb.jbplugin.mql.BsonObject
+import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.CollectionSchema
 import com.mongodb.jbplugin.mql.Namespace
 import org.mockito.Mockito.`when`
@@ -495,6 +496,100 @@ public class Repository {
         ).thenReturn(
             GetCollectionSchema(
                 CollectionSchema(Namespace("myDatabase", "myCollection"), BsonObject(emptyMap()))
+            ),
+        )
+
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
+        fixture.testHighlighting()
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+    
+    public AggregateIterable<Document> exampleGoodUnwind() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.unwind(
+                        "${'$'}existingField"
+                    )
+                ));
+    }
+    
+    public AggregateIterable<Document> exampleUnwind1() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.unwind(
+                        <warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">"${'$'}nonExistingField"</warning>
+                    )
+                ));
+    }
+    
+    public AggregateIterable<Document> exampleUnwind2() {
+        String fieldName = "${'$'}nonExistingField";
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.unwind(
+                        <warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">fieldName</warning>
+                    )
+                ));
+    }
+    
+    private String getField() {
+        return "${'$'}nonExistingField";
+    }
+    
+    public AggregateIterable<Document> exampleUnwind3() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.unwind(
+                        <warning descr="Field \"nonExistingField\" does not exist in collection \"myDatabase.myCollection\"">getField()</warning>
+                    )
+                ));
+    }
+}
+        """,
+    )
+    fun `shows an inspection for Aggregates#unwind call when the field does not exist in the current namespace`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    Namespace("myDatabase", "myCollection"),
+                    BsonObject(
+                        mapOf(
+                            "existingField" to BsonString
+                        )
+                    )
+                )
             ),
         )
 
