@@ -11,6 +11,7 @@ import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonBoolean
 import com.mongodb.jbplugin.mql.BsonInt32
+import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.ComputedBsonType
 import com.mongodb.jbplugin.mql.Node
@@ -612,7 +613,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val valueExpr = expression.argumentList.expressions.getOrNull(1) ?: return null
 
         val fieldName = keyExpr.tryToResolveAsConstantString()
-        val accumulatorExpr = parseComputedExpression(valueExpr, createsNewField = false)
+        val accumulatorExpr = parseComputedExpression(valueExpr)
 
         return Node(
             expression,
@@ -639,7 +640,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
         val fieldName = keyExpr.tryToResolveAsConstantString()
         val sort = parseBsonBuilderCallsSimilarToProjections(sortExpr, SORTS_FQN)
-        val accumulatorExpr = parseComputedExpression(valueExpr, createsNewField = false)
+        val accumulatorExpr = parseComputedExpression(valueExpr)
 
         return Node(
             expression,
@@ -715,34 +716,28 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         return typeOfFirstArg != null && typeOfFirstArg.equalsToText(SESSION_FQN)
     }
 
-    private fun parseComputedExpression(element: PsiElement, createsNewField: Boolean = true): HasValueReference<PsiElement> {
+    private fun parseComputedExpression(element: PsiElement): HasValueReference<PsiElement> {
         val (constant, value) = element.tryToResolveAsConstant()
         return HasValueReference(
             when {
                 constant && value is String -> HasValueReference.Computed(
                     element,
                     type = ComputedBsonType(
-                        BsonAny,
+                        BsonString,
                         Node(
                             element,
                             listOf(
-                                if (createsNewField) {
-                                    HasFieldReference(
-                                        Computed(element, value.trim('$'), value)
-                                    )
-                                } else {
-                                    HasFieldReference(
-                                        FromSchema(element, value.trim('$'), value)
-                                    )
-                                }
+                                HasFieldReference(
+                                    FromSchema(element, value.trim('$'), value)
+                                )
                             )
                         )
                     )
                 )
-                constant && value != null -> HasValueReference.Constant(
+                constant -> HasValueReference.Constant(
                     element,
                     value,
-                    value.javaClass.toBsonType(value)
+                    value?.javaClass.toBsonType(value)
                 )
                 !constant && element is PsiExpression -> HasValueReference.Runtime(
                     element,

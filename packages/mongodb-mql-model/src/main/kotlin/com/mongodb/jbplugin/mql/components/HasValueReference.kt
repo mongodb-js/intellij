@@ -1,7 +1,6 @@
 package com.mongodb.jbplugin.mql.components
 
 import com.mongodb.jbplugin.mql.BsonType
-import com.mongodb.jbplugin.mql.Component
 import com.mongodb.jbplugin.mql.ComputedBsonType
 import com.mongodb.jbplugin.mql.HasChildren
 import com.mongodb.jbplugin.mql.Node
