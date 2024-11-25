@@ -5,6 +5,7 @@ import com.mongodb.jbplugin.dialects.OutputQuery
 import com.mongodb.jbplugin.dialects.mongosh.backend.MongoshBackend
 import com.mongodb.jbplugin.mql.*
 import com.mongodb.jbplugin.mql.components.*
+import com.mongodb.jbplugin.mql.components.HasFieldReference.Computed
 import com.mongodb.jbplugin.mql.components.HasFieldReference.FromSchema
 import com.mongodb.jbplugin.mql.components.HasFieldReference.Unknown
 import com.mongodb.jbplugin.mql.parser.anyError
@@ -340,6 +341,7 @@ private fun <S> MongoshBackend.resolveValueReference(
 
 private fun <S> MongoshBackend.resolveFieldReference(fieldRef: HasFieldReference<S>) =
     when (val ref = fieldRef.reference) {
+        is Computed -> registerConstant(ref.fieldName)
         is FromSchema -> registerConstant(ref.fieldName)
         is Unknown -> registerVariable("field", BsonAny)
     }

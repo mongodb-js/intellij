@@ -545,4 +545,72 @@ class FieldCheckingLinterTest {
         val warning = result.warnings[0] as FieldCheckWarning.FieldDoesNotExist
         assertEquals("myBoolean", warning.field)
     }
+
+    @Test
+    fun `should not warn about the referenced fields in an Aggregation#addFields`() {
+        val readModelProvider = mock<MongoDbReadModelProvider<Unit>>()
+        val collectionNamespace = Namespace("database", "collection")
+
+        `when`(readModelProvider.slice(any(), any<GetCollectionSchema.Slice>())).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    collectionNamespace,
+                    BsonObject(
+                        mapOf(
+                            "myInt" to BsonInt32,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val result =
+            FieldCheckingLinter.lintQuery(
+                Unit,
+                readModelProvider,
+                Node(
+                    null,
+                    listOf(
+                        HasCollectionReference(
+                            HasCollectionReference.Known(null, null, collectionNamespace)
+                        ),
+                        HasAggregation(
+                            children = listOf(
+                                Node(
+                                    null,
+                                    listOf(
+                                        Named(Name.SORT),
+                                        HasSorts(
+                                            listOf(
+                                                Node(
+                                                    null,
+                                                    listOf(
+                                                        Named(Name.ASCENDING),
+                                                        HasFieldReference(
+                                                            HasFieldReference.Computed(
+                                                                null,
+                                                                "myBoolean"
+                                                            )
+                                                        ),
+                                                        HasValueReference(
+                                                            HasValueReference.Constant(
+                                                                null,
+                                                                1,
+                                                                BsonInt32
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                ),
+            )
+
+        assertEquals(0, result.warnings.size)
+    }
 }
