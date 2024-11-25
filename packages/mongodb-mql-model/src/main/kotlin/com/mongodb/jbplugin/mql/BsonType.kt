@@ -179,6 +179,9 @@ data class BsonArray(
     }
 }
 
+data class ComputedBsonType<S>(val baseType: BsonType, val expression: Node<S>) :
+    BsonType by baseType // for now it will behave as baseType
+
 /**
  * Returns the inferred BSON type of the current Java class, considering it's nullability.
  *
