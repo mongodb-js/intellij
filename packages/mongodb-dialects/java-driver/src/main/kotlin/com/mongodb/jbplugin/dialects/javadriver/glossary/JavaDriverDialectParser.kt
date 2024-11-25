@@ -11,7 +11,6 @@ import com.mongodb.jbplugin.mql.BsonAnyOf
 import com.mongodb.jbplugin.mql.BsonArray
 import com.mongodb.jbplugin.mql.BsonBoolean
 import com.mongodb.jbplugin.mql.BsonInt32
-import com.mongodb.jbplugin.mql.BsonString
 import com.mongodb.jbplugin.mql.BsonType
 import com.mongodb.jbplugin.mql.ComputedBsonType
 import com.mongodb.jbplugin.mql.Node
@@ -723,7 +722,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 constant && value is String -> HasValueReference.Computed(
                     element,
                     type = ComputedBsonType(
-                        BsonString,
+                        BsonAny,
                         Node(
                             element,
                             listOf(
