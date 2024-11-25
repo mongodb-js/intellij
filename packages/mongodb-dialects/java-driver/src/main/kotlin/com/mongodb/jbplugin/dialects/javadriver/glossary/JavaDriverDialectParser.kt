@@ -505,6 +505,41 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 )
             }
 
+            "unwind" -> {
+                val fieldExpression = stageCall.argumentList.expressions.getOrNull(0)
+                    ?: return Node(
+                        source = stageCall,
+                        components = listOf(
+                            Named(Name.UNWIND)
+                        )
+                    )
+
+                val fieldName = fieldExpression.tryToResolveAsConstantString()
+                    ?: return Node(
+                        source = stageCall,
+                        components = listOf(
+                            Named(Name.UNWIND),
+                            HasFieldReference(
+                                HasFieldReference.Unknown
+                            )
+                        )
+                    )
+
+                return Node(
+                    source = stageCall,
+                    components = listOf(
+                        Named(Name.UNWIND),
+                        HasFieldReference(
+                            HasFieldReference.FromSchema(
+                                source = fieldExpression,
+                                fieldName = fieldName.trim('$'),
+                                displayName = fieldName,
+                            )
+                        ),
+                    )
+                )
+            }
+
             else -> return null
         }
     }

@@ -1,10 +1,7 @@
 package alt.mongodb.javadriver;
 
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.model.Aggregates;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
-import com.mongodb.client.model.Sorts;
+import com.mongodb.client.model.*;
 import org.bson.Document;
 
 import java.util.ArrayList;
@@ -64,6 +61,10 @@ public class JavaDriverRepository {
                         Sorts.orderBy(
                             Sorts.ascending("asd", "qwe")
                         )
+                    ),
+                    Aggregates.unwind(
+                        "asd",
+                        new UnwindOptions()
                     )
                 )
             )
