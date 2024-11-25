@@ -8,7 +8,7 @@ import com.mongodb.jbplugin.mql.Node
 
 data class HasValueReference<S>(
     val reference: ValueReference<S>,
-) : Component, HasChildren<S> {
+) : HasChildren<S> {
 
     sealed interface ValueReference<S>
 
