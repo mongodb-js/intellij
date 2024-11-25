@@ -48,6 +48,56 @@ public final class Aggregation {
 
     public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
         return this.collection.aggregate(List.of(
+            Aggregates.group(null)
+        ));
+    }
+}
+      """
+    )
+    fun `should be able to parse a group stage with null _id`(psiFile: PsiFile) {
+        val aggregate = psiFile.getQueryAtMethod("Aggregation", "getAllBookTitles")
+        val parsedAggregate = JavaDriverDialect.parser.parse(aggregate)
+        val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
+        assertEquals(1, hasAggregation?.children?.size)
+
+        val groupStage = hasAggregation?.children?.get(0)!!
+
+        val named = groupStage.component<Named>()!!
+        assertEquals(Name.GROUP, named.name)
+
+        val idFieldRef = groupStage.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.Inferred<PsiElement>
+        val constantValueRef = groupStage.component<HasValueReference<PsiElement>>()!!.reference as HasValueReference.Constant<PsiElement>
+        val accumulatedFields = groupStage.component<HasAccumulatedFields<PsiElement>>()!!
+
+        assertEquals("_id", idFieldRef.fieldName)
+        assertEquals(0, accumulatedFields.children.size)
+        assertEquals(null, constantValueRef.value)
+    }
+
+    @ParsingTest(
+        fileName = "Aggregation.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.*;
+
+public final class Aggregation {
+    private final MongoCollection<Document> collection;
+
+    public Aggregation(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+
+    public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
+        return this.collection.aggregate(List.of(
             Aggregates.group("${'$'}myField")
         ));
     }

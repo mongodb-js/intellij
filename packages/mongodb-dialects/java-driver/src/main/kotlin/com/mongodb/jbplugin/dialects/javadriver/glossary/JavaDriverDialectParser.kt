@@ -734,10 +734,10 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                         )
                     )
                 )
-                constant && value != null -> HasValueReference.Constant(
+                constant -> HasValueReference.Constant(
                     element,
                     value,
-                    value.javaClass.toBsonType(value)
+                    value?.javaClass.toBsonType(value)
                 )
                 !constant && element is PsiExpression -> HasValueReference.Runtime(
                     element,

@@ -527,6 +527,7 @@ public class Repository {
         return client.getDatabase("myDatabase")
                 .getCollection("myCollection")
                 .aggregate(List.of(
+                    Aggregates.group(null),
                     Aggregates.group("${'$'}possibleIdField"),
                     Aggregates.group("${'$'}possibleIdField", Accumulators.sum("totalCount", 1)),
                     Aggregates.group(
