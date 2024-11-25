@@ -66,6 +66,7 @@ enum class Name(val canonical: String) {
     SORT("sort"),
     ASCENDING("ascending"),
     DESCENDING("descending"),
+    ADD_FIELDS("addFields"),
     UNKNOWN("<unknown operator>"),
     ;
 

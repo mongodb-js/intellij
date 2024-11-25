@@ -28,6 +28,7 @@ private const val AGGREGATES_FQN = "com.mongodb.client.model.Aggregates"
 private const val PROJECTIONS_FQN = "com.mongodb.client.model.Projections"
 private const val ACCUMULATORS_FQN = "com.mongodb.client.model.Accumulators"
 private const val SORTS_FQN = "com.mongodb.client.model.Sorts"
+private const val FIELD_FQN = "com.mongodb.client.model.Field"
 private const val JAVA_LIST_FQN = "java.util.List"
 private const val JAVA_ARRAYS_FQN = "java.util.Arrays"
 
@@ -199,7 +200,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
 
     override fun isReferenceToField(source: PsiElement): Boolean {
         val isInQuery = isInQuery(source)
-        val isInAggregate = isInAggregation(source)
+        val isInAggregate = isInAutoCompletableAggregation(source)
         val isString =
             source.parentOfType<PsiLiteralExpression>()?.tryToResolveAsConstantString() != null
 
@@ -224,14 +225,21 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             containingClass.qualifiedName == UPDATES_FQN
     }
 
-    private fun isInAggregation(element: PsiElement): Boolean {
+    private fun isInAutoCompletableAggregation(element: PsiElement): Boolean {
         val methodCall = element.parentOfType<PsiMethodCallExpression>(false) ?: return false
         val containingClass = methodCall.resolveMethod()?.containingClass ?: return false
-
-        return containingClass.qualifiedName == AGGREGATES_FQN ||
+        if (
             containingClass.qualifiedName == PROJECTIONS_FQN ||
             containingClass.qualifiedName == SORTS_FQN ||
             containingClass.qualifiedName == ACCUMULATORS_FQN
+        ) {
+            return isInAutoCompletableAggregation(methodCall)
+        }
+
+        return containingClass.qualifiedName == AGGREGATES_FQN &&
+            // AddFields does not benefit from autocomplete of fields. We might to change this when
+            // we start parsing Value expressions as well.
+            methodCall.fuzzyResolveMethod()?.name != "addFields"
     }
 
     private fun resolveBsonBuilderCall(
@@ -515,6 +523,21 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 return nodeWithAccumulators(parsedAccumulators)
             }
 
+            "addFields" -> {
+                // .addFields can have varargs of Field objects or Fields objects in an iterable
+                // so we need to resolve them.
+                val addedFieldNodes = resolveAddFieldsArguments(stageCall)
+                    .mapNotNull(::parseAddFieldsArgument)
+
+                return Node(
+                    source = stageCall,
+                    components = listOf(
+                        Named(Name.ADD_FIELDS),
+                        HasAddedFields(addedFieldNodes),
+                    )
+                )
+            }
+
             else -> return null
         }
     }
@@ -631,6 +654,53 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
                 HasSorts(sort),
                 accumulatorExpr
+            )
+        )
+    }
+
+    private fun resolveAddFieldsArguments(
+        addFieldsCall: PsiMethodCallExpression
+    ): List<PsiNewExpression> {
+        return addFieldsCall.getVarArgsOrIterableArgs()
+            .mapNotNull {
+                it.resolveElementUntil<PsiNewExpression> { element ->
+                    val newExpression = element as? PsiNewExpression
+                        ?: return@resolveElementUntil false
+
+                    val classReference = (newExpression.classReference?.resolve() as? PsiClass)
+                        ?: return@resolveElementUntil false
+
+                    return@resolveElementUntil classReference.qualifiedName == FIELD_FQN
+                }
+            }
+    }
+
+    private fun parseAddFieldsArgument(fieldExpression: PsiNewExpression): Node<PsiElement>? {
+        val expressionArguments = fieldExpression.argumentList?.expressions
+        val fieldNameExpression = expressionArguments?.getOrNull(0)
+        val fieldReference = fieldNameExpression?.tryToResolveAsConstantString()?.let {
+            HasFieldReference.Computed(
+                source = fieldNameExpression,
+                fieldName = it,
+            )
+        } ?: HasFieldReference.Unknown
+
+        val valueExpression = expressionArguments?.getOrNull(1)
+        val valueReference = valueExpression?.tryToResolveAsConstantString()?.let {
+            // We currently only support parsing a constant value which is why we will encode
+            // anything else, not parseable, as an Unknown.
+            HasValueReference.Constant(
+                source = valueExpression,
+                value = it,
+                type = it.javaClass.toBsonType(),
+            )
+        } ?: HasValueReference.Unknown
+
+        return Node(
+            source = fieldExpression,
+            components = listOf(
+                HasFieldReference(fieldReference),
+                HasValueReference(valueReference)
             )
         )
     }
@@ -904,7 +974,7 @@ fun PsiExpressionList.inferFromSingleVarArgElement(start: Int = 0): HasValueRefe
  * Arguments passed to both the overloads can be retrieved using this method
  */
 fun PsiMethodCallExpression.getVarArgsOrIterableArgs(): List<PsiExpression> {
-    val methodCall = resolveMethod() ?: return emptyList()
+    val methodCall = fuzzyResolveMethod() ?: return emptyList()
     if (methodCall.isVarArgs) {
         return argumentList.expressions.asList()
     } else {
@@ -942,28 +1012,39 @@ fun PsiElement.resolveToIterableCallExpression(): PsiMethodCallExpression? {
 fun PsiElement.resolveToMethodCallExpression(
     isCorrectMethodCall: (PsiMethodCallExpression, PsiMethod) -> Boolean
 ): PsiMethodCallExpression? {
-    when (val expression = meaningfulExpression()) {
+    return this.resolveElementUntil { element ->
+        val callExpression = element as? PsiMethodCallExpression
+            ?: return@resolveElementUntil false
+        val methodCall = callExpression.fuzzyResolveMethod()
+            ?: return@resolveElementUntil false
+        return@resolveElementUntil isCorrectMethodCall(callExpression, methodCall)
+    }
+}
+
+fun <T : PsiElement>PsiElement.resolveElementUntil(
+    isCorrectResolution: (PsiElement) -> Boolean
+): T? {
+    val expression = meaningfulExpression()
+    if (isCorrectResolution(expression)) {
+        return expression as T
+    }
+    when (expression) {
         is PsiMethodCallExpression -> {
             val methodCall = expression.fuzzyResolveMethod() ?: return null
-
-            return if (isCorrectMethodCall(expression, methodCall)) {
-                return expression
-            } else {
-                PsiTreeUtil.findChildrenOfType(
-                    methodCall.body,
-                    PsiReturnStatement::class.java
-                )
-                    .mapNotNull { it.returnValue }
-                    .firstNotNullOfOrNull { it.resolveToMethodCallExpression(isCorrectMethodCall) }
-            }
+            return PsiTreeUtil.findChildrenOfType(
+                methodCall.body,
+                PsiReturnStatement::class.java
+            )
+                .mapNotNull { it.returnValue }
+                .firstNotNullOfOrNull { it.resolveElementUntil(isCorrectResolution) }
         }
 
         is PsiVariable -> {
-            return expression.initializer?.resolveToMethodCallExpression(isCorrectMethodCall)
+            return expression.initializer?.resolveElementUntil(isCorrectResolution)
         }
 
         is PsiReferenceExpression -> {
-            return expression.resolve()?.resolveToMethodCallExpression(isCorrectMethodCall)
+            return expression.resolve()?.resolveElementUntil(isCorrectResolution)
         }
 
         else -> return null
