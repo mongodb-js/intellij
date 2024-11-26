@@ -1,5 +1,7 @@
 package com.mongodb.jbplugin.accessadapter.datagrip.adapter
 
+import com.intellij.database.dataSource.DatabaseDriver
+import com.intellij.database.dataSource.LocalDataSource
 import com.mongodb.client.model.Filters
 import com.mongodb.jbplugin.accessadapter.ExplainPlan
 import com.mongodb.jbplugin.accessadapter.MongoDbDriver
@@ -18,13 +20,63 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
 import org.bson.Document
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import org.mockito.Mockito
 import java.math.BigDecimal
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
 @IntegrationTest
 class DataGripMongoDbDriverTest {
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "mongo",
+            "mongo.4"
+        ]
+    )
+    fun `can detect a datasource with a known driver id`(driverId: String) {
+        val dataSource = Mockito.mock(LocalDataSource::class.java)
+        val driver = Mockito.mock(DatabaseDriver::class.java)
+
+        Mockito.`when`(driver.id).thenReturn(driverId)
+        Mockito.`when`(dataSource.databaseDriver).thenReturn(driver)
+
+        assertTrue(dataSource.isMongoDbDataSource())
+    }
+
+    @Test
+    fun `can detect a datasource when there is no driver`() {
+        val dataSource = Mockito.mock(LocalDataSource::class.java)
+        Mockito.`when`(dataSource.databaseDriver).thenReturn(null)
+
+        assertTrue(dataSource.isMongoDbDataSource())
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "mondongo",
+            "4.mongo",
+            "postgres",
+            "oracle",
+            "sqlite",
+        ]
+    )
+    fun `can discard a datasource with an unknown driver id`(driverId: String) {
+        val dataSource = Mockito.mock(LocalDataSource::class.java)
+        val driver = Mockito.mock(DatabaseDriver::class.java)
+
+        Mockito.`when`(driver.id).thenReturn(driverId)
+        Mockito.`when`(dataSource.databaseDriver).thenReturn(driver)
+
+        assertFalse(dataSource.isMongoDbDataSource())
+    }
+
     @Test
     fun `can connect and run a command`(
         version: MongoDbVersion,
@@ -87,8 +139,8 @@ class DataGripMongoDbDriverTest {
             """
             db.docs
             .insertOne(
-                { text: "myExampleTest", 
-                  date: ISODate('$dateString'), 
+                { text: "myExampleTest",
+                  date: ISODate('$dateString'),
                   decimal: { ${'$'}numberDecimal: "52.3249824889273498237498" }
                 }
             )
