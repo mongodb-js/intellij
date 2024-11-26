@@ -2,6 +2,11 @@ package alt.mongodb.javadriver;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.model.*;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 
 import java.util.ArrayList;
@@ -51,6 +56,12 @@ public class JavaDriverRepository {
                 List.of(
                     Aggregates.match(
                         Filters.eq("year", year)
+                    ),
+                    Aggregates.group(
+                        "newField",
+                        Accumulators.avg("test", "$year"),
+                        Accumulators.sum("test2", "$year"),
+                        Accumulators.bottom("field", Sorts.ascending("year"), "$year")
                     ),
                     Aggregates.project(
                         Projections.fields(

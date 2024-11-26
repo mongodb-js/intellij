@@ -509,6 +509,126 @@ public class Repository {
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.*;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+import java.util.List;
+import static com.mongodb.client.model.Filters.*;
+
+public class Repository {
+    private final MongoClient client;
+
+    public Repository(MongoClient client) {
+        this.client = client;
+    }
+
+    public AggregateIterable<Document> goodGroupAggregate1() {
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.group(null),
+                    Aggregates.group("${'$'}possibleIdField"),
+                    Aggregates.group("${'$'}possibleIdField", Accumulators.sum("totalCount", 1)),
+                    Aggregates.group(
+                        "${'$'}possibleIdField",
+                        Accumulators.sum("totalCount", "${'$'}otherField")
+                    )
+                ));
+    }
+    
+    private String getOtherField() {
+        return "${'$'}otherField";
+    }
+    
+    public AggregateIterable<Document> goodGroupAggregate2() {
+        String fieldName = "${'$'}possibleIdField";
+        BsonField totalCountAcc = Accumulators.sum("totalCount", 1);
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.group(fieldName),
+                    Aggregates.group(fieldName, totalCountAcc),
+                    Aggregates.group(
+                        fieldName,
+                        Accumulators.sum("totalCount", getOtherField())
+                    )
+                ));
+    }
+    
+    private String getBadFieldName() {
+        return "${'$'}nonExistentField";
+    }
+    
+    private BsonField getAvgCountAcc() {
+        return Accumulators.avg(
+            "avgCount",
+            <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">getBadFieldName()</warning>
+        );
+    }
+    
+    public AggregateIterable<Document> badGroupAggregate1() {
+        String badFieldName = "${'$'}nonExistentField";
+        BsonField avgCountAcc = Accumulators.avg(
+            "avgCount",
+            <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">badFieldName</warning>
+        );
+        return client.getDatabase("myDatabase")
+                .getCollection("myCollection")
+                .aggregate(List.of(
+                    Aggregates.group(
+                        <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">"${'$'}nonExistentField"</warning>
+                    ),
+                    Aggregates.group(
+                        <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">badFieldName</warning>,
+                        Accumulators.sum(
+                            "totalCount",
+                            <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">badFieldName</warning>
+                        ),
+                        Accumulators.sum(
+                            "totalCount",
+                            <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">getBadFieldName()</warning>
+                        ),
+                        avgCountAcc,
+                        getAvgCountAcc()
+                    )
+                ));
+    }
+}
+        """,
+    )
+    fun `shows an inspection for Aggregates#group call when the field does not exist in the current namespace`(
+        fixture: CodeInsightTestFixture,
+    ) {
+        val (dataSource, readModelProvider) = fixture.setupConnection()
+        fixture.specifyDialect(JavaDriverDialect)
+
+        `when`(
+            readModelProvider.slice(eq(dataSource), any<GetCollectionSchema.Slice>())
+        ).thenReturn(
+            GetCollectionSchema(
+                CollectionSchema(
+                    Namespace("myDatabase", "myCollection"),
+                    BsonObject(
+                        mapOf(
+                            "possibleIdField" to BsonString,
+                            "otherField" to BsonString,
+                        )
+                    )
+                )
+            ),
+        )
+
+        fixture.enableInspections(FieldCheckInspectionBridge::class.java)
+        fixture.testHighlighting()
+    }
+
+    @ParsingTest(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
