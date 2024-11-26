@@ -39,15 +39,6 @@ class NewConnectionActivatedProbe : DatabaseSessionStateListener {
         val readModelProvider by session.project.service<DataGripBasedReadModelProvider>()
         val dataSource = session.connectionPoint.dataSource
 
-        logger.info(
-            useLogMessage("Connected to new LocalDataSource")
-                .put("isMongoDbDataSource", dataSource.isMongoDbDataSource())
-                .put("driver", dataSource.databaseDriver?.id ?: "<no known driver>")
-                .put("id", dataSource.uniqueId)
-                .put("name", dataSource.name)
-                .build()
-        )
-
         if (!dataSource.isMongoDbDataSource()) {
             return
         }

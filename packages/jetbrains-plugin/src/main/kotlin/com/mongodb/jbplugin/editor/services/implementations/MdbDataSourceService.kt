@@ -43,7 +43,7 @@ class MdbDataSourceService(
                         .put("driverId", it.databaseDriver?.id ?: "<no driver>")
                         .put("isMongoDbDataSource", it.isMongoDbDataSource())
                         .put("name", it.name)
-                        .put("url", it.url ?: "<no url>")
+                        .put("schema", it.url?.substringBefore("://", "<no-schema>") ?: "<no url>")
                         .build()
                 )
                 it.isMongoDbDataSource()
