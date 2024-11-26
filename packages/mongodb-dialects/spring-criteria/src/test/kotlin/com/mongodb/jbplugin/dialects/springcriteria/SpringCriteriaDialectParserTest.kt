@@ -61,7 +61,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                     assertEquals(true, value)
@@ -107,7 +109,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                     assertEquals(true, value)
@@ -153,7 +157,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Runtime<PsiElement>> {
                     assertEquals(BsonBoolean, type)
                 }
@@ -199,7 +205,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Runtime<PsiElement>> {
                     assertEquals(BsonBoolean, type)
                 }
@@ -244,7 +252,7 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("_id", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> { assertEquals("_id", fieldName) }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonString), type)
                     assertEquals("123456", value)
@@ -292,7 +300,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                     assertEquals(true, value)
@@ -300,7 +310,9 @@ class Repository {
             }
 
             filterN(1, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("hidden", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonInt32), type)
                     assertEquals(0, value)
@@ -352,7 +364,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                     assertEquals(true, value)
@@ -361,7 +375,9 @@ class Repository {
 
             filterN(1, Name.AND) {
                 filterN(0, Name.EQ) {
-                    field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                    field<HasFieldReference.FromSchema<PsiElement>> {
+                        assertEquals("hidden", fieldName)
+                    }
                     value<HasValueReference.Constant<PsiElement>> {
                         assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                         assertEquals(false, value)
@@ -369,7 +385,9 @@ class Repository {
                 }
 
                 filterN(1, Name.EQ) {
-                    field<HasFieldReference.Known<PsiElement>> { assertEquals("valid", fieldName) }
+                    field<HasFieldReference.FromSchema<PsiElement>> {
+                        assertEquals("valid", fieldName)
+                    }
                     value<HasValueReference.Constant<PsiElement>> {
                         assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                         assertEquals(true, value)
@@ -421,7 +439,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                     assertEquals(true, value)
@@ -430,7 +450,9 @@ class Repository {
 
             filterN(1, Name.OR) {
                 filterN(0, Name.EQ) {
-                    field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                    field<HasFieldReference.FromSchema<PsiElement>> {
+                        assertEquals("hidden", fieldName)
+                    }
                     value<HasValueReference.Constant<PsiElement>> {
                         assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                         assertEquals(false, value)
@@ -438,7 +460,9 @@ class Repository {
                 }
 
                 filterN(1, Name.EQ) {
-                    field<HasFieldReference.Known<PsiElement>> { assertEquals("valid", fieldName) }
+                    field<HasFieldReference.FromSchema<PsiElement>> {
+                        assertEquals("valid", fieldName)
+                    }
                     value<HasValueReference.Constant<PsiElement>> {
                         assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                         assertEquals(true, value)
@@ -491,7 +515,9 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                     assertEquals(true, value)
@@ -500,7 +526,9 @@ class Repository {
 
             filterN(1, Name.NOR) {
                 filterN(0, Name.EQ) {
-                    field<HasFieldReference.Known<PsiElement>> { assertEquals("hidden", fieldName) }
+                    field<HasFieldReference.FromSchema<PsiElement>> {
+                        assertEquals("hidden", fieldName)
+                    }
                     value<HasValueReference.Constant<PsiElement>> {
                         assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                         assertEquals(false, value)
@@ -508,7 +536,9 @@ class Repository {
                 }
 
                 filterN(1, Name.EQ) {
-                    field<HasFieldReference.Known<PsiElement>> { assertEquals("valid", fieldName) }
+                    field<HasFieldReference.FromSchema<PsiElement>> {
+                        assertEquals("valid", fieldName)
+                    }
                     value<HasValueReference.Constant<PsiElement>> {
                         assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                         assertEquals(true, value)
@@ -604,7 +634,9 @@ class Repository {
         // ---- with the DSL ----
         SpringCriteriaDialectParser.parse(query).assert(IsCommand.CommandType.COUNT_DOCUMENTS) {
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("released", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("released", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> {
                     assertEquals(BsonAnyOf(BsonNull, BsonBoolean), type)
                     assertEquals(true, value)
@@ -730,17 +762,19 @@ class Repository {
             }
 
             filterN(0, Name.EQ) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("field", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> { assertEquals("field", fieldName) }
                 value<HasValueReference.Constant<PsiElement>> { assertEquals("123456", value) }
             }
 
             updateN(0, Name.SET) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("another", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> {
+                    assertEquals("another", fieldName)
+                }
                 value<HasValueReference.Constant<PsiElement>> { assertEquals(1, value) }
             }
 
             updateN(1, Name.SET) {
-                field<HasFieldReference.Known<PsiElement>> { assertEquals("third", fieldName) }
+                field<HasFieldReference.FromSchema<PsiElement>> { assertEquals("third", fieldName) }
                 value<HasValueReference.Constant<PsiElement>> { assertEquals(3f, value) }
             }
         }
@@ -787,7 +821,9 @@ class Repository {
 
             filterN(0, Name.NOT) {
                 filterN(0, Name.EQ) {
-                    field<HasFieldReference.Known<PsiElement>> { assertEquals("field", fieldName) }
+                    field<HasFieldReference.FromSchema<PsiElement>> {
+                        assertEquals("field", fieldName)
+                    }
                     value<HasValueReference.Constant<PsiElement>> { assertEquals("123456", value) }
                 }
             }
@@ -834,7 +870,7 @@ class Repository {
             }
 
             filterN(0, Name.IN) {
-                field<HasFieldReference.Known<PsiElement>> {
+                field<HasFieldReference.FromSchema<PsiElement>> {
                     assertEquals("field", fieldName)
                 }
                 value<HasValueReference.Constant<PsiElement>> {
@@ -885,7 +921,7 @@ class Repository {
             }
 
             filterN(0, Name.IN) {
-                field<HasFieldReference.Known<PsiElement>> {
+                field<HasFieldReference.FromSchema<PsiElement>> {
                     assertEquals("field", fieldName)
                 }
                 value<HasValueReference.Runtime<PsiElement>> {
@@ -935,7 +971,7 @@ class Repository {
             }
 
             filterN(0, Name.NIN) {
-                field<HasFieldReference.Known<PsiElement>> {
+                field<HasFieldReference.FromSchema<PsiElement>> {
                     assertEquals("field", fieldName)
                 }
                 value<HasValueReference.Runtime<PsiElement>> {

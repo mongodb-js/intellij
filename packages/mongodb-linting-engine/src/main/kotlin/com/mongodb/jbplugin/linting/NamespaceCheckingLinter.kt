@@ -128,7 +128,8 @@ object NamespaceCheckingLinter {
             databaseDoesNotExistParser,
             collectionDoesNotExistParser,
             databaseIsNotKnown,
-            noCollectionSpecified
+            noCollectionSpecified,
+            otherwise { emptyList() }
         )
 
         return NamespaceCheckResult(

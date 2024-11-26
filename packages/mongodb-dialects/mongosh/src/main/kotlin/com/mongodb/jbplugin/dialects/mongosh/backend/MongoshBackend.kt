@@ -15,8 +15,18 @@ private const val MONGODB_FIRST_RELEASE = "2009-02-11T18:00:00.000Z"
 /**
  * @param context
  */
-class MongoshBackend(private val context: Context = DefaultContext()) : Context by context {
+class MongoshBackend(
+    private val context: Context = DefaultContext(),
+    val prettyPrint: Boolean = false,
+    private val paddingSpaces: Int = 2
+) : Context by context {
     private val output: StringBuilder = StringBuilder()
+
+    private var line: Int = 0
+    private var column: Int = 0
+    private var paddingScopes: Stack<Int> = Stack<Int>().apply {
+        push(0)
+    }
 
     fun emitDbAccess(): MongoshBackend {
         emitAsIs("db")
@@ -24,38 +34,73 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
     }
 
     fun emitDatabaseAccess(dbName: ContextValue): MongoshBackend {
+        val nextPadding = column - 1 // align to the dot
+
         emitAsIs("getSiblingDB")
-        emitFunctionCall({
+        emitFunctionCall(long = false, {
             emitContextValue(dbName)
         })
+
+        if (prettyPrint) {
+            paddingScopes.push(nextPadding)
+            emitNewLine()
+        }
+
         return emitPropertyAccess()
     }
 
     fun emitCollectionAccess(collName: ContextValue): MongoshBackend {
         emitAsIs("getCollection")
-        emitFunctionCall({
+        emitFunctionCall(long = false, {
             emitContextValue(collName)
         })
+
+        if (prettyPrint) {
+            emitNewLine()
+        }
 
         return emitPropertyAccess()
     }
 
-    fun emitObjectStart(): MongoshBackend {
-        emitAsIs("{ ")
+    fun emitObjectStart(long: Boolean = false): MongoshBackend {
+        val nextPadding = paddingScopes.peek() + paddingSpaces
+        if (long && prettyPrint) {
+            paddingScopes.push(nextPadding)
+            emitAsIs("{")
+            emitNewLine()
+        } else {
+            emitAsIs("{")
+        }
         return this
     }
 
-    fun emitObjectEnd(): MongoshBackend {
+    fun emitObjectEnd(long: Boolean = false): MongoshBackend {
+        if (long && prettyPrint) {
+            paddingScopes.pop()
+            emitNewLine()
+        }
+
         emitAsIs("}")
         return this
     }
 
-    fun emitArrayStart(): MongoshBackend {
-        emitAsIs("[ ")
+    fun emitArrayStart(long: Boolean = false): MongoshBackend {
+        val nextPadding = paddingScopes.peek() + paddingSpaces
+        if (long && prettyPrint) {
+            paddingScopes.push(nextPadding)
+            emitAsIs("[")
+            emitNewLine()
+        } else {
+            emitAsIs("[")
+        }
         return this
     }
 
-    fun emitArrayEnd(): MongoshBackend {
+    fun emitArrayEnd(long: Boolean = false): MongoshBackend {
+        if (long && prettyPrint) {
+            paddingScopes.pop()
+            emitNewLine()
+        }
         emitAsIs("]")
         return this
     }
@@ -75,7 +120,7 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
     }
 
     fun computeOutput(): String {
-        val preludeBackend = MongoshBackend(context)
+        val preludeBackend = MongoshBackend(context, prettyPrint, paddingSpaces)
         preludeBackend.variableList().sortedBy { it.name }.forEach {
             preludeBackend.emitVariableDeclaration(it.name, defaultValueOfBsonType(it.type))
         }
@@ -86,21 +131,41 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
 
     fun emitFunctionName(name: String): MongoshBackend = emitAsIs(name)
 
-    fun emitFunctionCall(vararg body: MongoshBackend.() -> MongoshBackend): MongoshBackend {
-        output.append("(")
+    fun emitFunctionCall(long: Boolean = false, vararg body: MongoshBackend.() -> MongoshBackend): MongoshBackend {
+        emitAsIs("(")
         if (body.isNotEmpty()) {
+            if (long && prettyPrint) {
+                val nextDelta = column - (paddingSpaces / 2)
+                paddingScopes.push(nextDelta)
+                emitNewLine()
+            }
+
             body[0].invoke(this)
             body.slice(1 until body.size).forEach {
-                output.append(", ")
+                if (long && prettyPrint) {
+                    emitNewLine()
+                }
+                emitAsIs(", ")
                 it(this)
             }
         }
-        output.append(")")
+
+        if (long && prettyPrint) {
+            paddingScopes.pop()
+            emitNewLine()
+        }
+
+        emitAsIs(")")
         return this
     }
 
     fun emitPropertyAccess(): MongoshBackend {
-        output.append(".")
+        emitAsIs(".")
+        return this
+    }
+
+    fun emitComment(comment: String): MongoshBackend {
+        emitAsIs("/* $comment */")
         return this
     }
 
@@ -113,8 +178,21 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
         return this
     }
 
-    private fun emitAsIs(string: String): MongoshBackend {
-        output.append(Encode.forJavaScript(string))
+    fun emitNewLine(): MongoshBackend {
+        output.append("\n")
+        emitAsIs(" ".repeat(paddingScopes.lastOrNull() ?: 0))
+
+        line += 1
+        column = 1
+
+        return this
+    }
+
+    private fun emitAsIs(string: String, encode: Boolean = true): MongoshBackend {
+        val stringToOutput = if (encode) Encode.forJavaScript(string) else string
+
+        output.append(stringToOutput)
+        column += stringToOutput.length
         return this
     }
 
@@ -128,13 +206,7 @@ class MongoshBackend(private val context: Context = DefaultContext()) : Context 
     }
 
     private fun emitPrimitive(value: Any?, isPlaceholder: Boolean): MongoshBackend {
-        output.append(serializePrimitive(value, isPlaceholder))
-        return this
-    }
-
-    private fun emitNewLine(nextPadding: Int = 0): MongoshBackend {
-        output.append("\n")
-        output.append(" ".repeat(nextPadding))
+        emitAsIs(serializePrimitive(value, isPlaceholder), encode = false)
         return this
     }
 }
@@ -179,4 +251,5 @@ private fun defaultValueOfBsonType(type: BsonType): Any? = when (type) {
     is BsonObject -> emptyMap<Any, Any>()
     BsonObjectId -> ObjectId("000000000000000000000000")
     BsonString -> ""
+    is ComputedBsonType<*> -> defaultValueOfBsonType(type.baseType)
 }

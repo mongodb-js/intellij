@@ -332,6 +332,15 @@ fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
         meaningfulThis.hasModifier(JvmModifier.FINAL)
     ) {
         return meaningfulThis.initializer!!.tryToResolveAsConstant()
+    } else if (meaningfulThis is PsiMethodCallExpression) {
+        val methodCall = meaningfulThis.fuzzyResolveMethod() ?: return false to null
+        return PsiTreeUtil.findChildrenOfType(
+            methodCall.body,
+            PsiReturnStatement::class.java
+        )
+            .mapNotNull { it.returnValue }
+            .map { it.tryToResolveAsConstant() }
+            .firstOrNull { it.first } ?: (false to null)
     }
 
     return false to null
@@ -344,7 +353,7 @@ fun PsiElement.tryToResolveAsConstant(): Pair<Boolean, Any?> {
  * @return
  */
 fun PsiElement.tryToResolveAsConstantString(): String? =
-    tryToResolveAsConstant().takeIf { it.first }?.second?.toString()
+    tryToResolveAsConstant().takeIf { it.first }?.second as? String
 
 /**
  * Maps a PsiType to its BSON counterpart.
