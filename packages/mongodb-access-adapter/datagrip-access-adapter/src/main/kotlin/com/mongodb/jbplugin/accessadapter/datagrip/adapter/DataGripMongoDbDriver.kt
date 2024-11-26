@@ -308,7 +308,7 @@ internal class DataGripMongoDbDriver(
  * @return
  */
 fun LocalDataSource.isMongoDbDataSource(): Boolean =
-    this.databaseDriver?.id == "mongo" || this.databaseDriver == null
+    this.databaseDriver?.id?.startsWith("mongo") == true || this.databaseDriver == null
 
 /**
  * Returns true if the provided local data source has at least one active connection
