@@ -30,10 +30,36 @@ class MdbDataSourceService(
     private val project: Project,
     private val coroutineScope: CoroutineScope
 ) : DataSourceService {
-    override fun listMongoDbDataSources(): List<LocalDataSource> =
-        DataSourceManager.byDataSource(project, LocalDataSource::class.java)
-            ?.dataSources?.filter { it.isMongoDbDataSource() }
+    override fun listMongoDbDataSources(): List<LocalDataSource> {
+        log.info(
+            useLogMessage("Looking for LocalDataSources.").build()
+        )
+
+        val dataSources = DataSourceManager.byDataSource(project, LocalDataSource::class.java)
+            ?.dataSources?.filter {
+                log.info(
+                    useLogMessage("LocalDataSource found in project.")
+                        .put("id", it.uniqueId)
+                        .put("driverId", it.databaseDriver?.id ?: "<no driver>")
+                        .put("isMongoDbDataSource", it.isMongoDbDataSource())
+                        .put("name", it.name)
+                        .put("url", it.url ?: "<no url>")
+                        .build()
+                )
+                it.isMongoDbDataSource()
+            }
             ?: emptyList()
+
+        log.info(
+            useLogMessage(
+                "LocalDataSource lookup finished.",
+            )
+                .put("found", dataSources.size)
+                .build()
+        )
+
+        return dataSources
+    }
 
     override fun listDatabasesForDataSource(dataSource: LocalDataSource) {
         val toolbarModel = project.getToolbarModel()
