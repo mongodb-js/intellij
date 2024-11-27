@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.logger
 import com.mongodb.jbplugin.dialects.Dialect
 import com.mongodb.jbplugin.meta.service
+import com.mongodb.jbplugin.mql.components.IsCommand.CommandType
 import com.mongodb.jbplugin.observability.TelemetryEvent
 import com.mongodb.jbplugin.observability.TelemetryService
 import com.mongodb.jbplugin.observability.useLogMessage
@@ -50,15 +51,33 @@ class AutocompleteSuggestionAcceptedProbe(
     }
 
     fun databaseCompletionAccepted(dialect: Dialect<*, *>) {
-        events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.DATABASE))
+        events.add(
+            SuggestionEvent(
+                dialect,
+                SuggestionEvent.SuggestionEventType.DATABASE,
+                CommandType.UNKNOWN,
+            )
+        )
     }
 
     fun collectionCompletionAccepted(dialect: Dialect<*, *>) {
-        events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.COLLECTION))
+        events.add(
+            SuggestionEvent(
+                dialect,
+                SuggestionEvent.SuggestionEventType.COLLECTION,
+                CommandType.UNKNOWN,
+            )
+        )
     }
 
-    fun fieldCompletionAccepted(dialect: Dialect<*, *>) {
-        events.add(SuggestionEvent(dialect, SuggestionEvent.SuggestionEventType.FIELD))
+    fun fieldCompletionAccepted(dialect: Dialect<*, *>, commandType: CommandType) {
+        events.add(
+            SuggestionEvent(
+                dialect,
+                SuggestionEvent.SuggestionEventType.FIELD,
+                commandType
+            )
+        )
     }
 
     private suspend fun telemetryLoop(): Unit =
@@ -80,13 +99,14 @@ class AutocompleteSuggestionAcceptedProbe(
 
         listCopy
             .groupingBy {
-                Pair(it.dialect, it.type)
+                Triple(it.dialect, it.type, it.commandType)
             }
             .eachCount()
             .map {
                 TelemetryEvent.AutocompleteGroupEvent(
                     it.key.first,
                     it.key.second.publicName,
+                    it.key.third.canonical,
                     it.value
                 )
             }
@@ -109,6 +129,7 @@ class AutocompleteSuggestionAcceptedProbe(
     private data class SuggestionEvent(
         val dialect: Dialect<*, *>,
         val type: SuggestionEventType,
+        val commandType: CommandType,
     ) {
         /**
          * @property publicName
