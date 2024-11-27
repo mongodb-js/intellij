@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       versionBump:
-        description: 'Version bump'
+        description: "Version bump"
         type: choice
         required: true
-        default: 'patch'
+        default: "patch"
         options:
           - patch
           - minor
@@ -26,16 +26,24 @@ jobs:
     name: "Prepare Release"
     runs-on: ubuntu-latest
     steps:
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
       - name: Determine Next Version
         shell: bash
         env:
@@ -97,28 +105,24 @@ jobs:
       - name: Create Draft Release
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.SVC_DEVTOOLSBOT_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -e
           echo Creating draft release for: "${RELEASE_TAG}"
 
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
           git add .
           git commit --no-verify -m "Release ${RELEASE_TAG}"
           git tag ${RELEASE_TAG}
           git push origin ${RELEASE_TAG}
-          
+
           GIT_REF=$(git rev-parse ${RELEASE_TAG})
           ls packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
-          
+
           CHANGELOG=$(./gradlew --quiet --console=plain :packages:jetbrains-plugin:getChangelog)
-          
+
           gh release create "${RELEASE_TAG}" \
             --title "${RELEASE_TAG}" \
             --notes "${CHANGELOG}" \
             --target "${GIT_REF}" \
             --draft \
             packages/jetbrains-plugin/build/distributions/jetbrains-plugin.zip
-         

@@ -2,34 +2,43 @@ name: Publish Release
 
 on:
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
   prepare-release:
     name: "Prepare Release"
     runs-on: ubuntu-latest
     steps:
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
 
-      - uses: robinraju/release-downloader@v1.10
+      - uses: robinraju/release-downloader@a96f54c1b5f5e09e47d9504526e96febd949d4c2 # 1.11
         with:
           tag: ${{ github.ref_name }}
-          fileName: 'jetbrains-plugin.zip'
-          out-file-path: 'packages/jetbrains-plugin/build/distributions/'
+          fileName: "jetbrains-plugin.zip"
+          out-file-path: "packages/jetbrains-plugin/build/distributions/"
+
       - name: Publish Plugin In General Availability
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.SVC_DEVTOOLSBOT_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           JB_PUBLISH_CHANNEL: "ga"
           JB_PUBLISH_TOKEN: ${{ secrets.JB_PUBLISH_TOKEN }}
           JB_CERTIFICATE_CHAIN: ${{ secrets.JB_CERTIFICATE_CHAIN }}
@@ -37,10 +46,9 @@ jobs:
           JB_PRIVATE_KEY_PASSWORD: ${{ secrets.JB_PRIVATE_KEY_PASSWORD }}
         run: |
           set -e
-          
+
           ./gradlew ":packages:jetbrains-plugin:publishPlugin" $(./gradlew ":packages:jetbrains-plugin:publishPlugin" --dry-run | awk '/^:/ { print "-x" $1 }' | sed '$ d')
-          
+
           git checkout main
           git merge ${{ github.ref_name }}
           git push origin main
-          
