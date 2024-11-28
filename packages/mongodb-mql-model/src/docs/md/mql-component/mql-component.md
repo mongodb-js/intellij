@@ -40,12 +40,12 @@ $addFields aggregation stage. Each node MUST represent one added field.
 
 ### HasAggregation
 
-Contains a list of Nodes, where each node represent one single aggregation stage.
+Contains a list of Nodes, where each node MUST represent one single aggregation stage.
 
 ### HasCollectionReference
 
-Contains information whether this query or a specific subquery targets a specific collection. There
-are three variants:
+Contains information whether this query or a specific subquery targets a specific collection. The
+reference MUST be one of the following variants:
 
 * **Unknown**: there is a collection reference, but we don't know on which collection.
 * **OnlyCollection**: there is a collection reference, but we only know the collection, not the full namespace.
@@ -53,8 +53,9 @@ are three variants:
 
 ### HasFieldReference
 
-Contains information of a field. The field can be used for filtering, computing or aggregation. There
-are different variants depending on the amount of information we have at the moment of parsing the query.
+Contains information of a field. The field MAY be used for filtering, computing or aggregating data. 
+There are different variants depending on the amount of information we have at the moment of parsing the query.
+The variant MUST be one of the following:
 
 * **Unknown**: we couldn't infer any information from the field.
 * **FromSchema**: the field MUST be in the schema of the target collection.
@@ -64,34 +65,43 @@ Filters.eq(A) refers to the _id field.
 
 ### HasFilter
 
-Contains a list of Nodes that represent the filter of a query.
+Contains a list of Nodes that represent the filter of a query. It MAY not contain any
+node for empty queries.
 
 ### HasProjections
 
-Contains a list of Node that represents the projections of a $project stage.
+Contains a list of Node that represents the projections of a $project stage. It MAY not
+contain any node for empty projections.
 
 ### HasSorts
 
-Contains a list of Node that represent the sorting criteria of a $sort stage.
+Contains a list of Node that represent the sorting criteria of a $sort stage. It MAY not
+contain any node if the sort criteria is still not defined.
 
 ### HasSourceDialect
 
-Identifies the source dialect that parsed this query.
+Identifies the source dialect that parsed this query. It MUST be one of the valid dialects:
+
+* Java Driver
+* Spring Criteria
+* Spring @Query
 
 ### HasTargetCluster
 
-Identifies the version of the cluster that MAY run the query.
+Identifies the version of the cluster that MAY run the query. It MUST be a valid released MongoDB 
+version.
 
 ### HasUpdates
 
-Contains a list of Node representing updates to a document.
+Contains a list of Node representing updates to a document. It MAY be empty if no updates are
+specified yet.
 
 ### HasValueReference
 
 Identifies a value in a query. Usually a value is the right side of a comparison,
 but it can be used in different places, like for computing aggregation expressions.
 
-There are 5 variants:
+It MUST be one of these variants:
 
 * **Unknown**: We don't have any information of the provided value.
 * **Constant**: It's a value that can be resolved without evaluating it. A literal value is a constant.
