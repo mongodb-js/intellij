@@ -633,7 +633,9 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
             "first" -> parseKeyValAccumulator(expression, Name.FIRST)
             "last" -> parseKeyValAccumulator(expression, Name.LAST)
             "top" -> parseLeadingAccumulatorExpression(expression, Name.TOP)
+            "topN" -> parseLeadingAccumulatorExpression(expression, Name.TOP_N)
             "bottom" -> parseLeadingAccumulatorExpression(expression, Name.BOTTOM)
+            "bottomN" -> parseLeadingAccumulatorExpression(expression, Name.BOTTOM_N)
             "max" -> parseKeyValAccumulator(expression, Name.MAX)
             "min" -> parseKeyValAccumulator(expression, Name.MIN)
             "push" -> parseKeyValAccumulator(expression, Name.PUSH)
@@ -669,6 +671,15 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
         val keyExpr = expression.argumentList.expressions.getOrNull(0) ?: return null
         val sortExprArgument = expression.argumentList.expressions.getOrNull(1) ?: return null
         val valueExpr = expression.argumentList.expressions.getOrNull(2) ?: return null
+        val hasLimit = expression.argumentList.expressions.getOrNull(3)?.let {
+            val (wasResolved, value) = it.tryToResolveAsConstant()
+            val valueAsInt = value as? Int
+            if (wasResolved && valueAsInt != null) {
+                listOf(HasLimit(valueAsInt))
+            } else {
+                emptyList()
+            }
+        } ?: emptyList()
 
         val sortExpr = resolveBsonBuilderCall(sortExprArgument, SORTS_FQN) ?: return null
 
@@ -689,7 +700,7 @@ object JavaDriverDialectParser : DialectParser<PsiElement> {
                 ),
                 HasSorts(sort),
                 accumulatorExpr
-            )
+            ) + hasLimit
         )
     }
 

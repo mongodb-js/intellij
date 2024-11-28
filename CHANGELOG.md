@@ -5,6 +5,8 @@ MongoDB plugin for IntelliJ IDEA.
 ## [Unreleased]
 
 ### Added
+* [INTELLIJ-153](https://jira.mongodb.org/browse/INTELLIJ-153) Add support for parsing, linting and
+  autocompleting fields in Accumulators.topN and Accumulators.bottomN
 * [INTELLIJ-104](https://jira.mongodb.org/browse/INTELLIJ-104) Add support for Spring Criteria
   in/nin operator, like in `where(field).in(1, 2, 3)`
 * [INTELLIJ-61](https://jira.mongodb.org/browse/INTELLIJ-61) Add support for Spring Criteria

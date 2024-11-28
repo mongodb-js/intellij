@@ -14,6 +14,7 @@ import com.mongodb.jbplugin.dialects.javadriver.glossary.JavaDriverDialect
 import com.mongodb.jbplugin.mql.components.HasAccumulatedFields
 import com.mongodb.jbplugin.mql.components.HasAggregation
 import com.mongodb.jbplugin.mql.components.HasFieldReference
+import com.mongodb.jbplugin.mql.components.HasLimit
 import com.mongodb.jbplugin.mql.components.HasSorts
 import com.mongodb.jbplugin.mql.components.HasValueReference
 import com.mongodb.jbplugin.mql.components.Name
@@ -644,6 +645,269 @@ public final class Aggregation {
             val accumulatorSorting = accumulator.component<HasSorts<PsiElement>>()!!.children[0]
             val sortingField = accumulatorSorting.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
             assertEquals("mySort", sortingField.fieldName)
+        }
+    }
+
+    @WithFile(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.*;
+
+public final class Aggregation {
+    private final MongoCollection<Document> collection;
+
+    public Aggregation(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+
+    public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
+        return this.collection.aggregate(List.of(
+            Aggregates.group(
+                "${'$'}myField",
+                Accumulators."|"("myKey", Sorts.ascending("mySort"), "myVal", 3)
+            )
+        ));
+    }
+}
+        """,
+    )
+    @ParameterizedTest
+    @CsvSource(
+        value = [
+            "method;;expected",
+            "topN;;TOP_N",
+            "bottomN;;BOTTOM_N",
+        ],
+        delimiterString = ";;",
+        useHeadersInDisplayName = true
+    )
+    fun `supports all relevant key-value accumulators with sorting criteria and n value`(
+        method: String,
+        expected: Name,
+        psiFile: PsiFile
+    ) {
+        WriteCommandAction.runWriteCommandAction(psiFile.project) {
+            val elementAtCaret = psiFile.caret()
+            val javaFacade = JavaPsiFacade.getInstance(psiFile.project)
+            val methodToTest = javaFacade.parserFacade.createReferenceFromText(method, null)
+            elementAtCaret.replace(methodToTest)
+        }
+
+        ApplicationManager.getApplication().runReadAction {
+            val aggregate = psiFile.getQueryAtMethod("Aggregation", "getAllBookTitles")
+            val parsedAggregate = JavaDriverDialect.parser.parse(aggregate)
+            val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
+            assertEquals(1, hasAggregation?.children?.size)
+
+            val groupStage = hasAggregation?.children?.get(0)!!
+            val named = groupStage.component<Named>()!!
+            assertEquals(Name.GROUP, named.name)
+
+            val accumulator = groupStage.component<HasAccumulatedFields<PsiElement>>()!!.children[0]
+            val accumulatorName = accumulator.component<Named>()!!
+            assertEquals(expected, accumulatorName.name)
+
+            val accumulatorField = accumulator.component<HasFieldReference<PsiElement>>()?.reference as HasFieldReference.Computed<PsiElement>
+            assertEquals("myKey", accumulatorField.fieldName)
+
+            val accumulatorComputed = accumulator.component<HasValueReference<PsiElement>>()?.reference as HasValueReference.Computed<PsiElement>
+            val accumulatorComputedFieldValue = accumulatorComputed.type.expression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            assertEquals("myVal", accumulatorComputedFieldValue.fieldName)
+
+            val accumulatorSorting = accumulator.component<HasSorts<PsiElement>>()!!.children[0]
+            val sortingField = accumulatorSorting.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            assertEquals("mySort", sortingField.fieldName)
+
+            val accumulatorLimit = accumulator.component<HasLimit>()!!
+            assertEquals(3, accumulatorLimit.limit)
+        }
+    }
+
+    @WithFile(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.*;
+
+public final class Aggregation {
+    private final MongoCollection<Document> collection;
+
+    public Aggregation(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+
+    public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
+        Number nValue = 3;
+        return this.collection.aggregate(List.of(
+            Aggregates.group(
+                "${'$'}myField",
+                Accumulators."|"("myKey", Sorts.ascending("mySort"), "myVal", nValue)
+            )
+        ));
+    }
+}
+        """,
+    )
+    @ParameterizedTest
+    @CsvSource(
+        value = [
+            "method;;expected",
+            "topN;;TOP_N",
+            "bottomN;;BOTTOM_N",
+        ],
+        delimiterString = ";;",
+        useHeadersInDisplayName = true
+    )
+    fun `supports all relevant key-value accumulators with sorting criteria and n value as variable`(
+        method: String,
+        expected: Name,
+        psiFile: PsiFile
+    ) {
+        WriteCommandAction.runWriteCommandAction(psiFile.project) {
+            val elementAtCaret = psiFile.caret()
+            val javaFacade = JavaPsiFacade.getInstance(psiFile.project)
+            val methodToTest = javaFacade.parserFacade.createReferenceFromText(method, null)
+            elementAtCaret.replace(methodToTest)
+        }
+
+        ApplicationManager.getApplication().runReadAction {
+            val aggregate = psiFile.getQueryAtMethod("Aggregation", "getAllBookTitles")
+            val parsedAggregate = JavaDriverDialect.parser.parse(aggregate)
+            val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
+            assertEquals(1, hasAggregation?.children?.size)
+
+            val groupStage = hasAggregation?.children?.get(0)!!
+            val named = groupStage.component<Named>()!!
+            assertEquals(Name.GROUP, named.name)
+
+            val accumulator = groupStage.component<HasAccumulatedFields<PsiElement>>()!!.children[0]
+            val accumulatorName = accumulator.component<Named>()!!
+            assertEquals(expected, accumulatorName.name)
+
+            val accumulatorField = accumulator.component<HasFieldReference<PsiElement>>()?.reference as HasFieldReference.Computed<PsiElement>
+            assertEquals("myKey", accumulatorField.fieldName)
+
+            val accumulatorComputed = accumulator.component<HasValueReference<PsiElement>>()?.reference as HasValueReference.Computed<PsiElement>
+            val accumulatorComputedFieldValue = accumulatorComputed.type.expression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            assertEquals("myVal", accumulatorComputedFieldValue.fieldName)
+
+            val accumulatorSorting = accumulator.component<HasSorts<PsiElement>>()!!.children[0]
+            val sortingField = accumulatorSorting.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            assertEquals("mySort", sortingField.fieldName)
+
+            val accumulatorLimit = accumulator.component<HasLimit>()!!
+            assertEquals(3, accumulatorLimit.limit)
+        }
+    }
+
+    @WithFile(
+        fileName = "Repository.java",
+        value = """
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.*;
+
+public final class Aggregation {
+    private final MongoCollection<Document> collection;
+
+    public Aggregation(MongoClient client) {
+        this.collection = client.getDatabase("simple").getCollection("books");
+    }
+    
+    private Number getNValue() {
+        return 3;
+    }
+
+    public AggregateIterable<Document> getAllBookTitles(ObjectId id) {
+        return this.collection.aggregate(List.of(
+            Aggregates.group(
+                "${'$'}myField",
+                Accumulators."|"("myKey", Sorts.ascending("mySort"), "myVal", getNValue())
+            )
+        ));
+    }
+}
+        """,
+    )
+    @ParameterizedTest
+    @CsvSource(
+        value = [
+            "method;;expected",
+            "topN;;TOP_N",
+            "bottomN;;BOTTOM_N",
+        ],
+        delimiterString = ";;",
+        useHeadersInDisplayName = true
+    )
+    fun `supports all relevant key-value accumulators with sorting criteria and n value from method call`(
+        method: String,
+        expected: Name,
+        psiFile: PsiFile
+    ) {
+        WriteCommandAction.runWriteCommandAction(psiFile.project) {
+            val elementAtCaret = psiFile.caret()
+            val javaFacade = JavaPsiFacade.getInstance(psiFile.project)
+            val methodToTest = javaFacade.parserFacade.createReferenceFromText(method, null)
+            elementAtCaret.replace(methodToTest)
+        }
+
+        ApplicationManager.getApplication().runReadAction {
+            val aggregate = psiFile.getQueryAtMethod("Aggregation", "getAllBookTitles")
+            val parsedAggregate = JavaDriverDialect.parser.parse(aggregate)
+            val hasAggregation = parsedAggregate.component<HasAggregation<PsiElement>>()
+            assertEquals(1, hasAggregation?.children?.size)
+
+            val groupStage = hasAggregation?.children?.get(0)!!
+            val named = groupStage.component<Named>()!!
+            assertEquals(Name.GROUP, named.name)
+
+            val accumulator = groupStage.component<HasAccumulatedFields<PsiElement>>()!!.children[0]
+            val accumulatorName = accumulator.component<Named>()!!
+            assertEquals(expected, accumulatorName.name)
+
+            val accumulatorField = accumulator.component<HasFieldReference<PsiElement>>()?.reference as HasFieldReference.Computed<PsiElement>
+            assertEquals("myKey", accumulatorField.fieldName)
+
+            val accumulatorComputed = accumulator.component<HasValueReference<PsiElement>>()?.reference as HasValueReference.Computed<PsiElement>
+            val accumulatorComputedFieldValue = accumulatorComputed.type.expression.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            assertEquals("myVal", accumulatorComputedFieldValue.fieldName)
+
+            val accumulatorSorting = accumulator.component<HasSorts<PsiElement>>()!!.children[0]
+            val sortingField = accumulatorSorting.component<HasFieldReference<PsiElement>>()!!.reference as HasFieldReference.FromSchema<PsiElement>
+            assertEquals("mySort", sortingField.fieldName)
+
+            val accumulatorLimit = accumulator.component<HasLimit>()!!
+            assertEquals(3, accumulatorLimit.limit)
         }
     }
 }
