@@ -87,6 +87,15 @@ Represents the shape of a BSON document.
 
 Represents a list of elements of a single type. For example: [ 1, 2, 3 ] is a BsonArray.
 
+#### ComputedBsonType
+
+A ComputedBsonType is a type that represents an expression that happens outside the boundaries
+of the user. The typical use case is for expressions defined as MQL expressions (like $expr) that
+will run on a valid MongoDB Cluster.
+
+They contain a `baseType` that is the inferred type of the result of computing the expression. In
+case the `baseType` can not be inferred, it MUST be BsonAny.
+
 ### Type Assignability
 
 Assignable types MUST not change the semantics of a query when they are swapped. Let's say that
@@ -100,27 +109,29 @@ Type assignability MAY NOT be commutative.
 
 #### Assignability table
 
-| ⬇️ can be assigned to ➡️ | BsonString | BsonBoolean | BsonDate | BsonObjectId | BsonInt32 | BsonInt64 | BsonDouble | BsonDecimal128 | BsonNull | BsonAny | BsonAnyOf | BsonObject | BsonArray |
-|--------------------------|:----------:|:-----------:|:--------:|:------------:|:---------:|:---------:|:----------:|:--------------:|:--------:|:-------:|:---------:|:----------:|:---------:|
-| BsonString               |     🟢     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonBoolean              |     🔴     |     🟢      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonDate                 |     🔴     |     🔴      |    🟢    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonObjectId             |     🔴     |     🔴      |    🔴    |      🟢      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonInt32                |     🔴     |     🔴      |    🔴    |      🔴      |    🟢     |    🟢     |     🟢     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonInt64                |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🟢     |     🔴     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonDouble               |     🔴     |     🔴      |    🔴    |      🔴      |  🟠$^2$   |  🟠$^2$   |     🟢     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonDecimal128           |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonNull                 |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🟢    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonAny                  |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   |
-| BsonAnyOf                |   🟠$^1$   |   🟠$^1$    |  🟠$^1$  |    🟠$^1$    |  🟠$^1$   |  🟠$^1$   |   🟠$^1$   |     🟠$^1$     |  🟠$^1$  |   🟢    |  🟠$^1$   |   🟠$^1$   |  🟠$^4$   |
-| BsonObject               |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |   🟠$^3$   |  🟠$^4$   |
-| BsonArray                |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^5$   |
+| ⬇️ can be assigned to ➡️ | BsonString | BsonBoolean | BsonDate | BsonObjectId | BsonInt32 | BsonInt64 | BsonDouble | BsonDecimal128 | BsonNull | BsonAny | BsonAnyOf | BsonObject | BsonArray | ComputedBsonType |
+|--------------------------|:----------:|:-----------:|:--------:|:------------:|:---------:|:---------:|:----------:|:--------------:|:--------:|:-------:|:---------:|:----------:|:---------:|:-----------------|
+| BsonString               |     🟢     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonBoolean              |     🔴     |     🟢      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonDate                 |     🔴     |     🔴      |    🟢    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonObjectId             |     🔴     |     🔴      |    🔴    |      🟢      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonInt32                |     🔴     |     🔴      |    🔴    |      🔴      |    🟢     |    🟢     |     🟢     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonInt64                |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🟢     |     🔴     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonDouble               |     🔴     |     🔴      |    🔴    |      🔴      |  🟠$^2$   |  🟠$^2$   |     🟢     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonDecimal128           |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🟢       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonNull                 |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🟢    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonAny                  |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^4$   | 🟠$^6$           |
+| BsonAnyOf                |   🟠$^1$   |   🟠$^1$    |  🟠$^1$  |    🟠$^1$    |  🟠$^1$   |  🟠$^1$   |   🟠$^1$   |     🟠$^1$     |  🟠$^1$  |   🟢    |  🟠$^1$   |   🟠$^1$   |  🟠$^4$   | 🟠$^6$           |
+| BsonObject               |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |   🟠$^3$   |  🟠$^4$   | 🟠$^6$           |
+| BsonArray                |     🔴     |     🔴      |    🔴    |      🔴      |    🔴     |    🔴     |     🔴     |       🔴       |    🔴    |   🟢    |  🟠$^1$   |     🔴     |  🟠$^5$   | 🟠$^6$           |
+| ComputedBsonType         |   🟠$^6$   |   🟠$^6$    |  🟠$^6$  |    🟠$^6$    |  🟠$^6$   |  🟠$^6$   |   🟠$^6$   |     🟠$^6$     |  🟠$^6$  | 🟠$^6$  |  🟠$^6$   |   🟠$^6$   |  🟠$^6$   | 🟠$^6$           |
 
 * 🟠$^1$: $A$ is assignable to $BsonAnyOf(B)$ only if $A$ is assignable to $B$.
 * 🟠$^2$: It's assignable but there might be a significant loss of precision.
 * 🟠$^3$: $BsonObject A$ is assignable to $B$ if $A$ is a subset of $B$.
 * 🟠$^4$: $A$ is assignable to $BsonArray(B)$ only if $A$ is assignable to $B$.
 * 🟠$^5$: $BsonArray(A)$ is assignable to $BsonArray(B)$ only if $A$ is assignable to $B$.
+* 🟠$^6$: $A$ is assignable to $ComputedBsonType(BaseType)$ only if $A$ is assignable to $BaseType$.
 
 ### Type mapping
 
