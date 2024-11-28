@@ -36,6 +36,7 @@ enum class TelemetryProperty(
     DIALECT("dialect"),
     AUTOCOMPLETE_TYPE("ac_type"),
     AUTOCOMPLETE_COUNT("ac_count"),
+    COMMAND("command"),
 }
 
 /**
@@ -169,6 +170,7 @@ sealed class TelemetryEvent(
     class AutocompleteGroupEvent(
         dialect: Dialect<*, *>,
         autocompleteType: String,
+        command: String,
         count: Int,
     ) : TelemetryEvent(
         name = "AutocompleteSelected",
@@ -176,6 +178,7 @@ sealed class TelemetryEvent(
         mapOf(
             TelemetryProperty.DIALECT to dialect.javaClass.simpleName,
             TelemetryProperty.AUTOCOMPLETE_TYPE to autocompleteType,
+            TelemetryProperty.COMMAND to command,
             TelemetryProperty.AUTOCOMPLETE_COUNT to count,
         ),
     )

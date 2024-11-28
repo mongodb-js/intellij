@@ -36,6 +36,8 @@ import com.mongodb.jbplugin.i18n.Icons
 import com.mongodb.jbplugin.meta.service
 import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
+import com.mongodb.jbplugin.mql.components.IsCommand
+import com.mongodb.jbplugin.mql.components.IsCommand.CommandType
 import com.mongodb.jbplugin.observability.probe.AutocompleteSuggestionAcceptedProbe
 import kotlin.collections.emptyList
 import kotlin.collections.map
@@ -72,8 +74,9 @@ internal object Database {
                     readModelProvider,
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries =
-                completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
+            val lookupEntries = completions?.entries?.map {
+                it.toLookupElement(JavaDriverDialect, CommandType.UNKNOWN)
+            } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -105,8 +108,9 @@ internal object Collection {
                     database,
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries =
-                completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
+            val lookupEntries = completions?.entries?.map {
+                it.toLookupElement(JavaDriverDialect, CommandType.UNKNOWN)
+            } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -125,7 +129,9 @@ internal object Field {
             result: CompletionResultSet,
         ) {
             val dataSource = parameters.originalFile.dataSource!!
-            val (database, collection) = guessDatabaseAndCollection(parameters.originalPosition!!)
+            val (database, collection, command) = guessDatabaseAndCollection(
+                parameters.originalPosition!!
+            )
 
             if (database == null || collection == null) {
                 return
@@ -140,8 +146,9 @@ internal object Field {
                     Namespace(database, collection),
                 ) as? AutocompletionResult.Successful
 
-            val lookupEntries =
-                completions?.entries?.map { it.toLookupElement(JavaDriverDialect) } ?: emptyList()
+            val lookupEntries = completions?.entries?.map {
+                it.toLookupElement(JavaDriverDialect, command)
+            } ?: emptyList()
             result.addAllElements(lookupEntries)
         }
     }
@@ -182,7 +189,10 @@ private object MongoDbElementPatterns {
             }
         }
 
-    fun AutocompletionEntry.toLookupElement(dialect: Dialect<PsiElement, Project>): LookupElement {
+    fun AutocompletionEntry.toLookupElement(
+        dialect: Dialect<PsiElement, Project>,
+        command: CommandType,
+    ): LookupElement {
         val lookupElement =
             LookupElementBuilder
                 .create(entry)
@@ -197,7 +207,7 @@ private object MongoDbElementPatterns {
                             probe.collectionCompletionAccepted(dialect)
 
                         AutocompletionEntry.AutocompletionEntryType.FIELD ->
-                            probe.fieldCompletionAccepted(dialect)
+                            probe.fieldCompletionAccepted(dialect, command)
                     }
                 }
                 .withIcon(
@@ -287,22 +297,26 @@ private object MongoDbElementPatterns {
             }
         }
 
-    fun guessDatabaseAndCollection(source: PsiElement): Pair<String?, String?> {
-        val dialect = source.containingFile?.originalFile?.dialect ?: return null to null
+    fun guessDatabaseAndCollection(source: PsiElement): Triple<String?, String?, CommandType> {
+        val dialect = source.containingFile?.originalFile?.dialect
+            ?: return Triple(null, null, CommandType.UNKNOWN)
 
-        val collectionReference = runCatching {
+        val (collectionReference, command) = runCatching {
             val querySource = dialect.parser.attachment(source)
             val queryService by source.project.service<CachedQueryService>()
             val parsedQuery = queryService.queryAt(querySource)
-            parsedQuery?.component<HasCollectionReference<PsiElement>>()
-        }.getOrNull()
+            val collectionReference = parsedQuery?.component<HasCollectionReference<PsiElement>>()
+            val command = parsedQuery?.component<IsCommand>()?.type ?: CommandType.UNKNOWN
+            collectionReference to command
+        }.getOrElse { null to CommandType.UNKNOWN }
+
         val queryCollection = collectionReference?.let { extractCollection(it) }
 
         val database = extractDatabase(collectionReference)
             ?: extractFromFileMetadata(source)
             ?: extractFromDialectContext(dialect, source)
 
-        return database to queryCollection
+        return Triple(database, queryCollection, command)
     }
 
     private fun extractCollection(reference: HasCollectionReference<PsiElement>): String? =
