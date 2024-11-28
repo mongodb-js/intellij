@@ -16,6 +16,7 @@ jobs:
   changelog-check:
     name: "Changelog Check"
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
