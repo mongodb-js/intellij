@@ -62,19 +62,11 @@ jobs:
           labels: no release notes
           github_token: ${{ github.token }}
 
-      - name: Verify Changed files
-        uses: tj-actions/verify-changed-files@6ed7632824d235029086612d4330d659005af687 # 20.0.1
-        id: verify-changelog-files
+      - name: Check Changelog
+        uses: dangoslen/changelog-enforcer@204e7d3ef26579f4cd0fd759c57032656fdf23c7 # 3.6.1
         with:
-          files: |
-            CHANGELOG.md
-
-      - uses: mheap/github-action-required-labels@5847eef68201219cf0a4643ea7be61e77837bbce # 5.4.1
-        if: steps.verify-changed-files.outputs.files_changed == 'false'
-        with:
-          mode: minimum
-          count: 1
-          labels: "no release notes"
+          skipLabels: no release notes
+          missingUpdateErrorMessage: Please add an entry in CHANGELOG.md or apply the 'no-changelog' label to skip this check.
 
   catalog-check:
     name: "Catalog Updates Check"
