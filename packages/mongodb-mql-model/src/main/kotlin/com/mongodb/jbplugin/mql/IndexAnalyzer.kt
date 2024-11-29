@@ -12,9 +12,23 @@
 package com.mongodb.jbplugin.mql
 
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
-import com.mongodb.jbplugin.mql.components.HasFieldReference
-import com.mongodb.jbplugin.mql.components.HasFilter
-import com.mongodb.jbplugin.mql.components.HasValueReference
+import com.mongodb.jbplugin.mql.components.Name
+import com.mongodb.jbplugin.mql.parser.anyError
+import com.mongodb.jbplugin.mql.parser.components.NoFieldReference
+import com.mongodb.jbplugin.mql.parser.components.aggregationStages
+import com.mongodb.jbplugin.mql.parser.components.allNodesWithSchemaFieldReferences
+import com.mongodb.jbplugin.mql.parser.components.hasName
+import com.mongodb.jbplugin.mql.parser.components.schemaFieldReference
+import com.mongodb.jbplugin.mql.parser.filter
+import com.mongodb.jbplugin.mql.parser.first
+import com.mongodb.jbplugin.mql.parser.flatMap
+import com.mongodb.jbplugin.mql.parser.map
+import com.mongodb.jbplugin.mql.parser.mapError
+import com.mongodb.jbplugin.mql.parser.mapMany
+import com.mongodb.jbplugin.mql.parser.matches
+import com.mongodb.jbplugin.mql.parser.nth
+import com.mongodb.jbplugin.mql.parser.parse
+import com.mongodb.jbplugin.mql.parser.requireNonNull
 
 /**
  * The IndexAnalyzer service itself. It's stateless and can be used directly.
@@ -39,41 +53,38 @@ object IndexAnalyzer {
     }
 
     private fun <S> Node<S>.allFieldReferences(): List<Pair<String, S>> {
-        val hasFilter = component<HasFilter<S>>()
-        val otherRefs = hasFilter?.children?.flatMap { it.allFieldReferences() } ?: emptyList()
-        val fieldRef = component<HasFieldReference<S>>()?.reference ?: return otherRefs
-        val valueRef = component<HasValueReference<S>>()?.reference
-        return if (fieldRef is HasFieldReference.FromSchema) {
-            otherRefs + (
-                valueRef?.let { reference ->
-                    when (reference) {
-                        is HasValueReference.Constant<S> -> Pair(
-                            fieldRef.fieldName,
-                            fieldRef.source
-                        )
+        val extractFieldReference = schemaFieldReference<S>()
+            .map { it.fieldName to it.source }
+            .mapError { NoFieldReference }
 
-                        is HasValueReference.Runtime<S> -> Pair(
-                            fieldRef.fieldName,
-                            fieldRef.source
-                        )
+        val extractAllFieldReferencesWithValues = allNodesWithSchemaFieldReferences<S>()
+            .mapMany(extractFieldReference)
 
-                        else -> null
-                    }
-                } ?: Pair(
-                    fieldRef.fieldName,
-                    fieldRef.source,
-                )
-                )
-        } else {
-            otherRefs
-        }
+        val extractFromFirstMatchStage = aggregationStages<S>()
+            .nth(0)
+            .matches(hasName(Name.MATCH))
+            .flatMap(extractAllFieldReferencesWithValues)
+            .anyError()
+
+        val extractFromFiltersWhenNoAggregation = requireNonNull<Node<S>, Any>(Unit)
+            .matches(aggregationStages<S>().filter { it.isEmpty() }.matches())
+            .flatMap(extractAllFieldReferencesWithValues)
+            .anyError()
+
+        val findIndexableFieldReferences = first(
+            extractFromFirstMatchStage,
+            extractFromFiltersWhenNoAggregation,
+        )
+
+        return findIndexableFieldReferences
+            .parse(this)
+            .orElse { emptyList() }
     }
 
     /**
      * @param S
      */
     sealed interface SuggestedIndex<S> {
-        @Suppress("UNCHECKED_CAST")
         data object NoIndex : SuggestedIndex<Any> {
             fun <S> cast(): SuggestedIndex<S> = this as SuggestedIndex<S>
         }
