@@ -43,8 +43,14 @@ object MongoshDialectFormatter : DialectFormatter {
                 emitFunctionName("explain")
                 emitFunctionCall()
                 emitPropertyAccess()
+                if (isAggregate) {
+                    emitFunctionName("aggregate")
+                } else {
+                    emitFunctionName("find")
+                }
+            } else {
+                emitFunctionName(query.component<IsCommand>()?.type?.canonical ?: "find")
             }
-            emitFunctionName(query.component<IsCommand>()?.type?.canonical ?: "find")
             emitFunctionCall(long = true, {
                 if (isAggregate(query)) {
                     emitAggregateBody(query)
