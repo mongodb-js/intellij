@@ -54,7 +54,7 @@ object IndexAnalyzer {
 
     private fun <S> Node<S>.allFieldReferences(): List<Pair<String, S>> {
         val extractFieldReference = schemaFieldReference<S>()
-            .map { it.displayName to it.source }
+            .map { it.fieldName to it.source }
             .mapError { NoFieldReference }
 
         val extractAllFieldReferencesWithValues = allNodesWithSchemaFieldReferences<S>()
