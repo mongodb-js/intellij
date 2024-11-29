@@ -1,0 +1,22 @@
+name: "Check Changelog"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: bcoe/conventional-release-labels@886f696738527c7be444262c327c89436dfb95a8 # 1.3.1
+        with:
+          type_labels: '{"feat": "feat", "fix": "fix", "breaking": "breaking", "chore": "no release notes" }'
+          ignored_types: "[]"
+      - name: Check Changelog
+        uses: dangoslen/changelog-enforcer@204e7d3ef26579f4cd0fd759c57032656fdf23c7 # 3.6.1
+        with:
+          skipLabels: no release notes
+          missingUpdateErrorMessage: Please add an entry in CHANGELOG.md or apply the 'no release notes' label to skip this check.
