@@ -14,7 +14,7 @@ jobs:
       - uses: bcoe/conventional-release-labels@886f696738527c7be444262c327c89436dfb95a8 # 1.3.1
         with:
           type_labels: '{"feat": "feat", "fix": "fix", "breaking": "breaking", "chore": "no release notes" }'
-          ignored_types: ""
+          ignored_types: "[]"
       - name: Check Changelog
         uses: dangoslen/changelog-enforcer@204e7d3ef26579f4cd0fd759c57032656fdf23c7 # 3.6.1
         with:
