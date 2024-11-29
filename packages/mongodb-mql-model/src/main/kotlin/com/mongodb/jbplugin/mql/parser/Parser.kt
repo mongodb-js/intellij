@@ -91,6 +91,24 @@ fun <I, E, O, OO> Parser<I, E, O>.map(mapFn: (O) -> OO): Parser<I, E, OO> {
 }
 
 /**
+ * Returns a new parser that maps the output to a new type that can be an error or a success
+ * value.
+ */
+fun <I, E, O, EE, OO> Parser<I, E, O>.flatMap(
+    mapFn: suspend (O) -> Either<EE, OO>
+): Parser<I, Either<E, EE>, OO> {
+    return { input ->
+        when (val result = this(input)) {
+            is Either.Left -> Either.left(Either.left(result.value))
+            is Either.Right -> when (val mappingResult = mapFn(result.value)) {
+                is Either.Left -> Either.left(Either.right(mappingResult.value))
+                is Either.Right -> Either.right(mappingResult.value)
+            }
+        }
+    }
+}
+
+/**
  * Returns a new parser that maps the output to a new type.
  */
 inline fun <reified OO, I, E, O> Parser<I, E, O>.mapAs(): Parser<I, E, OO> {
@@ -280,6 +298,16 @@ private val PARSER = Executors.newWorkStealingPool(4).asCoroutineDispatcher()
 fun <I, E, O> Parser<I, E, O>.parse(input: I): Either<E, O> {
     return runBlocking(PARSER) {
         this@parse(input)
+    }
+}
+
+fun <I, E> requireNonNull(err: E): Parser<I?, E, I> {
+    return { input ->
+        if (input == null) {
+            Either.left(err)
+        } else {
+            Either.right(input)
+        }
     }
 }
 

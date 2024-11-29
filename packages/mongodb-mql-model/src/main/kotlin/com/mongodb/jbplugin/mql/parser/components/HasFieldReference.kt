@@ -1,6 +1,5 @@
 package com.mongodb.jbplugin.mql.parser.components
 
-import com.mongodb.jbplugin.mql.HasChildren
 import com.mongodb.jbplugin.mql.Node
 import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasFieldReference
@@ -30,7 +29,7 @@ fun <S> allNodesWithSchemaFieldReferences(): Parser<Node<S>, NoFieldReferences, 
             val currentNode = if (isSchemaFieldReference) listOf(node) else emptyList()
 
             val childNodes = node.componentsWithChildren()
-                .flatMap { (it as HasChildren<S>).children }
+                .flatMap { it.children }
                 .flatMap(::gatherSchemaFieldReferenceNodes)
 
             return currentNode + childNodes
