@@ -590,7 +590,13 @@ public class Repository {
                             <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">getBadFieldName()</warning>
                         ),
                         avgCountAcc,
-                        getAvgCountAcc()
+                        getAvgCountAcc(),
+                        Accumulators.topN(
+                            "totalCount",
+                            Sorts.ascending("otherField"),
+                            <warning descr="Field \"nonExistentField\" does not exist in collection \"myDatabase.myCollection\"">getBadFieldName()</warning>,
+                            3
+                        )
                     )
                 ));
     }
