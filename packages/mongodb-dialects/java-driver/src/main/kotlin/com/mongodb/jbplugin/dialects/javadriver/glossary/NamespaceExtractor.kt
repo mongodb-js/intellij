@@ -4,7 +4,6 @@
 
 package com.mongodb.jbplugin.dialects.javadriver.glossary
 
-import com.intellij.database.util.common.containsElements
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScopes
 import com.intellij.psi.search.searches.ReferencesSearch
@@ -13,7 +12,6 @@ import com.mongodb.jbplugin.mql.Namespace
 import com.mongodb.jbplugin.mql.adt.Either
 import com.mongodb.jbplugin.mql.components.HasCollectionReference
 
-@Suppress("ktlint") // it seems the class is too complex for ktlint to understand it
 object NamespaceExtractor {
     fun extractNamespace(query: PsiElement): HasCollectionReference<PsiElement> {
         val currentClass = query.findContainingClass()
@@ -33,29 +31,39 @@ object NamespaceExtractor {
             }
         }
 
-        val database = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.DATABASE }
-        val collection = fillingExpressions.firstOrNull { it.first.concept == AssignmentConcept.COLLECTION }
+        val database = fillingExpressions.firstOrNull {
+            it.first.concept ==
+                AssignmentConcept.DATABASE
+        }
+        val collection = fillingExpressions.firstOrNull {
+            it.first.concept ==
+                AssignmentConcept.COLLECTION
+        }
 
         if (database == null && collection != null) {
             return HasCollectionReference(
-              HasCollectionReference.OnlyCollection(collection.first.usagePoint, collection.second.tryToResolveAsConstantString()!!)
+                HasCollectionReference.OnlyCollection(
+                    collection.first.usagePoint,
+                    collection.second.tryToResolveAsConstantString()!!
+                )
             )
         }
 
         if (database != null && collection != null) {
             return HasCollectionReference(
-              HasCollectionReference.Known(
-                database.first.usagePoint, collection.first.usagePoint,
-                Namespace(
-                  database.second.tryToResolveAsConstantString()!!,
-                  collection.second.tryToResolveAsConstantString()!!,
+                HasCollectionReference.Known(
+                    database.first.usagePoint,
+                    collection.first.usagePoint,
+                    Namespace(
+                        database.second.tryToResolveAsConstantString()!!,
+                        collection.second.tryToResolveAsConstantString()!!,
+                    )
                 )
-              )
             )
         }
 
         return HasCollectionReference(
-          HasCollectionReference.Unknown.cast(),
+            HasCollectionReference.Unknown.cast(),
         )
     }
 
@@ -65,12 +73,15 @@ object NamespaceExtractor {
      * (for example, a BaseDao con have multiple implementations) we only care for now
      * on our class.
      */
-    private fun findFillingExpressionForGivenResolvable(resolvable: Resolvable, currentClass: PsiClass): Either<PsiElement, PsiReference>? {
+    private fun findFillingExpressionForGivenResolvable(
+        resolvable: Resolvable,
+        currentClass: PsiClass
+    ): Either<PsiElement, PsiReference>? {
         val maxReferenceDepth = 50
 
         if (resolvable.inputReference == null) {
             val asConstant = resolvable.usagePoint.tryToResolveAsConstant()
-            return if(asConstant.first) Either.left(resolvable.usagePoint) else null
+            return if (asConstant.first) Either.left(resolvable.usagePoint) else null
         }
 
         var currentRef: Either<PsiElement, PsiReference> = resolvable.inputReference
@@ -87,7 +98,10 @@ object NamespaceExtractor {
 
             val referencedElement = (currentRef as Either.Right).value.resolve()
             val nextReference = when (referencedElement) {
-                is PsiParameter -> findTopmostCallingReferenceToParameter(referencedElement, currentClass)
+                is PsiParameter -> findTopmostCallingReferenceToParameter(
+                    referencedElement,
+                    currentClass
+                )
                 is PsiField -> if (referencedElement.initializer != null) {
                     referencedElement.initializer?.reference?.let { Either.right(it) }
                 } else {
@@ -110,7 +124,11 @@ object NamespaceExtractor {
 
         return when (currentRef) {
             is Either.Right ->
-                if (!doShareHierarchy(currentRef.value.element.findContainingClass(), currentClass)) {
+                if (!doShareHierarchy(
+                        currentRef.value.element.findContainingClass(),
+                        currentClass
+                    )
+                ) {
                     Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
                 } else if (currentRef.value.element.findContainingClass() == currentClass) {
                     Either.Left(currentRef.value.element) as Either<PsiElement, PsiReference>
@@ -143,29 +161,38 @@ object NamespaceExtractor {
 
     private fun findAllConstructorsExposingField(psiField: PsiField): List<PsiMethod> =
         psiField.containingClass?.constructors?.filter {
-            it.findAllChildrenOfType(PsiAssignmentExpression::class.java).containsElements {
+            it.findAllChildrenOfType(PsiAssignmentExpression::class.java).any {
                 it.lExpression.reference?.resolve() == psiField
-            } || it.body?.text?.contains("this(") == true
+            } ||
+                it.body?.text?.contains("this(") == true
         } ?: emptyList()
 
     private fun findTopmostCallingReferenceToParameter(psiParameter: PsiParameter, currentClass: PsiClass): Either<PsiElement, PsiReference>? {
         val method = psiParameter.findContainingMethod() ?: return null
 
         val searchParams = ReferencesSearch.SearchParameters(
-          method,
-          GlobalSearchScopes.projectProductionScope(currentClass.project),
-          false
+            method,
+            GlobalSearchScopes.projectProductionScope(currentClass.project),
+            false
         )
 
-        val methodCalls = ReferencesSearch.search(searchParams).findAll().mapNotNull { it.element.parent }.filterIsInstance<PsiMethodCallExpression>()
+        val methodCalls = ReferencesSearch.search(searchParams).findAll().mapNotNull {
+            it.element.parent
+        }.filterIsInstance<PsiMethodCallExpression>()
         // from these method calls we know which argument is relevant for us
         // we can just gather it by index and check if we can resolve it
         val paramIndex = psiParameter.index
         return methodCalls.firstNotNullOfOrNull { methodCall ->
             methodCall.argumentList.expressions.getOrNull(paramIndex)?.let {
-                if (it.reference == null && doesClassInherit(it.findContainingClass(), currentClass)) {
+                if (it.reference == null &&
+                    doesClassInherit(it.findContainingClass(), currentClass)
+                ) {
                     Either.left(it)
-                } else if (doesClassInherit(it.reference?.element?.findContainingClass(), currentClass)) {
+                } else if (doesClassInherit(
+                        it.reference?.element?.findContainingClass(),
+                        currentClass
+                    )
+                ) {
                     Either.right(it.reference!!)
                 } else {
                     null
@@ -190,23 +217,28 @@ object NamespaceExtractor {
         // now, we need to find out references to other method that might return a mongodb type,
         // strings, or are from a super class
         val allMethods = currentMethod.findAllChildrenOfType(PsiMethodCallExpression::class.java)
-          .filter {
-              it.type?.isMongoDbCollectionClass(query.project) == true||
-              it.type?.isMongoDbDatabaseClass(query.project) == true ||
-              it.type?.canonicalText?.endsWith("String") == true ||
-                (it.fuzzyResolveMethod() != null &&
-                  doesClassInherit(it.fuzzyResolveMethod()?.containingClass!!, currentClass)
-                  )
-
-          }.mapNotNull {
-              it.fuzzyResolveMethod()
-          }.toSet()
+            .filter {
+                it.type?.isMongoDbCollectionClass(query.project) == true ||
+                    it.type?.isMongoDbDatabaseClass(query.project) == true ||
+                    it.type?.canonicalText?.endsWith("String") == true ||
+                    (
+                        it.fuzzyResolveMethod() != null &&
+                            doesClassInherit(
+                                it.fuzzyResolveMethod()?.containingClass!!,
+                                currentClass
+                            )
+                        )
+            }.mapNotNull {
+                it.fuzzyResolveMethod()
+            }.toSet()
 
         val allTransitiveMethods = allMethods.flatMap {
             it.findAllChildrenOfType(PsiMethodCallExpression::class.java)
         }.flatMap {
             val method = it.resolveMethod() ?: return@flatMap emptySet()
-            if (method.containingClass == currentClass || doesClassInherit(method.containingClass!!, currentClass)) {
+            if (method.containingClass == currentClass ||
+                doesClassInherit(method.containingClass!!, currentClass)
+            ) {
                 setOf(method)
             } else {
                 emptySet()
@@ -224,61 +256,87 @@ object NamespaceExtractor {
      */
     private fun findAllResolvableConceptsInMethod(method: PsiMethod): Set<Resolvable> {
         return method.findAllChildrenOfType(PsiExpression::class.java)
-          .filter {
-              it.type?.isMongoDbClass(method.project) == true
-          }.flatMap {
-              when (it) {
-                  is PsiMethodCallExpression -> {
-                      val method = it.fuzzyResolveMethod()
-                      if (method == null) {
-                          return@flatMap emptySet<Resolvable>()
-                      }
+            .filter {
+                it.type?.isMongoDbClass(method.project) == true
+            }.flatMap {
+                when (it) {
+                    is PsiMethodCallExpression -> {
+                        val method = it.fuzzyResolveMethod()
+                        if (method == null) {
+                            return@flatMap emptySet<Resolvable>()
+                        }
 
-                      if (it.argumentList.expressions.size == 0) { // unknown method, so go inside
-                          return@flatMap findAllResolvableConceptsInMethod(method)
-                      }
+                        if (it.argumentList.expressions.size == 0) { // unknown method, so go inside
+                            return@flatMap findAllResolvableConceptsInMethod(method)
+                        }
 
-                      val arg = it.argumentList.expressions.firstOrNull {
-                          it.type?.canonicalText?.endsWith("String") == true
-                      } ?: return@flatMap emptyList()
+                        val arg = it.argumentList.expressions.firstOrNull {
+                            it.type?.canonicalText?.endsWith("String") == true
+                        } ?: return@flatMap emptyList()
 
-                      when (method.name) {
-                          "getCollection" -> listOf(Resolvable(
-                            AssignmentConcept.COLLECTION, arg, arg.reference?.let { Either.right(it) }
-                          ))
-                          "getDatabase" -> listOf(Resolvable(
-                            AssignmentConcept.DATABASE, arg, arg.reference?.let { Either.right(it) }
-                          ))
-                          else -> it.argumentList.expressions.filter {
-                              it.reference?.resolve() is PsiParameter
-                          }.mapNotNull {
-                              val param = it.reference?.resolve() as? PsiParameter
-                              when (param?.name) {
-                                  "collection" -> Resolvable(
-                                    AssignmentConcept.COLLECTION, it, it.reference?.let { Either.right(it) }
-                                  )
-                                  "database" -> Resolvable(
-                                    AssignmentConcept.DATABASE, it, it.reference?.let { Either.right(it) }
-                                  )
-                                  else -> null
-                              }
-                          }
-                      }
-                  } else -> {
-                      if (it.type?.isMongoDbCollectionClass(method.project) == true) {
-                          listOf(Resolvable(
-                            AssignmentConcept.COLLECTION, it, it.reference?.let { Either.right(it) }
-                          ))
-                      } else if (it.type?.isMongoDbDatabaseClass(method.project) == true) {
-                          listOf(Resolvable(
-                            AssignmentConcept.DATABASE, it, it.reference?.let { Either.right(it) }
-                          ))
-                      } else {
-                          emptyList()
-                      }
-                  }
-              }
-          }.toSet()
+                        when (method.name) {
+                            "getCollection" -> listOf(
+                                Resolvable(
+                                    AssignmentConcept.COLLECTION,
+                                    arg,
+                                    arg.reference?.let {
+                                        Either.right(it)
+                                    }
+                                )
+                            )
+                            "getDatabase" -> listOf(
+                                Resolvable(
+                                    AssignmentConcept.DATABASE,
+                                    arg,
+                                    arg.reference?.let { Either.right(it) }
+                                )
+                            )
+                            else -> it.argumentList.expressions.filter {
+                                it.reference?.resolve() is PsiParameter
+                            }.mapNotNull {
+                                val param = it.reference?.resolve() as? PsiParameter
+                                when (param?.name) {
+                                    "collection" -> Resolvable(
+                                        AssignmentConcept.COLLECTION,
+                                        it,
+                                        it.reference?.let {
+                                            Either.right(it)
+                                        }
+                                    )
+                                    "database" -> Resolvable(
+                                        AssignmentConcept.DATABASE,
+                                        it,
+                                        it.reference?.let {
+                                            Either.right(it)
+                                        }
+                                    )
+                                    else -> null
+                                }
+                            }
+                        }
+                    } else -> {
+                        if (it.type?.isMongoDbCollectionClass(method.project) == true) {
+                            listOf(
+                                Resolvable(
+                                    AssignmentConcept.COLLECTION,
+                                    it,
+                                    it.reference?.let { Either.right(it) }
+                                )
+                            )
+                        } else if (it.type?.isMongoDbDatabaseClass(method.project) == true) {
+                            listOf(
+                                Resolvable(
+                                    AssignmentConcept.DATABASE,
+                                    it,
+                                    it.reference?.let { Either.right(it) }
+                                )
+                            )
+                        } else {
+                            emptyList()
+                        }
+                    }
+                }
+            }.toSet()
     }
 
     private fun doesClassInherit(parent: PsiClass?, child: PsiClass): Boolean {
