@@ -120,12 +120,14 @@ jmhReport {
 }
 
 tasks {
-    register("buildProperties", WriteProperties::class) {
-        group = "build"
+    if (pluginBundle.enableBundle.get() == true) {
+        register("buildProperties", WriteProperties::class) {
+            group = "build"
 
-        destinationFile.set(project.layout.projectDirectory.file("src/main/resources/build.properties"))
-        property("pluginVersion", rootProject.version)
-        property("segmentApiKey", System.getenv("BUILD_SEGMENT_API_KEY") ?: "<none>")
+            destinationFile.set(project.layout.projectDirectory.file("src/main/resources/build.properties"))
+            property("pluginVersion", rootProject.version)
+            property("segmentApiKey", System.getenv("BUILD_SEGMENT_API_KEY") ?: "<none>")
+        }
     }
 
     named("test", Test::class) {
@@ -204,8 +206,10 @@ tasks {
         version.set(libs.versions.intellij.remoteRobot)
     }
 
-    withType<ProcessResources> {
-        dependsOn("buildProperties")
+    if (pluginBundle.enableBundle.get() == true) {
+        withType<ProcessResources> {
+            dependsOn("buildProperties")
+        }
     }
 
     patchPluginXml {
